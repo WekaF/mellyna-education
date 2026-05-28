@@ -22,7 +22,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     include: {
       class: {
         include: {
-          tutor: { select: { name: true } },
+          tutor: { select: { name: true, phone: true } },
         },
       },
       participants: {
@@ -60,6 +60,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   // Dispatch WA messages asynchronously so it doesn't block the API response
   Promise.resolve().then(async () => {
+    // Notify all participants' parents
     for (const p of scheduleWithDetails.participants) {
       const parent = p.student.parent
       if (!parent.phone) continue
@@ -82,6 +83,30 @@ Mellyna Education`
         console.log(`[WAHA Broadcast] Successfully sent schedule notification to parent ${parent.name}`)
       } else {
         console.error(`[WAHA Broadcast] Failed to send schedule notification to parent ${parent.name}`)
+      }
+    }
+
+    // Notify the tutor
+    const tutor = scheduleWithDetails.class.tutor
+    if (tutor.phone) {
+      const studentNames = scheduleWithDetails.participants.map((p: { student: { name: string } }) => p.student.name).join(', ')
+      const tutorMessage = `Halo ${tutor.name},
+
+Anda mendapatkan jadwal mengajar:
+🏫 Kelas: ${scheduleWithDetails.class.name}
+🕐 Waktu: ${dateStr}, ${timeStr}${topicStr}${locationStr}
+👥 Peserta (${scheduleWithDetails.participants.length} siswa): ${studentNames}
+
+Silakan konfirmasi kehadiran siswa setelah sesi selesai melalui portal tutor.
+
+Mellyna Education`
+
+      console.log(`[WAHA Broadcast] Sending schedule notification to tutor ${tutor.name} (${tutor.phone})`)
+      const success = await sendWhatsApp(tutor.phone, tutorMessage)
+      if (success) {
+        console.log(`[WAHA Broadcast] Successfully sent schedule notification to tutor ${tutor.name}`)
+      } else {
+        console.error(`[WAHA Broadcast] Failed to send schedule notification to tutor ${tutor.name}`)
       }
     }
   }).catch(console.error)
