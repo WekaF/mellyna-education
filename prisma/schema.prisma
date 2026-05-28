@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  TUTOR
+  PARENT
+}
+
+enum ScheduleStatus {
+  DRAFT
+  PUBLISHED
+  COMPLETED
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  SICK
+  PERMISSION
+}
+
+enum MediaType {
+  PHOTO
+  VIDEO
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  EXPIRED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  phone         String?
+  role          Role      @default(PARENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  children      Student[]        @relation("ParentStudents")
+  tutorClasses  Class[]          @relation("TutorClasses")
+  reports       LearningReport[]
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Student {
+  id        String    @id @default(cuid())
+  name      String
+  birthDate DateTime?
+  grade     String?
+  notes     String?
+  parentId  String
+  parent    User      @relation("ParentStudents", fields: [parentId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  enrollments Enrollment[]
+  attendances Attendance[]
+  reports     LearningReport[]
+  invoices    Invoice[]
+}
+
+model Class {
+  id          String   @id @default(cuid())
+  name        String
+  subject     String
+  description String?
+  tutorId     String
+  tutor       User     @relation("TutorClasses", fields: [tutorId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  enrollments Enrollment[]
+  schedules   Schedule[]
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  studentId String
+  classId   String
+  student   Student  @relation(fields: [studentId], references: [id])
+  class     Class    @relation(fields: [classId], references: [id])
+  joinedAt  DateTime @default(now())
+
+  @@unique([studentId, classId])
+}
+
+model Schedule {
+  id          String         @id @default(cuid())
+  classId     String
+  class       Class          @relation(fields: [classId], references: [id])
+  date        DateTime
+  startTime   String
+  endTime     String
+  topic       String?
+  location    String?
+  status      ScheduleStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  attendances Attendance[]
+  reports     LearningReport[]
+}
+
+model Attendance {
+  id         String           @id @default(cuid())
+  studentId  String
+  scheduleId String
+  student    Student          @relation(fields: [studentId], references: [id])
+  schedule   Schedule         @relation(fields: [scheduleId], references: [id])
+  status     AttendanceStatus @default(PRESENT)
+  notes      String?
+  markedAt   DateTime         @default(now())
+
+  @@unique([studentId, scheduleId])
+}
+
+model LearningReport {
+  id         String   @id @default(cuid())
+  studentId  String
+  scheduleId String
+  tutorId    String
+  student    Student  @relation(fields: [studentId], references: [id])
+  schedule   Schedule @relation(fields: [scheduleId], references: [id])
+  tutor      User     @relation(fields: [tutorId], references: [id])
+  content    String   @db.Text
+  score      Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  media Media[]
+
+  @@unique([studentId, scheduleId])
+}
+
+model Media {
+  id        String         @id @default(cuid())
+  reportId  String
+  report    LearningReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  url       String
+  type      MediaType
+  filename  String
+  size      Int
+  createdAt DateTime       @default(now())
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String   @db.Text
+  authorId  String
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Invoice {
+  id          String        @id @default(cuid())
+  studentId   String
+  student     Student       @relation(fields: [studentId], references: [id])
+  amount      Int
+  description String
+  dueDate     DateTime
+  status      InvoiceStatus @default(PENDING)
+  midtransId  String?
+  paidAt      DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  payments Payment[]
+}
+
+model Payment {
+  id           String        @id @default(cuid())
+  invoiceId    String
+  invoice      Invoice       @relation(fields: [invoiceId], references: [id])
+  amount       Int
+  method       String?
+  status       PaymentStatus @default(PENDING)
+  snapToken    String?
+  snapUrl      String?
+  midtransData Json?
+  paidAt       DateTime?
+  createdAt    DateTime      @default(now())
+}
+
+// NextAuth required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
