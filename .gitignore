@@ -31,10 +31,10 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files — NEVER commit secrets
-.env
-.env.local
-.env.*.local
-.env.prod
+# .env
+# .env.local
+# .env.*.local
+# .env.prod
 # .env.example is safe to commit (no secrets)
 
 # vercel

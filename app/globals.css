@@ -1,26 +1,185 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #151f32;
+  --foreground: #f8fafc;
+  --card-bg: #1e293b;
+  --card-border: #334155;
+  --accent-blue: #3b82f6;
+  --accent-purple: #8b5cf6;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: 'Outfit', sans-serif;
+  --font-outfit: 'Outfit', sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #151f32;
+  color: #f8fafc;
+  font-family: 'Outfit', sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
+
+/* Custom transitions and scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #151f32;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Glassmorphism card utilities */
+.sistro-card {
+  background: rgba(30, 41, 59, 0.45);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.15);
+}
+
+.sistro-gradient {
+  background: linear-gradient(135deg, #1e293b 0%, #151f32 100%);
+}
+
+/* Premium SISTRO-style overrides for the dashboard */
+
+/* Cards container transformation */
+main .bg-white,
+main [class*="bg-white"] {
+  background: rgba(30, 41, 59, 0.45) !important;
+  backdrop-filter: blur(12px) !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  color: #f8fafc !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Adjust borders and dividers */
+main .border-slate-100, 
+main .border-slate-200, 
+main .border-gray-100, 
+main .border-gray-200,
+main .divide-slate-100 > *,
+main .divide-y > * {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Typography alignment */
+main h1, main h2, main h3, main h4, main h5, main h6,
+main .text-slate-800, main .text-slate-900, main .text-gray-800, main .text-gray-900 {
+  color: #ffffff !important;
+}
+
+main .text-slate-500, main .text-slate-600, main .text-gray-500, main .text-gray-600 {
+  color: #94a3b8 !important;
+}
+
+main .text-slate-400, main .text-gray-400 {
+  color: #64748b !important;
+}
+
+/* Outer/Inner list elements bg */
+main .bg-slate-50, main .bg-gray-50 {
+  background: rgba(15, 23, 42, 0.3) !important;
+}
+
+/* Tables style mapping */
+main table {
+  background: transparent !important;
+}
+
+main thead {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+main th {
+  color: #94a3b8 !important;
+  font-weight: 600 !important;
+}
+
+main tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
+
+main tr:hover {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Form controls styling */
+main input, 
+main select, 
+main textarea {
+  background: rgba(15, 23, 42, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  border-radius: 0.75rem !important;
+  padding: 0.625rem 0.875rem !important;
+  font-size: 0.875rem !important;
+  transition: all 0.2s ease !important;
+}
+
+main input:focus, 
+main select:focus, 
+main textarea:focus {
+  border-color: #3b82f6 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Checkboxes and custom radio lists */
+main input[type="checkbox"], 
+main input[type="radio"] {
+  accent-color: #3b82f6 !important;
+  width: 1rem !important;
+  height: 1rem !important;
+}
+
+/* Badges and Alert boxes */
+main .bg-indigo-50 {
+  background: rgba(99, 102, 241, 0.12) !important;
+  color: #818cf8 !important;
+  border: 1px solid rgba(99, 102, 241, 0.2) !important;
+}
+
+main .bg-emerald-50 {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+}
+
+main .bg-amber-50 {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.2) !important;
+}
+
+main .bg-rose-50 {
+  background: rgba(244, 63, 94, 0.12) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(244, 63, 94, 0.2) !important;
+}
+
+/* Hover effects for primary list links */
+main .hover\:bg-slate-50:hover {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Modals overlays & popups background styling */
+[class*="fixed inset-0"] {
+  backdrop-filter: blur(8px) !important;
+  background-color: rgba(15, 23, 42, 0.75) !important;
+}
+

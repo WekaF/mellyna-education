@@ -105,35 +105,48 @@ export default function Sidebar({ user }: SidebarProps) {
   }
 
   const SidebarContent = () => (
-    <div className="flex h-full flex-col bg-slate-900 text-slate-100 p-6 border-r border-slate-800 shadow-xl">
-      {/* Brand Header */}
-      <div className="flex items-center gap-3 pb-6 border-b border-slate-800 mb-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-xl shadow-md shadow-indigo-600/20">
-          🎓
+    <div className="flex h-full flex-col bg-[#111a2e] text-slate-200 p-6 border-r border-slate-800/60 shadow-2xl relative overflow-hidden select-none">
+      {/* Dynamic background glow */}
+      <div className="absolute top-0 left-0 w-full h-[300px] bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none z-0" />
+
+      {/* Brand Header / Company Switcher style */}
+      <div className="relative z-10 flex items-center gap-3 pb-6 border-b border-slate-800/60 mb-6">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-2xl shadow-lg shadow-blue-500/20 text-white font-bold transform transition-transform hover:rotate-6">
+          M
         </div>
         <div>
-          <h1 className="font-bold text-lg leading-tight tracking-tight text-white">
-            Mellyna Education
+          <h1 className="font-extrabold text-[15px] leading-tight tracking-wide text-white uppercase">
+            Mellyna Ed.
           </h1>
-          <p className="text-xs text-slate-400 font-medium">Bimbel Anak Terpercaya</p>
+          <p className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase mt-0.5">Academic System</p>
         </div>
       </div>
 
       {/* User Session Profile Card */}
-      <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-slate-800/40 border border-slate-800/50 mb-6">
-        <div className="text-sm font-semibold truncate text-white">
-          {user.name || 'User'}
+      <div className="relative z-10 flex flex-col gap-2 p-4 rounded-xl bg-slate-800/30 border border-slate-800/40 mb-6 backdrop-blur-xs">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-sm text-blue-400 uppercase">
+            {(user.name || 'U').substring(0, 2)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-semibold truncate text-white">
+              {user.name || 'User'}
+            </div>
+            <div className="text-[10px] text-slate-400 truncate mt-0.5">
+              {user.email || ''}
+            </div>
+          </div>
         </div>
-        <div className="text-xs text-slate-400 truncate mb-1">
-          {user.email || ''}
+        <div className="flex items-center justify-between border-t border-slate-800/60 pt-2.5 mt-1">
+          <span className="text-[9px] text-slate-400 font-medium uppercase tracking-wider">Role</span>
+          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${getRoleBadge(user.role)}`}>
+            {getRoleLabel(user.role)}
+          </span>
         </div>
-        <span className={`inline-block self-start text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${getRoleBadge(user.role)}`}>
-          {getRoleLabel(user.role)}
-        </span>
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 space-y-1.5 overflow-y-auto pr-1">
+      <nav className="relative z-10 flex-1 space-y-1 overflow-y-auto pr-1">
         {links.length > 0 ? (
           links.map((link) => {
             const active = isActiveLink(link.href)
@@ -143,19 +156,19 @@ export default function Sidebar({ user }: SidebarProps) {
                 key={link.name}
                 href={link.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
+                className={`group flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide uppercase transition-all duration-200 cursor-pointer ${
                   active
-                    ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/10'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                    ? 'bg-gradient-to-r from-blue-600/20 to-indigo-600/10 border-l-4 border-blue-500 text-white font-bold shadow-xs'
+                    : 'text-slate-400 border-l-4 border-transparent hover:text-white hover:bg-slate-800/30'
                 }`}
               >
-                <Icon className={`h-4.5 w-4.5 transition-colors ${active ? 'text-white' : 'text-slate-400 group-hover:text-white'}`} />
+                <Icon className={`h-4.5 w-4.5 transition-colors ${active ? 'text-blue-400' : 'text-slate-400 group-hover:text-white'}`} />
                 <span>{link.name}</span>
               </Link>
             )
           })
         ) : (
-          <div className="text-xs text-slate-500 text-center py-4 bg-slate-800/40 rounded-xl border border-slate-800/50">
+          <div className="text-[11px] text-slate-500 text-center py-4 bg-slate-800/20 rounded-xl border border-slate-800/40">
             Tidak ada menu untuk role: <br/>
             <span className="font-bold text-slate-300 mt-1 inline-block">{user.role || 'UNDEFINED'}</span>
           </div>
@@ -163,10 +176,10 @@ export default function Sidebar({ user }: SidebarProps) {
       </nav>
 
       {/* Footer Sign Out */}
-      <div className="pt-6 border-t border-slate-800 mt-auto">
+      <div className="relative z-10 pt-4 border-t border-slate-800/60 mt-auto">
         <button
           onClick={handleSignOut}
-          className="flex w-full items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-all duration-200 cursor-pointer border border-transparent hover:border-rose-500/20 active:scale-98"
+          className="flex w-full items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-rose-400/80 hover:bg-rose-500/10 hover:text-rose-300 transition-all duration-200 cursor-pointer border border-transparent hover:border-rose-500/10 active:scale-98"
         >
           <LogOut className="h-4.5 w-4.5" />
           <span>Keluar</span>
@@ -178,16 +191,18 @@ export default function Sidebar({ user }: SidebarProps) {
   return (
     <>
       {/* Mobile Top Header (only visible on mobile screens) */}
-      <div className="flex items-center justify-between bg-slate-900 border-b border-slate-800 px-6 py-4 text-white md:hidden sticky top-0 z-40">
+      <div className="flex items-center justify-between bg-[#111a2e] border-b border-slate-800 px-6 py-4 text-white md:hidden sticky top-0 z-40">
         <div className="flex items-center gap-3">
-          <span className="text-xl">🎓</span>
-          <span className="font-bold tracking-tight">Mellyna Education</span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-lg shadow-md text-white font-bold">
+            M
+          </div>
+          <span className="font-bold tracking-tight text-sm uppercase">Mellyna Education</span>
         </div>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+          className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
         >
-          {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
@@ -201,7 +216,7 @@ export default function Sidebar({ user }: SidebarProps) {
         <div className="md:hidden">
           {/* Backdrop Overlay */}
           <div
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 transition-opacity"
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-40 transition-opacity duration-300"
             onClick={() => setIsOpen(false)}
           />
           {/* Drawer Panel */}
