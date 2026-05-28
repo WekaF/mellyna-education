@@ -23,12 +23,12 @@ export async function GET(req: NextRequest) {
   if (role === 'PARENT') {
     students = await prisma.student.findMany({
       where: { parentId: userId },
-      include: { parent: { select: { name: true, email: true } } },
+      include: { parent: { select: { name: true, email: true, phone: true } } },
       orderBy: { createdAt: 'desc' },
     })
   } else {
     students = await prisma.student.findMany({
-      include: { parent: { select: { name: true, email: true } } },
+      include: { parent: { select: { name: true, email: true, phone: true } } },
       orderBy: { createdAt: 'desc' },
     })
   }
