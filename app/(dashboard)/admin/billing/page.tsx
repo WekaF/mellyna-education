@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Plus } from 'lucide-react'
+import { type ColumnDef } from '@tanstack/react-table'
+import DataTable from '@/components/common/DataTable'
 import { formatRupiah } from '@/lib/utils'
 
 interface Invoice {
@@ -51,7 +53,10 @@ export default function AdminBillingPage() {
     }
   }, [])
 
-  useEffect(() => { fetchInvoices(); fetchStudentList() }, [fetchInvoices, fetchStudentList])
+  useEffect(() => {
+    fetchInvoices()
+    fetchStudentList()
+  }, [fetchInvoices, fetchStudentList])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,6 +79,47 @@ export default function AdminBillingPage() {
     }
   }
 
+  const columns = useMemo<ColumnDef<Invoice>[]>(() => [
+    {
+      id: 'student',
+      accessorFn: (row) => row.student.name,
+      header: 'Siswa',
+      cell: ({ getValue }) => (
+        <span className="font-semibold text-slate-800">{getValue() as string}</span>
+      ),
+    },
+    {
+      accessorKey: 'description',
+      header: 'Keterangan',
+      cell: ({ getValue }) => <span className="text-slate-600">{getValue() as string}</span>,
+    },
+    {
+      accessorKey: 'amount',
+      header: 'Nominal',
+      cell: ({ getValue }) => (
+        <span className="font-bold text-slate-800">{formatRupiah(getValue() as number)}</span>
+      ),
+    },
+    {
+      id: 'dueDate',
+      accessorFn: (row) => new Date(row.dueDate).toLocaleDateString('id-ID'),
+      header: 'Jatuh Tempo',
+      cell: ({ getValue }) => <span className="text-slate-500">{getValue() as string}</span>,
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ getValue }) => {
+        const cfg = statusConfig[getValue() as Invoice['status']]
+        return (
+          <span className={`inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full ${cfg.color}`}>
+            {cfg.label}
+          </span>
+        )
+      },
+    },
+  ], [])
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -89,7 +135,11 @@ export default function AdminBillingPage() {
         </button>
       </div>
 
-      {error && <div className="rounded-xl bg-rose-50 border border-rose-100 px-4 py-3 text-sm text-rose-600">⚠️ {error}</div>}
+      {error && (
+        <div className="rounded-xl bg-rose-50 border border-rose-100 px-4 py-3 text-sm text-rose-600">
+          ⚠️ {error}
+        </div>
+      )}
 
       {showForm && (
         <div className="rounded-2xl bg-white border border-indigo-100 shadow-md p-6">
@@ -144,49 +194,34 @@ export default function AdminBillingPage() {
               />
             </div>
             <div className="sm:col-span-2 flex gap-3">
-              <button type="submit" disabled={saving} className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer disabled:opacity-50">
+              <button
+                type="submit"
+                disabled={saving}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer disabled:opacity-50"
+              >
                 {saving ? 'Menyimpan...' : 'Buat Invoice'}
               </button>
-              <button type="button" onClick={() => setShowForm(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer">Batal</button>
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer"
+              >
+                Batal
+              </button>
             </div>
           </form>
         </div>
       )}
 
       <div className="rounded-2xl bg-white border border-slate-100 shadow-xs overflow-hidden">
-        {loading ? (
-          <div className="p-10 text-center"><div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-r-transparent" /></div>
-        ) : invoices.length === 0 ? (
-          <div className="p-10 text-center text-slate-400"><p className="text-3xl">💰</p><p className="mt-2 text-sm">Belum ada tagihan.</p></div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50">
-                  {['Siswa', 'Keterangan', 'Nominal', 'Jatuh Tempo', 'Status'].map((h) => (
-                    <th key={h} className="text-left px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {invoices.map((inv) => {
-                  const cfg = statusConfig[inv.status]
-                  return (
-                    <tr key={inv.id} className="hover:bg-slate-50/50">
-                      <td className="px-6 py-4 font-semibold text-slate-800">{inv.student.name}</td>
-                      <td className="px-6 py-4 text-slate-600">{inv.description}</td>
-                      <td className="px-6 py-4 font-bold text-slate-800">{formatRupiah(inv.amount)}</td>
-                      <td className="px-6 py-4 text-slate-500">{new Date(inv.dueDate).toLocaleDateString('id-ID')}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full ${cfg.color}`}>{cfg.label}</span>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable
+          columns={columns}
+          data={invoices}
+          loading={loading}
+          searchPlaceholder="Cari siswa, keterangan, status..."
+          emptyMessage="Belum ada tagihan."
+          emptyIcon="💰"
+        />
       </div>
     </div>
   )
