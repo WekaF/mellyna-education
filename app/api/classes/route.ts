@@ -25,6 +25,11 @@ export async function GET(req: NextRequest) {
       include: {
         tutor: { select: { name: true, email: true } },
         _count: { select: { enrollments: true } },
+        enrollments: {
+          include: {
+            student: { select: { id: true, name: true, grade: true } },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     })
@@ -33,6 +38,11 @@ export async function GET(req: NextRequest) {
       include: {
         tutor: { select: { name: true, email: true } },
         _count: { select: { enrollments: true } },
+        enrollments: {
+          include: {
+            student: { select: { id: true, name: true, grade: true } },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     })
