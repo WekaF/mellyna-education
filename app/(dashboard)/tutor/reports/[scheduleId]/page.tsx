@@ -195,8 +195,8 @@ export default function TutorReportsPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {students.map((student, idx) => {
-            const entry = entries[idx]
+          {students.map((student) => {
+            const entry = entries.find((e) => e.studentId === student.id)
             const isSaved = successIds.has(student.id)
             return (
               <div
@@ -225,8 +225,8 @@ export default function TutorReportsPage() {
                       value={entry?.content || ''}
                       onChange={(e) =>
                         setEntries((prev) =>
-                          prev.map((en, i) =>
-                            i === idx ? { ...en, content: e.target.value } : en
+                          prev.map((en) =>
+                            en.studentId === student.id ? { ...en, content: e.target.value } : en
                           )
                         )
                       }
@@ -247,8 +247,8 @@ export default function TutorReportsPage() {
                         value={entry?.score || ''}
                         onChange={(e) =>
                           setEntries((prev) =>
-                            prev.map((en, i) =>
-                              i === idx ? { ...en, score: e.target.value } : en
+                            prev.map((en) =>
+                              en.studentId === student.id ? { ...en, score: e.target.value } : en
                             )
                           )
                         }

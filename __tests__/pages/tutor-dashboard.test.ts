@@ -14,7 +14,7 @@ describe('tutor dashboard new badge logic', () => {
   })
 
   it('does not mark DRAFT schedule as new (no publishedAt)', () => {
-    const publishedAt: Date | null = null
+    const publishedAt = null as Date | null
     const now = Date.now()
     const isNew = publishedAt !== null && (now - publishedAt.getTime()) < 24 * 60 * 60 * 1000
     expect(isNew).toBe(false)
