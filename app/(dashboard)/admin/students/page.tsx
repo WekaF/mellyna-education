@@ -20,6 +20,7 @@ export default function AdminStudentsPage() {
   const [form, setForm] = useState({ name: '', grade: '', parentId: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [parents, setParents] = useState<{ id: string; name: string; email: string }[]>([])
 
   const fetchStudents = useCallback(async () => {
     setLoading(true)
@@ -34,7 +35,16 @@ export default function AdminStudentsPage() {
     }
   }, [])
 
-  useEffect(() => { fetchStudents() }, [fetchStudents])
+  const fetchParents = useCallback(async () => {
+    try {
+      const res = await fetch('/api/users?role=PARENT')
+      setParents(await res.json())
+    } catch {
+      console.error('Gagal memuat data orang tua.')
+    }
+  }, [])
+
+  useEffect(() => { fetchStudents(); fetchParents() }, [fetchStudents, fetchParents])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -135,14 +145,20 @@ export default function AdminStudentsPage() {
             </div>
             {!editId && (
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">ID Orang Tua *</label>
-                <input
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Orang Tua *</label>
+                <select
                   required
                   value={form.parentId}
                   onChange={(e) => setForm({ ...form, parentId: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500"
-                  placeholder="User ID orang tua"
-                />
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 bg-white"
+                >
+                  <option value="">Pilih Orang Tua</option>
+                  {parents.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.email})
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
             <div className="sm:col-span-3 flex gap-3">
