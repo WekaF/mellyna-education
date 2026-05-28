@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const role = (session.user as any).role
+  const userId = (session.user as any).id
   if (role !== 'SUPER_ADMIN' && role !== 'TUTOR') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
@@ -31,6 +32,13 @@ export async function POST(req: NextRequest) {
     // Validate size
     if (file.size > MAX_SIZE) {
       return NextResponse.json({ error: 'Ukuran file melebihi batas 50MB.' }, { status: 400 })
+    }
+
+    // Verify the report exists and belongs to this tutor
+    const report = await prisma.learningReport.findUnique({ where: { id: reportId } })
+    if (!report) return NextResponse.json({ error: 'Report tidak ditemukan.' }, { status: 404 })
+    if (role === 'TUTOR' && report.tutorId !== userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())

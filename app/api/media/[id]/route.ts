@@ -38,6 +38,8 @@ export async function DELETE(
     await deleteFile(key).catch((err) =>
       console.error('[Media Delete] MinIO delete failed, continuing with DB delete:', err)
     )
+  } else {
+    console.warn(`[Media Delete] Could not extract key from URL: ${media.url}`)
   }
 
   await prisma.media.delete({ where: { id } })
