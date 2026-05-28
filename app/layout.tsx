@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
 import { Providers } from './providers'
 
@@ -15,20 +16,20 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id">
-      <head>
-        <script
-          src={
-            process.env.MIDTRANS_IS_PRODUCTION === 'true'
-              ? 'https://app.midtrans.com/snap/snap.js'
-              : 'https://app.sandbox.midtrans.com/snap/snap.js'
-          }
-          data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
-          defer
-        />
-      </head>
+    <html lang="id" suppressHydrationWarning>
       <body className={`${inter.className} antialiased`}>
         <Providers>{children}</Providers>
+        {process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY && (
+          <Script
+            src={
+              process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === 'true'
+                ? 'https://app.midtrans.com/snap/snap.js'
+                : 'https://app.sandbox.midtrans.com/snap/snap.js'
+            }
+            data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
+            strategy="afterInteractive"
+          />
+        )}
       </body>
     </html>
   )

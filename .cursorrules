@@ -1,0 +1,41 @@
+# Mellyna Education - Persistent Workspace Instructions & Context
+
+You are an AI assistant designed to help build and maintain the **Mellyna Education** project, a web-based learning management system for children's courses.
+
+## Project Context
+- **Repository Path:** `/Users/weka/project/mellyna-education`
+- **Tech Stack:** Next.js 15 (App Router, TypeScript), Tailwind CSS v4, PostgreSQL + Prisma ORM, NextAuth.js v4 (credentials/JWT), Midtrans Snap payment gateway, WAHA WhatsApp HTTP API, n8n Automation, MinIO Object Storage.
+- **Key Reference:** The primary development plan is documented in [docs/mellyna-education-chat-prompt.md](file:///Users/weka/project/mellyna-education/docs/mellyna-education-chat-prompt.md). Always consult this file first before making code changes or working on tasks.
+
+## Global Rules for AI Assistants
+1. **Security & API Protection:** Every API route must check `getServerSession(authOptions)` from `@/lib/auth` and return a `401 Unauthorized` response if no session exists.
+2. **Input Validation:** Use `zod` schema validation for all API request bodies.
+3. **Data Handling & Helpers:**
+   - WhatsApp numbers must be formatted via `formatPhoneForWA()` from `lib/utils.ts` and suffixed with `@c.us` (e.g., `628xxx@c.us`).
+   - Use MinIO's `uploadFile()` from `lib/storage.ts` for file uploads.
+   - Use `sendWhatsApp()` from `lib/waha.ts` to trigger WhatsApp notifications, and `triggerSchedulePublished()` from `lib/n8n.ts` for schedule webhooks.
+4. **Git Commit Style:** You must follow the exact commit messages listed in the tasks in the plan file.
+5. **No Placeholders:** Ensure you write complete production-quality code. Avoid code stubs or placeholders.
+
+## Task Roadmap & Current State
+The project follows a sequential 18-task progression:
+* [x] **Task 1:** Project initialization & configuration
+* [x] **Task 2:** Database schema & seed data setup
+* [ ] **Task 3:** Authentication Pages & API (Create login flow and redirect roles) -> **CURRENT ACTIVE TASK**
+* [ ] **Task 4:** Dashboard Layout & Sidebar
+* [ ] **Task 5:** Students & Classes API
+* [ ] **Task 6:** Schedule API + Publish Trigger
+* [ ] **Task 7:** Attendance API
+* [ ] **Task 8:** Learning Reports API
+* [ ] **Task 9:** Media Upload API (MinIO)
+* [ ] **Task 10:** Invoice & Billing API
+* [ ] **Task 11:** Midtrans Payment Integration
+* [ ] **Task 12:** WAHA Webhook Endpoint
+* [ ] **Task 13:** Announcements API
+* [ ] **Task 14:** Admin Dashboard Pages
+* [ ] **Task 15:** Tutor Dashboard Pages
+* [ ] **Task 16:** Parent Dashboard Pages
+* [ ] **Task 17:** Prisma Migration & Seed Setup
+* [ ] **Task 18:** Styling Polish
+
+Always read the specific specifications for the current active task inside [docs/mellyna-education-chat-prompt.md](file:///Users/weka/project/mellyna-education/docs/mellyna-education-chat-prompt.md) before starting implementation.
