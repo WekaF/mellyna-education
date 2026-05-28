@@ -27,6 +27,7 @@ export default function AdminBillingPage() {
   const [form, setForm] = useState({ studentId: '', amount: '', description: '', dueDate: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [studentList, setStudentList] = useState<{ id: string; name: string; grade: string | null }[]>([])
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true)
@@ -40,7 +41,16 @@ export default function AdminBillingPage() {
     }
   }, [])
 
-  useEffect(() => { fetchInvoices() }, [fetchInvoices])
+  const fetchStudentList = useCallback(async () => {
+    try {
+      const res = await fetch('/api/students')
+      setStudentList(await res.json())
+    } catch {
+      console.error('Gagal memuat daftar siswa.')
+    }
+  }, [])
+
+  useEffect(() => { fetchInvoices(); fetchStudentList() }, [fetchInvoices, fetchStudentList])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,24 +94,54 @@ export default function AdminBillingPage() {
         <div className="rounded-2xl bg-white border border-indigo-100 shadow-md p-6">
           <h2 className="font-bold text-slate-800 mb-4">Buat Invoice Baru</h2>
           <form onSubmit={handleSubmit} className="grid sm:grid-cols-2 gap-4">
-            {[
-              { label: 'ID Siswa *', key: 'studentId', type: 'text', placeholder: 'Student ID' },
-              { label: 'Nominal (Rp) *', key: 'amount', type: 'number', placeholder: '500000' },
-              { label: 'Keterangan *', key: 'description', type: 'text', placeholder: 'mis. Biaya Bimbel Bulan Juni' },
-              { label: 'Jatuh Tempo *', key: 'dueDate', type: 'date', placeholder: '' },
-            ].map(({ label, key, type, placeholder }) => (
-              <div key={key}>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">{label}</label>
-                <input
-                  required
-                  type={type}
-                  value={(form as any)[key]}
-                  onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500"
-                  placeholder={placeholder}
-                />
-              </div>
-            ))}
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Siswa *</label>
+              <select
+                required
+                value={form.studentId}
+                onChange={(e) => setForm({ ...form, studentId: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 bg-white"
+              >
+                <option value="">Pilih Siswa</option>
+                {studentList.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}{s.grade ? ` (${s.grade})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Nominal (Rp) *</label>
+              <input
+                required
+                type="number"
+                value={form.amount}
+                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                placeholder="500000"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Keterangan *</label>
+              <input
+                required
+                type="text"
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                placeholder="mis. Biaya Bimbel Bulan Juni"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Jatuh Tempo *</label>
+              <input
+                required
+                type="date"
+                value={form.dueDate}
+                onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+              />
+            </div>
             <div className="sm:col-span-2 flex gap-3">
               <button type="submit" disabled={saving} className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer disabled:opacity-50">
                 {saving ? 'Menyimpan...' : 'Buat Invoice'}
