@@ -11,6 +11,7 @@ const createScheduleSchema = z.object({
   endTime: z.string().min(1),
   topic: z.string().optional(),
   location: z.string().optional(),
+  studentIds: z.array(z.string().min(1)).min(1, 'Pilih minimal 1 siswa'),
 })
 
 export async function GET(req: NextRequest) {
@@ -26,23 +27,32 @@ export async function GET(req: NextRequest) {
   if (role === 'TUTOR') {
     schedules = await prisma.schedule.findMany({
       where: { class: { tutorId: userId }, ...(classId ? { classId } : {}) },
-      include: { class: { include: { tutor: { select: { name: true } } } } },
+      include: {
+        class: { include: { tutor: { select: { name: true } } } },
+        _count: { select: { participants: true } },
+      },
       orderBy: { date: 'desc' },
     })
   } else if (role === 'PARENT') {
     schedules = await prisma.schedule.findMany({
       where: {
         status: 'PUBLISHED',
-        class: { enrollments: { some: { student: { parentId: userId } } } },
+        participants: { some: { student: { parentId: userId } } },
         ...(classId ? { classId } : {}),
       },
-      include: { class: { include: { tutor: { select: { name: true } } } } },
+      include: {
+        class: { include: { tutor: { select: { name: true } } } },
+        _count: { select: { participants: true } },
+      },
       orderBy: { date: 'desc' },
     })
   } else {
     schedules = await prisma.schedule.findMany({
       where: classId ? { classId } : {},
-      include: { class: { include: { tutor: { select: { name: true } } } } },
+      include: {
+        class: { include: { tutor: { select: { name: true } } } },
+        _count: { select: { participants: true } },
+      },
       orderBy: { date: 'desc' },
     })
   }
@@ -65,8 +75,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
+  const { studentIds, ...scheduleData } = parsed.data
+
   const schedule = await prisma.schedule.create({
-    data: { ...parsed.data, date: new Date(parsed.data.date) },
+    data: { ...scheduleData, date: new Date(scheduleData.date) },
+  })
+
+  await prisma.scheduleParticipant.createMany({
+    data: studentIds.map((studentId) => ({ scheduleId: schedule.id, studentId })),
+    skipDuplicates: true,
   })
 
   return NextResponse.json(schedule, { status: 201 })
