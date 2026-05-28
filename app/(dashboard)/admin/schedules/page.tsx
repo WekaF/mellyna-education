@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Plus, Send } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
@@ -58,7 +58,7 @@ export default function AdminSchedulesPage() {
     fetchClasses()
   }, [fetchSchedules, fetchClasses])
 
-  const handlePublish = async (id: string) => {
+  const handlePublish = useCallback(async (id: string) => {
     setPublishing(id)
     try {
       const res = await fetch(`/api/schedules/${id}/publish`, { method: 'POST' })
@@ -69,7 +69,7 @@ export default function AdminSchedulesPage() {
     } finally {
       setPublishing(null)
     }
-  }
+  }, [fetchSchedules])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -92,7 +92,7 @@ export default function AdminSchedulesPage() {
     }
   }
 
-  const columns: ColumnDef<Schedule>[] = [
+  const columns = useMemo<ColumnDef<Schedule>[]>(() => [
     {
       id: 'class',
       accessorFn: (row) => row.class.name,
@@ -167,7 +167,7 @@ export default function AdminSchedulesPage() {
         )
       },
     },
-  ]
+  ], [publishing, handlePublish])
 
   return (
     <div className="space-y-6">
