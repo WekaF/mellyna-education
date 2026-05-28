@@ -24,8 +24,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       class: {
         include: {
           tutor: { select: { name: true, email: true } },
-          enrollments: { include: { student: true } },
         },
+      },
+      participants: {
+        include: {
+          student: { select: { id: true, name: true, grade: true } },
+        },
+        orderBy: { student: { name: 'asc' } },
       },
       attendances: { include: { student: true } },
     },
