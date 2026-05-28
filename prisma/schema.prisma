@@ -78,7 +78,8 @@ model Student {
   enrollments Enrollment[]
   attendances Attendance[]
   reports     LearningReport[]
-  invoices    Invoice[]
+  invoices             Invoice[]
+  scheduleParticipants ScheduleParticipant[]
 }
 
 model Class {
@@ -120,8 +121,9 @@ model Schedule {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  attendances Attendance[]
-  reports     LearningReport[]
+  attendances  Attendance[]
+  reports      LearningReport[]
+  participants ScheduleParticipant[]
 }
 
 model Attendance {
@@ -135,6 +137,17 @@ model Attendance {
   markedAt   DateTime         @default(now())
 
   @@unique([studentId, scheduleId])
+}
+
+model ScheduleParticipant {
+  id         String   @id @default(cuid())
+  scheduleId String
+  studentId  String
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([scheduleId, studentId])
 }
 
 model LearningReport {
