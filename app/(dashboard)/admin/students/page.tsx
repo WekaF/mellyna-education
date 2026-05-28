@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { Plus, Pencil, Trash2, Search } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { type ColumnDef } from '@tanstack/react-table'
+import DataTable from '@/components/common/DataTable'
 
 interface Student {
   id: string
@@ -14,7 +16,6 @@ interface Student {
 export default function AdminStudentsPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState({ name: '', grade: '', parentId: '' })
@@ -26,8 +27,7 @@ export default function AdminStudentsPage() {
     setLoading(true)
     try {
       const res = await fetch('/api/students')
-      const data = await res.json()
-      setStudents(data)
+      setStudents(await res.json())
     } catch {
       setError('Gagal memuat data siswa.')
     } finally {
@@ -45,7 +45,10 @@ export default function AdminStudentsPage() {
     }
   }, [])
 
-  useEffect(() => { fetchStudents(); fetchParents() }, [fetchStudents, fetchParents])
+  useEffect(() => {
+    fetchStudents()
+    fetchParents()
+  }, [fetchStudents, fetchParents])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,7 +74,7 @@ export default function AdminStudentsPage() {
     }
   }
 
-  const handleDelete = async (id: string, name: string) => {
+  const handleDelete = useCallback(async (id: string, name: string) => {
     if (!confirm(`Hapus siswa "${name}"? Tindakan ini tidak dapat dibatalkan.`)) return
     try {
       await fetch(`/api/students/${id}`, { method: 'DELETE' })
@@ -79,48 +82,92 @@ export default function AdminStudentsPage() {
     } catch {
       setError('Gagal menghapus siswa.')
     }
-  }
+  }, [fetchStudents])
 
-  const filtered = students.filter(
-    (s) =>
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      (s.grade || '').toLowerCase().includes(search.toLowerCase())
-  )
+  const handleEditClick = useCallback((student: Student) => {
+    setEditId(student.id)
+    setForm({ name: student.name, grade: student.grade || '', parentId: '' })
+    setShowForm(true)
+  }, [])
+
+  const columns = useMemo<ColumnDef<Student>[]>(() => [
+    {
+      accessorKey: 'name',
+      header: 'Nama Siswa',
+      cell: ({ getValue }) => (
+        <span className="font-semibold text-slate-800">{getValue() as string}</span>
+      ),
+    },
+    {
+      accessorKey: 'grade',
+      header: 'Kelas',
+      cell: ({ getValue }) => (
+        <span className="text-slate-600">{(getValue() as string | null) || '-'}</span>
+      ),
+    },
+    {
+      id: 'parent',
+      accessorFn: (row) => row.parent.name,
+      header: 'Orang Tua',
+      cell: ({ getValue }) => <span className="text-slate-600">{getValue() as string}</span>,
+    },
+    {
+      id: 'createdAt',
+      accessorFn: (row) => new Date(row.createdAt).toLocaleDateString('id-ID'),
+      header: 'Terdaftar',
+      cell: ({ getValue }) => <span className="text-slate-400">{getValue() as string}</span>,
+    },
+    {
+      id: 'actions',
+      header: '',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const student = row.original
+        return (
+          <div className="flex items-center gap-2 justify-end">
+            <button
+              onClick={() => handleEditClick(student)}
+              className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleDelete(student.id, student.name)}
+              className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        )
+      },
+    },
+  ], [handleDelete, handleEditClick])
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-800">🎓 Data Siswa</h1>
           <p className="text-sm text-slate-500 mt-0.5">Kelola daftar siswa bimbingan belajar.</p>
         </div>
         <button
-          onClick={() => { setShowForm(true); setEditId(null); setForm({ name: '', grade: '', parentId: '' }) }}
+          onClick={() => {
+            setShowForm(true)
+            setEditId(null)
+            setForm({ name: '', grade: '', parentId: '' })
+          }}
           className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
         >
           <Plus className="h-4 w-4" /> Tambah Siswa
         </button>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Cari nama siswa atau kelas..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
-        />
-      </div>
-
-      {/* Error */}
       {error && (
-        <div className="rounded-xl bg-rose-50 border border-rose-100 px-4 py-3 text-sm text-rose-600">⚠️ {error}</div>
+        <div className="rounded-xl bg-rose-50 border border-rose-100 px-4 py-3 text-sm text-rose-600">
+          ⚠️ {error}
+        </div>
       )}
 
-      {/* Add/Edit Form */}
       {showForm && (
         <div className="rounded-2xl bg-white border border-indigo-100 shadow-md p-6 space-y-4">
           <h2 className="font-bold text-slate-800">{editId ? 'Edit Siswa' : 'Tambah Siswa Baru'}</h2>
@@ -182,59 +229,15 @@ export default function AdminStudentsPage() {
         </div>
       )}
 
-      {/* Table */}
       <div className="rounded-2xl bg-white border border-slate-100 shadow-xs overflow-hidden">
-        {loading ? (
-          <div className="p-10 text-center">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-r-transparent" />
-            <p className="mt-3 text-sm text-slate-400">Memuat data siswa...</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="p-10 text-center text-slate-400">
-            <p className="text-3xl">📭</p>
-            <p className="mt-2 font-medium text-sm">{search ? 'Siswa tidak ditemukan.' : 'Belum ada data siswa.'}</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50">
-                  <th className="text-left px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase">Nama Siswa</th>
-                  <th className="text-left px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase">Kelas</th>
-                  <th className="text-left px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase">Orang Tua</th>
-                  <th className="text-left px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase">Terdaftar</th>
-                  <th className="px-6 py-3.5"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filtered.map((student) => (
-                  <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-slate-800">{student.name}</td>
-                    <td className="px-6 py-4 text-slate-600">{student.grade || '-'}</td>
-                    <td className="px-6 py-4 text-slate-600">{student.parent.name}</td>
-                    <td className="px-6 py-4 text-slate-400">{new Date(student.createdAt).toLocaleDateString('id-ID')}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 justify-end">
-                        <button
-                          onClick={() => { setEditId(student.id); setForm({ name: student.name, grade: student.grade || '', parentId: '' }); setShowForm(true) }}
-                          className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(student.id, student.name)}
-                          className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable
+          columns={columns}
+          data={students}
+          loading={loading}
+          searchPlaceholder="Cari nama siswa atau kelas..."
+          emptyMessage="Belum ada data siswa."
+          emptyIcon="📭"
+        />
       </div>
     </div>
   )
