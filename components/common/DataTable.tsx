@@ -21,6 +21,8 @@ import {
 } from 'lucide-react'
 
 interface DataTableProps<TData> {
+  // columns must be defined outside the render function or wrapped in useMemo
+  // to avoid unnecessary re-renders when the parent component re-renders
   columns: ColumnDef<TData, any>[]
   data: TData[]
   loading?: boolean
@@ -121,7 +123,10 @@ export default function DataTable<TData>({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             value={globalFilter}
-            onChange={(e) => setGlobalFilter(e.target.value)}
+            onChange={(e) => {
+              table.setPageIndex(0)
+              setGlobalFilter(e.target.value)
+            }}
             placeholder={searchPlaceholder}
             className="w-full sm:w-72 pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-colors"
           />
