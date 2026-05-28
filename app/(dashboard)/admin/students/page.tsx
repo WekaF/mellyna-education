@@ -38,6 +38,7 @@ export default function AdminStudentsPage() {
   const fetchParents = useCallback(async () => {
     try {
       const res = await fetch('/api/users?role=PARENT')
+      if (!res.ok) throw new Error()
       setParents(await res.json())
     } catch {
       console.error('Gagal memuat data orang tua.')

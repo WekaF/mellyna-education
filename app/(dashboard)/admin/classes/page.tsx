@@ -104,7 +104,9 @@ export default function AdminClassesPage() {
         body: JSON.stringify({ studentId: enrollStudentId, classId: enrollClass.id }),
       })
       if (!res.ok) throw new Error('Gagal mendaftarkan siswa.')
-      const updatedClasses = await (await fetch('/api/classes')).json()
+      const refetchRes = await fetch('/api/classes')
+      if (!refetchRes.ok) throw new Error('Gagal memuat ulang data kelas.')
+      const updatedClasses = await refetchRes.json()
       setClasses(updatedClasses)
       const refreshed = updatedClasses.find((c: Class) => c.id === enrollClass.id)
       if (refreshed) setEnrollClass(refreshed)
@@ -119,8 +121,11 @@ export default function AdminClassesPage() {
   const handleUnenroll = async (enrollmentId: string) => {
     if (!confirm('Keluarkan siswa dari kelas ini?')) return
     try {
-      await fetch(`/api/enrollments/${enrollmentId}`, { method: 'DELETE' })
-      const updatedClasses = await (await fetch('/api/classes')).json()
+      const delRes = await fetch(`/api/enrollments/${enrollmentId}`, { method: 'DELETE' })
+      if (!delRes.ok) throw new Error('Gagal mengeluarkan siswa.')
+      const refetchRes = await fetch('/api/classes')
+      if (!refetchRes.ok) throw new Error('Gagal memuat ulang data kelas.')
+      const updatedClasses = await refetchRes.json()
       setClasses(updatedClasses)
       if (enrollClass) {
         const refreshed = updatedClasses.find((c: Class) => c.id === enrollClass.id)

@@ -14,6 +14,10 @@ export async function DELETE(
   }
 
   const { id } = await params
-  await prisma.enrollment.delete({ where: { id } })
+  try {
+    await prisma.enrollment.delete({ where: { id } })
+  } catch {
+    return NextResponse.json({ error: 'Enrollment not found' }, { status: 404 })
+  }
   return NextResponse.json({ success: true })
 }

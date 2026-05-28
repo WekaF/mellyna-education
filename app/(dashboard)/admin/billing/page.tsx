@@ -44,6 +44,7 @@ export default function AdminBillingPage() {
   const fetchStudentList = useCallback(async () => {
     try {
       const res = await fetch('/api/students')
+      if (!res.ok) throw new Error()
       setStudentList(await res.json())
     } catch {
       console.error('Gagal memuat daftar siswa.')
