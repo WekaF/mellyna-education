@@ -49,7 +49,9 @@ export default function TutorAttendancePage() {
         const existing: Record<string, any> = {}
         attData.forEach((a: any) => { existing[a.studentId] = a })
 
-        const students: Student[] = schedData.class?.enrollments?.map((e: any) => e.student) || []
+        const students: Student[] = (schedData.participants ?? schedData.class?.enrollments ?? []).map(
+          (p: any) => p.student
+        )
         setEntries(
           students.map((s) => ({
             studentId: s.id,
@@ -89,7 +91,9 @@ export default function TutorAttendancePage() {
     return <div className="p-10 text-center"><div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-r-transparent" /></div>
   }
 
-  const students: Student[] = schedule?.class?.enrollments?.map((e: any) => e.student) || []
+  const students: Student[] = ((schedule?.participants ?? schedule?.class?.enrollments) ?? []).map(
+    (p: any) => p.student
+  )
 
   return (
     <div className="space-y-6">
