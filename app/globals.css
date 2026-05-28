@@ -1,12 +1,21 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 :root {
-  --background: #151f32;
-  --foreground: #f8fafc;
-  --card-bg: #1e293b;
-  --card-border: #334155;
+  --background: #f8fafc; /* Slate 50 (Light Mode) */
+  --foreground: #0f172a; /* Slate 900 (Light Mode) */
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0; /* Slate 200 */
   --accent-blue: #3b82f6;
   --accent-purple: #8b5cf6;
+}
+
+.dark {
+  --background: #151f32; /* Dark Mode background */
+  --foreground: #f8fafc; /* Dark Mode foreground */
+  --card-bg: #1e293b;
+  --card-border: #334155;
 }
 
 @theme inline {
@@ -17,10 +26,11 @@
 }
 
 body {
-  background: #151f32;
-  color: #f8fafc;
+  background: var(--background);
+  color: var(--foreground);
   font-family: 'Outfit', sans-serif;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Custom transitions and scrollbar */
@@ -30,20 +40,28 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #151f32;
+  background: var(--background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: var(--card-border);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: var(--accent-blue);
 }
 
 /* Glassmorphism card utilities */
 .sistro-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.dark .sistro-card {
   background: rgba(30, 41, 59, 0.45);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -51,14 +69,19 @@ body {
 }
 
 .sistro-gradient {
+  background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+  transition: background-color 0.3s ease;
+}
+
+.dark .sistro-gradient {
   background: linear-gradient(135deg, #1e293b 0%, #151f32 100%);
 }
 
-/* Premium SISTRO-style overrides for the dashboard */
+/* Premium SISTRO-style overrides for the dashboard ONLY in dark mode */
 
 /* Cards container transformation */
-main .bg-white,
-main [class*="bg-white"] {
+.dark main .bg-white,
+.dark main [class*="bg-white"] {
   background: rgba(30, 41, 59, 0.45) !important;
   backdrop-filter: blur(12px) !important;
   border-color: rgba(255, 255, 255, 0.06) !important;
@@ -67,61 +90,61 @@ main [class*="bg-white"] {
 }
 
 /* Adjust borders and dividers */
-main .border-slate-100, 
-main .border-slate-200, 
-main .border-gray-100, 
-main .border-gray-200,
-main .divide-slate-100 > *,
-main .divide-y > * {
+.dark main .border-slate-100, 
+.dark main .border-slate-200, 
+.dark main .border-gray-100, 
+.dark main .border-gray-200,
+.dark main .divide-slate-100 > *,
+.dark main .divide-y > * {
   border-color: rgba(255, 255, 255, 0.06) !important;
 }
 
 /* Typography alignment */
-main h1, main h2, main h3, main h4, main h5, main h6,
-main .text-slate-800, main .text-slate-900, main .text-gray-800, main .text-gray-900 {
+.dark main h1, .dark main h2, .dark main h3, .dark main h4, .dark main h5, .dark main h6,
+.dark main .text-slate-800, .dark main .text-slate-900, .dark main .text-gray-800, .dark main .text-gray-900 {
   color: #ffffff !important;
 }
 
-main .text-slate-500, main .text-slate-600, main .text-gray-500, main .text-gray-600 {
+.dark main .text-slate-500, .dark main .text-slate-600, .dark main .text-gray-500, .dark main .text-gray-600 {
   color: #94a3b8 !important;
 }
 
-main .text-slate-400, main .text-gray-400 {
+.dark main .text-slate-400, .dark main .text-gray-400 {
   color: #64748b !important;
 }
 
 /* Outer/Inner list elements bg */
-main .bg-slate-50, main .bg-gray-50 {
+.dark main .bg-slate-50, .dark main .bg-gray-50 {
   background: rgba(15, 23, 42, 0.3) !important;
 }
 
 /* Tables style mapping */
-main table {
+.dark main table {
   background: transparent !important;
 }
 
-main thead {
+.dark main thead {
   background: rgba(15, 23, 42, 0.5) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
-main th {
+.dark main th {
   color: #94a3b8 !important;
   font-weight: 600 !important;
 }
 
-main tr {
+.dark main tr {
   border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
 }
 
-main tr:hover {
+.dark main tr:hover {
   background: rgba(255, 255, 255, 0.02) !important;
 }
 
 /* Form controls styling */
-main input, 
-main select, 
-main textarea {
+.dark main input, 
+.dark main select, 
+.dark main textarea {
   background: rgba(15, 23, 42, 0.35) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   color: #ffffff !important;
@@ -131,55 +154,114 @@ main textarea {
   transition: all 0.2s ease !important;
 }
 
-main input:focus, 
-main select:focus, 
-main textarea:focus {
+.dark main input:focus, 
+.dark main select:focus, 
+.dark main textarea:focus {
   border-color: #3b82f6 !important;
   outline: none !important;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
 }
 
 /* Checkboxes and custom radio lists */
-main input[type="checkbox"], 
-main input[type="radio"] {
+.dark main input[type="checkbox"], 
+.dark main input[type="radio"] {
   accent-color: #3b82f6 !important;
   width: 1rem !important;
   height: 1rem !important;
 }
 
 /* Badges and Alert boxes */
-main .bg-indigo-50 {
+.dark main .bg-indigo-50 {
   background: rgba(99, 102, 241, 0.12) !important;
   color: #818cf8 !important;
   border: 1px solid rgba(99, 102, 241, 0.2) !important;
 }
 
-main .bg-emerald-50 {
+.dark main .bg-emerald-50 {
   background: rgba(16, 185, 129, 0.12) !important;
   color: #34d399 !important;
   border: 1px solid rgba(16, 185, 129, 0.2) !important;
 }
 
-main .bg-amber-50 {
+.dark main .bg-amber-50 {
   background: rgba(245, 158, 11, 0.12) !important;
   color: #fbbf24 !important;
   border: 1px solid rgba(245, 158, 11, 0.2) !important;
 }
 
-main .bg-rose-50 {
+.dark main .bg-rose-50 {
   background: rgba(244, 63, 94, 0.12) !important;
   color: #f87171 !important;
   border: 1px solid rgba(244, 63, 94, 0.2) !important;
 }
 
 /* Hover effects for primary list links */
-main .hover\:bg-slate-50:hover {
+.dark main .hover\:bg-slate-50:hover {
   background: rgba(255, 255, 255, 0.02) !important;
 }
 
 /* Modals overlays & popups background styling */
-[class*="fixed inset-0"] {
+.dark [class*="fixed inset-0"] {
   backdrop-filter: blur(8px) !important;
   background-color: rgba(15, 23, 42, 0.75) !important;
 }
 
+/* ─── Page & element animations ─── */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out both;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer-bg {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+.dark .shimmer-bg {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
