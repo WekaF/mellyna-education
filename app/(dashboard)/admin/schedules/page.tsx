@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Send } from 'lucide-react'
+import MultiSelect, { SelectOption } from '@/components/common/MultiSelect'
 
 interface Schedule {
   id: string
@@ -11,6 +12,17 @@ interface Schedule {
   topic: string | null
   status: 'DRAFT' | 'PUBLISHED' | 'COMPLETED' | 'CANCELLED'
   class: { name: string; tutor: { name: string } }
+  _count?: { participants: number }
+}
+
+interface ClassWithEnrollments {
+  id: string
+  name: string
+  tutor: { name: string }
+  enrollments?: Array<{
+    id: string
+    student: { id: string; name: string; grade: string | null }
+  }>
 }
 
 const statusConfig = {
@@ -28,6 +40,27 @@ export default function AdminSchedulesPage() {
   const [form, setForm] = useState({ classId: '', date: '', startTime: '', endTime: '', topic: '', location: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [classes, setClasses] = useState<ClassWithEnrollments[]>([])
+  const [studentOptions, setStudentOptions] = useState<SelectOption[]>([])
+  const [selectedStudents, setSelectedStudents] = useState<SelectOption[]>([])
+
+  const handleClassChange = (classId: string) => {
+    setForm((prev) => ({ ...prev, classId }))
+    setSelectedStudents([])
+    if (!classId) {
+      setStudentOptions([])
+      return
+    }
+    const cls = classes.find((c) => c.id === classId)
+    if (cls?.enrollments) {
+      const opts: SelectOption[] = cls.enrollments.map((e) => ({
+        value: e.student.id,
+        label: `${e.student.name}${e.student.grade ? ` (${e.student.grade})` : ''}`,
+      }))
+      setStudentOptions(opts)
+      setSelectedStudents(opts)
+    }
+  }
 
   const fetchSchedules = useCallback(async () => {
     setLoading(true)
@@ -41,7 +74,19 @@ export default function AdminSchedulesPage() {
     }
   }, [])
 
-  useEffect(() => { fetchSchedules() }, [fetchSchedules])
+  const fetchClasses = useCallback(async () => {
+    try {
+      const res = await fetch('/api/classes')
+      setClasses(await res.json())
+    } catch {
+      console.error('Gagal memuat kelas.')
+    }
+  }, [])
+
+  useEffect(() => { 
+    fetchSchedules() 
+    fetchClasses()
+  }, [fetchSchedules, fetchClasses])
 
   const handlePublish = async (id: string) => {
     setPublishing(id)
@@ -61,15 +106,26 @@ export default function AdminSchedulesPage() {
     setSaving(true)
     setError(null)
     try {
+      if (selectedStudents.length === 0) {
+        setError('Pilih minimal 1 siswa untuk sesi ini.')
+        setSaving(false)
+        return
+      }
+
       const res = await fetch('/api/schedules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          studentIds: selectedStudents.map((s) => s.value),
+        }),
       })
       if (!res.ok) throw new Error('Gagal membuat jadwal.')
       await fetchSchedules()
       setShowForm(false)
       setForm({ classId: '', date: '', startTime: '', endTime: '', topic: '', location: '' })
+      setSelectedStudents([])
+      setStudentOptions([])
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -98,8 +154,24 @@ export default function AdminSchedulesPage() {
         <div className="rounded-2xl bg-white border border-indigo-100 shadow-md p-6">
           <h2 className="font-bold text-slate-800 mb-4">Buat Jadwal Baru</h2>
           <form onSubmit={handleSubmit} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Kelas *</label>
+              <select
+                required
+                value={form.classId}
+                onChange={(e) => handleClassChange(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 bg-white"
+              >
+                <option value="">Pilih Kelas</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} (Tutor: {c.tutor.name})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {[
-              { label: 'ID Kelas *', key: 'classId', type: 'text', placeholder: 'Class ID' },
               { label: 'Tanggal *', key: 'date', type: 'date', placeholder: '' },
               { label: 'Jam Mulai *', key: 'startTime', type: 'time', placeholder: '' },
               { label: 'Jam Selesai *', key: 'endTime', type: 'time', placeholder: '' },
@@ -118,11 +190,40 @@ export default function AdminSchedulesPage() {
                 />
               </div>
             ))}
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Peserta Sesi *{' '}
+                <span className="text-slate-400 font-normal normal-case">
+                  (pilih siswa yang mengikuti sesi ini)
+                </span>
+              </label>
+              {!form.classId ? (
+                <div className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-400 bg-slate-50">
+                  Pilih kelas terlebih dahulu untuk melihat daftar siswa
+                </div>
+              ) : studentOptions.length === 0 ? (
+                <div className="rounded-xl border border-amber-200 px-3 py-2.5 text-sm text-amber-600 bg-amber-50">
+                  ⚠️ Kelas ini belum memiliki siswa terdaftar. Daftarkan siswa ke kelas terlebih dahulu.
+                </div>
+              ) : (
+                <MultiSelect
+                  options={studentOptions}
+                  value={selectedStudents}
+                  onChange={setSelectedStudents}
+                  placeholder="Cari dan pilih siswa yang akan mengikuti sesi ini..."
+                />
+              )}
+              {selectedStudents.length > 0 && (
+                <p className="text-xs text-slate-500 mt-1">
+                  {selectedStudents.length} siswa dipilih dari {studentOptions.length} yang terdaftar
+                </p>
+              )}
+            </div>
             <div className="sm:col-span-2 lg:col-span-3 flex gap-3">
               <button type="submit" disabled={saving} className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer disabled:opacity-50">
                 {saving ? 'Menyimpan...' : 'Simpan Jadwal'}
               </button>
-              <button type="button" onClick={() => setShowForm(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer">Batal</button>
+              <button type="button" onClick={() => { setShowForm(false); setSelectedStudents([]); setStudentOptions([]) }} className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer">Batal</button>
             </div>
           </form>
         </div>
@@ -138,7 +239,7 @@ export default function AdminSchedulesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/50">
-                  {['Kelas', 'Tanggal', 'Jam', 'Topik', 'Tutor', 'Status', ''].map((h) => (
+                  {['Kelas', 'Tanggal', 'Jam', 'Topik', 'Tutor', 'Peserta', 'Status', ''].map((h) => (
                     <th key={h} className="text-left px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase">{h}</th>
                   ))}
                 </tr>
@@ -153,6 +254,9 @@ export default function AdminSchedulesPage() {
                       <td className="px-6 py-4 text-slate-600">{s.startTime} – {s.endTime}</td>
                       <td className="px-6 py-4 text-slate-500">{s.topic || '-'}</td>
                       <td className="px-6 py-4 text-slate-500">{s.class.tutor.name}</td>
+                      <td className="px-6 py-4 text-slate-500 text-sm">
+                        {s._count?.participants ?? '-'} siswa
+                      </td>
                       <td className="px-6 py-4">
                         <span className={`inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full ${cfg.color}`}>{cfg.label}</span>
                       </td>
