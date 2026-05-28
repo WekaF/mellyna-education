@@ -11,14 +11,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const schedule = await prisma.schedule.findUnique({
     where: { id },
     include: {
-      class: {
+      class: { select: { name: true } },
+      participants: {
         include: {
-          enrollments: {
-            include: {
-              student: {
-                include: { parent: { select: { name: true, phone: true } } },
-              },
-            },
+          student: {
+            include: { parent: { select: { name: true, phone: true } } },
           },
         },
       },
@@ -27,10 +24,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   if (!schedule) return NextResponse.json({ error: 'Not Found' }, { status: 404 })
 
-  const recipients = schedule.class.enrollments.map((e) => ({
-    studentName: e.student.name,
-    parentName: e.student.parent.name,
-    parentPhone: e.student.parent.phone,
+  const recipients = schedule.participants.map((p) => ({
+    studentName: p.student.name,
+    parentName: p.student.parent.name,
+    parentPhone: p.student.parent.phone,
     topic: schedule.topic,
     date: schedule.date,
     startTime: schedule.startTime,
