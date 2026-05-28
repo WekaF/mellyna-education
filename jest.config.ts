@@ -7,7 +7,7 @@ const config: Config = {
   coverageProvider: 'v8',
   testEnvironment: 'node',
   moduleNameMapper: { '^@/(.*)$': '<rootDir>/$1' },
-  testPathPattern: '__tests__',
+  testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
 }
 
 export default createJestConfig(config)

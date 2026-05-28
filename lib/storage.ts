@@ -38,3 +38,7 @@ export async function uploadFile(buffer: Buffer, filename: string, mimetype: str
   const protocol = process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http'
   return `${protocol}://${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}/${BUCKET}/${key}`
 }
+
+export async function deleteFile(key: string): Promise<void> {
+  await minioClient.removeObject(BUCKET, key)
+}
