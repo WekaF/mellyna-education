@@ -24,6 +24,10 @@ export default async function TutorDashboardPage() {
     CANCELLED: 'bg-rose-100 text-rose-700',
   }
 
+  const isNewlyPublished = (s: (typeof schedules)[0]) =>
+    s.publishedAt !== null &&
+    Date.now() - new Date(s.publishedAt).getTime() < 24 * 60 * 60 * 1000
+
   return (
     <div className="space-y-8">
       <div className="rounded-3xl bg-gradient-to-r from-emerald-600 to-emerald-800 p-8 text-white shadow-xl shadow-emerald-600/10">
@@ -43,11 +47,16 @@ export default async function TutorDashboardPage() {
             {schedules.map((schedule) => (
               <div key={schedule.id} className="rounded-2xl bg-white border border-slate-100 shadow-xs p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h3 className="font-bold text-slate-800">{schedule.class.name}</h3>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor[schedule.status]}`}>
                       {schedule.status}
                     </span>
+                    {isNewlyPublished(schedule) && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 animate-pulse">
+                        🆕 Baru
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-slate-500">
                     {new Date(schedule.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} • {schedule.startTime}–{schedule.endTime}
