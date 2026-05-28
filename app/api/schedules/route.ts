@@ -77,6 +77,15 @@ export async function POST(req: NextRequest) {
 
   const { studentIds, ...scheduleData } = parsed.data
 
+  // Verify all selected students are enrolled in the class
+  const enrollments = await prisma.enrollment.findMany({
+    where: { classId: scheduleData.classId, studentId: { in: studentIds } },
+    select: { studentId: true },
+  })
+  if (enrollments.length !== studentIds.length) {
+    return NextResponse.json({ error: 'Beberapa siswa yang dipilih tidak terdaftar di kelas ini.' }, { status: 400 })
+  }
+
   const schedule = await prisma.schedule.create({
     data: { ...scheduleData, date: new Date(scheduleData.date) },
   })
