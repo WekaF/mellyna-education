@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { triggerSchedulePublished } from '@/lib/n8n'
-import { sendWhatsApp } from '@/lib/waha'
+import { sendWhatsApp, sleep, randomDelay } from '@/lib/waha'
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions)
@@ -84,6 +84,7 @@ Mellyna Education`
       } else {
         console.error(`[WAHA Broadcast] Failed to send schedule notification to parent ${parent.name}`)
       }
+      await sleep(randomDelay(3000, 7000))
     }
 
     // Notify the tutor
@@ -108,6 +109,7 @@ Mellyna Education`
       } else {
         console.error(`[WAHA Broadcast] Failed to send schedule notification to tutor ${tutor.name}`)
       }
+      await sleep(randomDelay(3000, 7000))
     }
   }).catch(console.error)
 
