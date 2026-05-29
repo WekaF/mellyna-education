@@ -18,7 +18,8 @@ import {
   X,
   Settings,
   FileText,
-  BarChart2
+  BarChart2,
+  Tag
 } from 'lucide-react'
 import { ThemeToggleButton } from '../common/ThemeToggleButton'
 
@@ -54,6 +55,7 @@ export default function Sidebar({ user }: SidebarProps) {
           { name: 'Pengumuman', href: '/admin/announcements', icon: Megaphone },
           { name: 'Analitik', href: '/admin/analytics', icon: BarChart2 },
           { name: 'Laporan', href: '/admin/reports', icon: FileText },
+          { name: 'Paket Harga', href: '/admin/pricing', icon: Tag },
           { name: 'Pengaturan', href: '/admin/settings', icon: Settings },
         ]
       case 'TUTOR':
