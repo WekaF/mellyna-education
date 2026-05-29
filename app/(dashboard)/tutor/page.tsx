@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
+import { TutorLocationEdit } from '@/components/dashboard/TutorLocationEdit'
 
 export default async function TutorDashboardPage() {
   const session = await getServerSession(authOptions)
@@ -13,6 +14,7 @@ export default async function TutorDashboardPage() {
     where: { class: { tutorId: userId }, date: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
     include: {
       class: { select: { name: true, _count: { select: { enrollments: true } } } },
+      _count: { select: { reports: true, participants: true } },
     },
     orderBy: { date: 'asc' },
   })
@@ -63,6 +65,12 @@ export default async function TutorDashboardPage() {
                   </p>
                   {schedule.topic && <p className="text-sm text-indigo-600 font-medium mt-0.5">📚 {schedule.topic}</p>}
                   <p className="text-xs text-slate-400 mt-1">{schedule.class._count.enrollments} siswa terdaftar</p>
+                  <TutorLocationEdit scheduleId={schedule.id} location={schedule.location} />
+                  {schedule._count.participants > 0 && (
+                    <p className={`text-xs mt-1 font-medium ${schedule._count.reports >= schedule._count.participants ? 'text-emerald-600' : 'text-orange-500'}`}>
+                      📝 {schedule._count.reports}/{schedule._count.participants} laporan diisi
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Link
