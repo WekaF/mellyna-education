@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { DayOfWeek, Program } from '@prisma/client'
 
-const classInclude = {
+const classDetailInclude = {
   tutor: { select: { name: true, email: true } },
   programs: { select: { program: true } },
   enrollments: { include: { student: true } },
@@ -26,7 +27,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
-  const kelas = await prisma.class.findUnique({ where: { id }, include: classInclude })
+  const kelas = await prisma.class.findUnique({ where: { id }, include: classDetailInclude })
 
   if (!kelas) return NextResponse.json({ error: 'Not Found' }, { status: 404 })
   return NextResponse.json(kelas)
@@ -49,19 +50,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const { programs, ...classData } = parsed.data
-  const updateData: any = { ...classData }
 
-  if (programs) {
-    updateData.programs = {
-      deleteMany: {},
-      create: programs.map(program => ({ program })),
+  const kelas = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    if (programs) {
+      await tx.classProgram.deleteMany({ where: { classId: id } })
+      await tx.classProgram.createMany({
+        data: programs.map(program => ({ classId: id, program })),
+      })
     }
-  }
-
-  const kelas = await prisma.class.update({
-    where: { id },
-    data: updateData,
-    include: classInclude,
+    return tx.class.update({
+      where: { id },
+      data: classData,
+      include: classDetailInclude,
+    })
   })
 
   return NextResponse.json(kelas)

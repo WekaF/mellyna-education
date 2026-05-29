@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { DayOfWeek, Program } from '@prisma/client'
 
-const classInclude = {
+const classListInclude = {
   tutor: { select: { name: true, email: true } },
   _count: { select: { enrollments: true } },
   programs: { select: { program: true } },
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
 
   const classes = await prisma.class.findMany({
     where,
-    include: classInclude,
+    include: classListInclude,
     orderBy: { createdAt: 'desc' },
   })
 
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
         create: programs.map(program => ({ program })),
       },
     },
-    include: classInclude,
+    include: classListInclude,
   })
 
   return NextResponse.json(kelas, { status: 201 })
