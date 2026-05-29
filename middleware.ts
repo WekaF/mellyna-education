@@ -4,7 +4,11 @@ import { NextResponse } from 'next/server'
 export default withAuth(
   function middleware(req) {
     const { pathname } = req.nextUrl
-    const role = req.nextauth.token?.role
+    const token = req.nextauth.token
+    const role = token?.role
+
+    if (token?.suspended && pathname.startsWith('/tutor'))
+      return NextResponse.redirect(new URL('/suspended', req.url))
 
     if (pathname.startsWith('/admin') && role !== 'SUPER_ADMIN')
       return NextResponse.redirect(new URL('/login', req.url))
