@@ -44,7 +44,7 @@ export default async function TimetablePage() {
     include: {
       tutor: { select: { name: true } },
       enrollments: {
-        include: { student: { select: { name: true } } },
+        include: { student: { select: { id: true, name: true } } },
         orderBy: { student: { name: 'asc' } },
       },
     },
@@ -117,7 +117,7 @@ export default async function TimetablePage() {
                           </div>
                           <ul className="space-y-0">
                             {cls.enrollments.map(e => (
-                              <li key={e.student.name} className="text-[11px] text-gray-700 dark:text-gray-300">
+                              <li key={e.student.id} className="text-[11px] text-gray-700 dark:text-gray-300">
                                 {e.student.name}
                               </li>
                             ))}
