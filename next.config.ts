@@ -16,7 +16,7 @@ const securityHeaders = [
       "img-src 'self' data: blob: http://localhost:9000 https:",
       "connect-src 'self'",
       "media-src 'self' http://localhost:9000 https:",
-      "frame-src https://app.sandbox.midtrans.com https://app.midtrans.com",
+      "frame-src https://app.sandbox.midtrans.com https://app.midtrans.com https://www.google.com https://maps.google.com",
       "worker-src 'self'",
     ].join('; '),
   },
@@ -28,6 +28,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost', port: '9000' },
       { protocol: 'https', hostname: process.env.MINIO_ENDPOINT || 'localhost' },
+      { protocol: 'https', hostname: 'sempoakreatif.com' },
+      { protocol: 'https', hostname: 'ahe.education' },
     ],
   },
   async headers() {
