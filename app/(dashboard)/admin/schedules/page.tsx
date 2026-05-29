@@ -29,6 +29,8 @@ export default function AdminSchedulesPage() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ classId: '', date: '', startTime: '', endTime: '', topic: '', location: '' })
   const [saving, setSaving] = useState(false)
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [recurrenceWeeks, setRecurrenceWeeks] = useState(12)
   const [error, setError] = useState<string | null>(null)
   const [classes, setClasses] = useState<any[]>([])
 
@@ -79,12 +81,16 @@ export default function AdminSchedulesPage() {
       const res = await fetch('/api/schedules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, isRecurring, recurrenceWeeks: isRecurring ? recurrenceWeeks : 1 }),
       })
       if (!res.ok) throw new Error('Gagal membuat jadwal.')
+      const data = await res.json()
       await fetchSchedules()
       setShowForm(false)
+      setIsRecurring(false)
+      setRecurrenceWeeks(12)
       setForm({ classId: '', date: '', startTime: '', endTime: '', topic: '', location: '' })
+      if (data.count > 1) alert(`${data.count} jadwal berhasil dibuat (jadwal berulang mingguan).`)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -229,6 +235,36 @@ export default function AdminSchedulesPage() {
                 />
               </div>
             ))}
+            <div className="sm:col-span-2 lg:col-span-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isRecurring"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  className="w-4 h-4 cursor-pointer"
+                />
+                <label htmlFor="isRecurring" className="text-sm font-semibold text-slate-700 cursor-pointer">
+                  Jadwal Berulang Mingguan
+                </label>
+              </div>
+              {isRecurring && (
+                <div className="mt-2">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Jumlah Minggu *</label>
+                  <input
+                    type="number"
+                    min={2}
+                    max={52}
+                    value={recurrenceWeeks}
+                    onChange={(e) => setRecurrenceWeeks(Number(e.target.value))}
+                    className="w-40 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">
+                    Akan membuat {recurrenceWeeks} jadwal mingguan sekaligus
+                  </p>
+                </div>
+              )}
+            </div>
             <div className="sm:col-span-2 lg:col-span-3 flex gap-3">
               <button
                 type="submit"
