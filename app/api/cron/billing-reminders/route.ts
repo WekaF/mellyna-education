@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { sendWhatsApp } from '@/lib/waha'
+import { sendWhatsApp, sleep, randomDelay } from '@/lib/waha'
 
 export async function GET(req: NextRequest) {
   return handleCron(req)
@@ -81,6 +81,7 @@ Mellyna Education`
       console.log(`[Billing Cron] Sending 7-day reminder to parent ${parent.name} (${parent.phone}) for Invoice ${inv.id}`)
       const success = await sendWhatsApp(parent.phone, message)
       if (success) dueReminderCount++
+      await sleep(randomDelay(3000, 7000))
     }
 
     // 2. Find Pending Invoices that are Overdue (dueDate is in the past, status is PENDING)
@@ -131,6 +132,7 @@ Mellyna Education`
       console.log(`[Billing Cron] Sending overdue reminder to parent ${parent.name} (${parent.phone}) for Invoice ${inv.id}`)
       const success = await sendWhatsApp(parent.phone, message)
       if (success) overdueReminderCount++
+      await sleep(randomDelay(3000, 7000))
     }
 
     return NextResponse.json({
