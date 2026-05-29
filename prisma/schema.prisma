@@ -32,6 +32,16 @@ enum MediaType {
   VIDEO
 }
 
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
 enum InvoiceStatus {
   PENDING
   PAID
@@ -85,14 +95,16 @@ model Student {
 }
 
 model Class {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   name        String
   subject     String
   description String?
+  dayOfWeek   DayOfWeek?
+  timeSlot    String?
   tutorId     String
-  tutor       User     @relation("TutorClasses", fields: [tutorId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  tutor       User       @relation("TutorClasses", fields: [tutorId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   enrollments Enrollment[]
   schedules   Schedule[]
