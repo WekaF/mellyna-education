@@ -133,7 +133,7 @@ export default function AdminBillingPage() {
       const res = await fetch(`/api/invoices/${invoiceId}/send-wa`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Gagal mengirim')
-      setWaFeedback({ id: invoiceId, ok: true, msg: `Invoice terkirim ke ${data.sentTo}` })
+      setWaFeedback({ id: invoiceId, ok: true, msg: `Invoice terkirim ke ${data.sentTo ?? 'penerima'}` })
     } catch (err: any) {
       setWaFeedback({ id: invoiceId, ok: false, msg: err.message })
     } finally {
