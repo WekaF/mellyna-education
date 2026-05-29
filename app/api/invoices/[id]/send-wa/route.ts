@@ -29,7 +29,11 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   if (!invoice) return NextResponse.json({ error: 'Invoice tidak ditemukan' }, { status: 404 })
 
-  const phone = invoice.student.parent.phone
+  const parent = invoice.student.parent
+  if (!parent) {
+    return NextResponse.json({ error: 'Data orang tua tidak ditemukan' }, { status: 422 })
+  }
+  const phone = parent.phone
   if (!phone) {
     return NextResponse.json({ error: 'Orang tua tidak memiliki nomor HP' }, { status: 422 })
   }
