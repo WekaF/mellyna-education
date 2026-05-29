@@ -68,7 +68,7 @@ export default function TimetablePage() {
   // Piket state
   const [piketList, setPiketList] = useState<{ day: string; staff: string }[]>([])
   const [showPiketModal, setShowPiketModal] = useState(false)
-  const [piketForm, setPiketForm] = useState<Record<string, string>>({})
+  const [piketForm, setPiketForm] = useState<Record<string, string[]>>({})
   const [savingPiket, setSavingPiket] = useState(false)
 
   // Modals state
@@ -103,26 +103,31 @@ export default function TimetablePage() {
     setLoading(true)
     setError(null)
     try {
-      const [classesRes, tutorsRes, studentsRes, piketRes] = await Promise.all([
+      const [classesRes, tutorsRes, studentsRes] = await Promise.all([
         fetch('/api/classes'),
         fetch('/api/tutors'),
         fetch('/api/students'),
-        fetch('/api/admin/piket'),
       ])
 
-      if (!classesRes.ok || !tutorsRes.ok || !studentsRes.ok || !piketRes.ok) {
+      if (!classesRes.ok || !tutorsRes.ok || !studentsRes.ok) {
         throw new Error('Gagal mengambil data dari server.')
       }
 
-      const classesData = await classesRes.json()
-      const tutorsData = await tutorsRes.json()
-      const studentsData = await studentsRes.json()
-      const piketData = await piketRes.json()
+      const [classesData, tutorsData, studentsData] = await Promise.all([
+        classesRes.json(),
+        tutorsRes.json(),
+        studentsRes.json(),
+      ])
 
       setClasses(classesData)
       setTutors(tutorsData.filter((t: Tutor) => !t.suspended))
       setStudents(studentsData.filter((s: Student) => s.isActive))
-      setPiketList(piketData)
+
+      // Piket is non-critical — fetch separately so a failure doesn't block the timetable
+      try {
+        const piketRes = await fetch('/api/admin/piket')
+        if (piketRes.ok) setPiketList(await piketRes.json())
+      } catch {}
     } catch (err: any) {
       setError(err.message || 'Terjadi kesalahan sistem.')
     } finally {
