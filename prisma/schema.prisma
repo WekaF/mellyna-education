@@ -71,6 +71,7 @@ model Student {
   grade     String?
   notes     String?
   parentId  String
+  isActive  Boolean   @default(true)
   parent    User      @relation("ParentStudents", fields: [parentId], references: [id])
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
