@@ -111,6 +111,7 @@ export default function AdminClassesPage() {
   const fetchAllStudents = useCallback(async () => {
     try {
       const res = await fetch('/api/students')
+      if (!res.ok) return
       setAllStudents(await res.json())
     } catch {}
   }, [])
