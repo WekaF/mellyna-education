@@ -23,7 +23,7 @@ services:
 
   app:
     image: ghcr.io/wekaf/mellyna-education:latest
-    pull_policy: always
+    pull_policy: missing
     restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL}
