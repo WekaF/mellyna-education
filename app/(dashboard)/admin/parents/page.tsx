@@ -142,7 +142,7 @@ export default function AdminParentsPage() {
         body: JSON.stringify({ ...addForm, role: 'PARENT' }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Gagal menambahkan wali murid.')
+      if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Gagal menambahkan wali murid.')
       setAddSuccess(`Akun wali murid "${data.name}" berhasil dibuat. Login dengan email: ${data.email}`)
       setAddForm({ name: '', email: '', phone: '', password: '' })
       await fetchParents()
