@@ -19,6 +19,7 @@ import {
   Settings,
   FileText,
   BarChart2,
+  BarChart3,
   Tag,
   Grid3x3,
   UsersRound,
@@ -88,6 +89,7 @@ export default function Sidebar({ user }: SidebarProps) {
             icon: CreditCard,
             subItems: [
               { name: 'Tagihan', href: '/admin/billing', icon: CreditCard },
+              { name: 'Laporan Keuangan', href: '/admin/financial-report', icon: BarChart3 },
               { name: 'Paket Harga', href: '/admin/pricing', icon: Tag },
             ],
           },
