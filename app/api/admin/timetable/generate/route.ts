@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { sendWhatsApp } from '@/lib/waha'
+import { sendWhatsApp, sleep, randomDelay } from '@/lib/waha'
 import { DayOfWeek, ScheduleStatus } from '@prisma/client'
 
 const DAY_OFFSETS: Record<DayOfWeek, number> = {
@@ -159,6 +159,7 @@ Mellyna Education`
 
           console.log(`[Timetable Auto-Broadcast] Sending WhatsApp to parent ${parent.name} (${parent.phone})`)
           await sendWhatsApp(parent.phone, message)
+          await sleep(randomDelay(3000, 7000))
         }
 
         // Broadcast to tutor
@@ -177,6 +178,7 @@ Mellyna Education`
 
           console.log(`[Timetable Auto-Broadcast] Sending WhatsApp to tutor ${c.tutor.name} (${c.tutor.phone})`)
           await sendWhatsApp(c.tutor.phone, tutorMessage)
+          await sleep(randomDelay(3000, 7000))
         }
       }).catch(err => {
         console.error('[Timetable Auto-Broadcast] Broadcast error:', err)

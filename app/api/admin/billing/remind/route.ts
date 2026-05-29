@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { sendWhatsApp } from '@/lib/waha'
+import { sendWhatsApp, sleep, randomDelay } from '@/lib/waha'
 import { formatRupiah } from '@/lib/utils'
 
 export async function POST(_req: NextRequest) {
@@ -61,6 +61,7 @@ Mellyna Education`
 
     const ok = await sendWhatsApp(parent.phone, message)
     if (ok) sent++; else failed++
+    await sleep(randomDelay(3000, 7000))
   }
 
   return NextResponse.json({ sent, failed, skipped, total: byParent.size })
