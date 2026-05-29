@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next'
+import withPWA from '@ducanh2912/next-pwa'
 
 const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
@@ -16,6 +17,7 @@ const securityHeaders = [
       "connect-src 'self'",
       "media-src 'self' http://localhost:9000 https:",
       "frame-src https://app.sandbox.midtrans.com https://app.midtrans.com",
+      "worker-src 'self'",
     ].join('; '),
   },
 ]
@@ -33,4 +35,13 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+export default withPWA({
+  dest: 'public',
+  cacheOnFrontEndNav: true,
+  aggressiveFrontEndNavCaching: true,
+  reloadOnOnline: true,
+  disable: process.env.NODE_ENV === 'development',
+  fallbacks: {
+    document: '/offline',
+  },
+})(nextConfig)
