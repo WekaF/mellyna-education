@@ -32,14 +32,14 @@
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Dashboard Mellyna Education"
+      "label": "Dashboard - Mobile"
     },
     {
       "src": "/screenshots/screenshot-wide.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Dashboard Mellyna Education"
+      "label": "Dashboard - Desktop"
     }
   ]
 }
