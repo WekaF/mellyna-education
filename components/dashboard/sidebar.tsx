@@ -20,7 +20,9 @@ import {
   FileText,
   BarChart2,
   Tag,
-  Grid3x3
+  Grid3x3,
+  UsersRound,
+  ChevronDown
 } from 'lucide-react'
 import { ThemeToggleButton } from '../common/ThemeToggleButton'
 
@@ -32,14 +34,22 @@ interface SidebarProps {
   }
 }
 
-interface NavItem {
+interface SubItem {
   name: string
   href: string
   icon: React.ComponentType<any>
 }
 
+interface NavItem {
+  name: string
+  href?: string
+  icon: React.ComponentType<any>
+  subItems?: SubItem[]
+}
+
 export default function Sidebar({ user }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({})
   const pathname = usePathname()
 
   // Dynamic links based on user's role
@@ -47,17 +57,42 @@ export default function Sidebar({ user }: SidebarProps) {
     switch (user.role) {
       case 'SUPER_ADMIN':
         return [
-          { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-          { name: 'Siswa', href: '/admin/students', icon: GraduationCap },
-          { name: 'Tutor', href: '/admin/tutors', icon: Users },
-          { name: 'Kelas', href: '/admin/classes', icon: BookOpen },
-          { name: 'Jadwal', href: '/admin/schedules', icon: Calendar },
-          { name: 'Timetable', href: '/admin/timetable', icon: Grid3x3 },
-          { name: 'Tagihan', href: '/admin/billing', icon: CreditCard },
-          { name: 'Pengumuman', href: '/admin/announcements', icon: Megaphone },
-          { name: 'Analitik', href: '/admin/analytics', icon: BarChart2 },
+          {
+            name: 'Dashboard',
+            icon: LayoutDashboard,
+            subItems: [
+              { name: 'Dashboard Utama', href: '/admin', icon: LayoutDashboard },
+              { name: 'Analitik', href: '/admin/analytics', icon: BarChart2 },
+            ],
+          },
+          {
+            name: 'User',
+            icon: Users,
+            subItems: [
+              { name: 'Siswa', href: '/admin/students', icon: GraduationCap },
+              { name: 'Tutor', href: '/admin/tutors', icon: Users },
+              { name: 'Wali Murid / Parent', href: '/admin/parents', icon: UsersRound },
+            ],
+          },
+          {
+            name: 'Schedule',
+            icon: Calendar,
+            subItems: [
+              { name: 'Kelas', href: '/admin/classes', icon: BookOpen },
+              { name: 'Jadwal', href: '/admin/schedules', icon: Calendar },
+              { name: 'Timetable', href: '/admin/timetable', icon: Grid3x3 },
+            ],
+          },
+          {
+            name: 'Billing',
+            icon: CreditCard,
+            subItems: [
+              { name: 'Tagihan', href: '/admin/billing', icon: CreditCard },
+              { name: 'Paket Harga', href: '/admin/pricing', icon: Tag },
+            ],
+          },
           { name: 'Laporan', href: '/admin/reports', icon: FileText },
-          { name: 'Paket Harga', href: '/admin/pricing', icon: Tag },
+          { name: 'Pengumuman', href: '/admin/announcements', icon: Megaphone },
           { name: 'Pengaturan', href: '/admin/settings', icon: Settings },
         ]
       case 'TUTOR':
@@ -77,6 +112,13 @@ export default function Sidebar({ user }: SidebarProps) {
   }
 
   const links = getNavLinks()
+
+  const toggleMenu = (name: string) => {
+    setOpenMenus((prev) => ({
+      ...prev,
+      [name]: !prev[name],
+    }))
+  }
 
   const getRoleBadge = (role: string) => {
     switch (role) {
@@ -114,6 +156,23 @@ export default function Sidebar({ user }: SidebarProps) {
     }
     return pathname.startsWith(href)
   }
+
+  const isGroupActive = (subItems?: SubItem[]) => {
+    if (!subItems) return false
+    return subItems.some((subItem) => isActiveLink(subItem.href))
+  }
+
+  // Auto-expand parent menu when pathname matches a child menu on load
+  React.useEffect(() => {
+    const activeMenu = links.find((link) =>
+      link.subItems?.some((sub) => isActiveLink(sub.href))
+    )
+    if (activeMenu) {
+      setOpenMenus({ [activeMenu.name]: true })
+    } else {
+      setOpenMenus({})
+    }
+  }, [pathname])
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col bg-white dark:bg-[#111a2e] text-slate-700 dark:text-slate-200 p-6 border-r border-slate-200 dark:border-slate-800/60 shadow-2xl relative overflow-hidden select-none transition-all duration-300">
@@ -160,23 +219,74 @@ export default function Sidebar({ user }: SidebarProps) {
       <nav className="relative z-10 flex-1 space-y-1 overflow-y-auto pr-1">
         {links.length > 0 ? (
           links.map((link) => {
-            const active = isActiveLink(link.href)
-            const Icon = link.icon
-            return (
-              <Link
-                key={link.name}
-                href={link.href}
-                onClick={() => setIsOpen(false)}
-                className={`group flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide uppercase transition-all duration-200 cursor-pointer ${
-                  active
-                    ? 'bg-blue-50 dark:bg-blue-600/20 border-l-4 border-blue-500 text-blue-600 dark:text-white font-bold shadow-xs'
-                    : 'text-slate-500 dark:text-slate-400 border-l-4 border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-slate-800/30'
-                }`}
-              >
-                <Icon className={`h-4.5 w-4.5 transition-colors ${active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-450 group-hover:text-slate-900 dark:group-hover:text-white'}`} />
-                <span>{link.name}</span>
-              </Link>
-            )
+            if (link.subItems) {
+              const isExpanded = !!openMenus[link.name]
+              const groupActive = isGroupActive(link.subItems)
+              const Icon = link.icon
+              return (
+                <div key={link.name} className="space-y-1">
+                  <button
+                    onClick={() => toggleMenu(link.name)}
+                    className={`group flex w-full items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide uppercase transition-all duration-200 cursor-pointer text-left border-l-4 ${
+                      groupActive
+                        ? 'bg-blue-50/40 dark:bg-blue-600/5 border-blue-500 text-blue-600 dark:text-blue-400 font-bold'
+                        : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-slate-800/30'
+                    }`}
+                  >
+                    <Icon className={`h-4.5 w-4.5 transition-colors ${groupActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`} />
+                    <span>{link.name}</span>
+                    <ChevronDown className={`ml-auto h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  <div
+                    className={`overflow-hidden transition-all duration-300 ease-in-out pl-4 space-y-1 ${
+                      isExpanded ? 'max-h-60 opacity-100 py-1' : 'max-h-0 opacity-0'
+                    }`}
+                  >
+                    {link.subItems.map((subItem) => {
+                      const subActive = isActiveLink(subItem.href)
+                      const SubIcon = subItem.icon
+                      return (
+                        <Link
+                          key={subItem.name}
+                          href={subItem.href}
+                          onClick={() => setIsOpen(false)}
+                          className={`group flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-semibold tracking-wide uppercase transition-all duration-200 cursor-pointer ${
+                            subActive
+                              ? 'bg-blue-50 dark:bg-blue-600/15 text-blue-600 dark:text-white font-bold shadow-xs'
+                              : 'text-slate-550 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/40 dark:hover:bg-slate-800/15'
+                          }`}
+                        >
+                          <SubIcon className={`h-3.5 w-3.5 transition-colors ${subActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white'}`} />
+                          <span>{subItem.name}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            }
+
+            if (link.href) {
+              const active = isActiveLink(link.href)
+              const Icon = link.icon
+              return (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  onClick={() => setIsOpen(false)}
+                  className={`group flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide uppercase transition-all duration-200 cursor-pointer ${
+                    active
+                      ? 'bg-blue-50 dark:bg-blue-600/20 border-l-4 border-blue-500 text-blue-600 dark:text-white font-bold shadow-xs'
+                      : 'text-slate-500 dark:text-slate-400 border-l-4 border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-slate-800/30'
+                  }`}
+                >
+                  <Icon className={`h-4.5 w-4.5 transition-colors ${active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`} />
+                  <span>{link.name}</span>
+                </Link>
+              )
+            }
+            return null
           })
         ) : (
           <div className="text-[11px] text-slate-500 text-center py-4 bg-slate-100/50 dark:bg-slate-800/20 rounded-xl border border-slate-200 dark:border-slate-800/40 transition-colors duration-300">
@@ -242,3 +352,4 @@ export default function Sidebar({ user }: SidebarProps) {
     </>
   )
 }
+

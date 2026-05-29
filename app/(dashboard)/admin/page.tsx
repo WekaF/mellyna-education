@@ -14,7 +14,7 @@ export default async function AdminDashboardPage() {
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
 
-  const [totalStudents, totalClasses, schedulesToday, pendingInvoices] = await Promise.all([
+  const [totalStudents, totalClasses, schedulesToday, pendingInvoices, pendingTotal] = await Promise.all([
     prisma.student.count(),
     prisma.class.count(),
     prisma.schedule.count({
@@ -26,13 +26,12 @@ export default async function AdminDashboardPage() {
       orderBy: { dueDate: 'asc' },
       take: 5,
     }),
+    prisma.invoice.aggregate({
+      where: { status: 'PENDING' },
+      _sum: { amount: true },
+      _count: true,
+    }),
   ])
-
-  const pendingTotal = await prisma.invoice.aggregate({
-    where: { status: 'PENDING' },
-    _sum: { amount: true },
-    _count: true,
-  })
 
   const stats = [
     { label: 'Total Siswa', value: totalStudents, icon: Users, color: 'from-indigo-500 to-indigo-600', bg: 'bg-indigo-50', text: 'text-indigo-600' },

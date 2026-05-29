@@ -1,0 +1,123 @@
+{
+  "name": "Mellyna - Schedule Notification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "schedule-published",
+        "options": {}
+      },
+      "id": "d0beea66-993d-4c3e-9080-2a819b52a559",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=http://host.docker.internal:3000/api/internal/schedule-notify/{{ $json.body.scheduleId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-internal-secret",
+              "value": "change-this-to-random-secret"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e96d2746-13a8-48b4-82ee-c7b744d033ef",
+      "name": "Fetch Schedule Details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "recipients",
+        "options": {}
+      },
+      "id": "a98d3637-293d-4c6f-9988-c7a8b9e02312",
+      "name": "Split Recipients",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3.1,
+      "position": [
+        660,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3001/api/sendText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "mellyna-waha-secret"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": \"{{ $json.parentPhone.replace(/\\D/g, '').replace(/^0/, '62') }}@c.us\",\n  \"text\": \"Halo *{{ $json.parentName }}*,\\n\\nJadwal belajar baru untuk anak Anda *{{ $json.studentName }}* telah diterbitkan!\\n\\n🎓 *Kelas*: {{ $json.className }}\\n📚 *Materi*: {{ $json.topic }}\\n📅 *Tanggal*: {{ $json.date }}\\n⏰ *Waktu*: {{ $json.startTime }} - {{ $json.endTime }}\\n\\nSampai jumpa di kelas! 📚🎓\"\n}",
+        "options": {}
+      },
+      "id": "f8a9a463-c7c1-45cf-81ff-3fa8a9c2b451",
+      "name": "Send WA via WAHA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        240
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Schedule Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Schedule Details": {
+      "main": [
+        [
+          {
+            "node": "Split Recipients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Recipients": {
+      "main": [
+        [
+          {
+            "node": "Send WA via WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Plus, Send } from 'lucide-react'
+import { Plus, Send, CalendarPlus, X, Info } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
 
@@ -34,6 +34,11 @@ export default function AdminSchedulesPage() {
   const [error, setError] = useState<string | null>(null)
   const [classes, setClasses] = useState<any[]>([])
 
+  // Timetable integration
+  const [showGenerateModal, setShowGenerateModal] = useState(false)
+  const [generateForm, setGenerateForm] = useState({ startDate: '' })
+  const [generating, setGenerating] = useState(false)
+
   const fetchSchedules = useCallback(async () => {
     setLoading(true)
     try {
@@ -58,7 +63,38 @@ export default function AdminSchedulesPage() {
   useEffect(() => {
     fetchSchedules()
     fetchClasses()
+
+    const today = new Date()
+    const currentDay = today.getDay()
+    const daysUntilNextMonday = (1 - currentDay + 7) % 7 || 7
+    const nextMonday = new Date(today)
+    nextMonday.setDate(today.getDate() + daysUntilNextMonday)
+    setGenerateForm({ startDate: nextMonday.toISOString().split('T')[0] })
   }, [fetchSchedules, fetchClasses])
+
+  const handleGenerateWeekly = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setGenerating(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/admin/timetable/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(generateForm),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal sinkronisasi dari Timetable.')
+      }
+      alert(data.message || 'Jadwal berhasil disinkronkan dan disiarkan via WhatsApp!')
+      setShowGenerateModal(false)
+      await fetchSchedules()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setGenerating(false)
+    }
+  }
 
   const handlePublish = useCallback(async (id: string) => {
     setPublishing(id)
@@ -182,12 +218,20 @@ export default function AdminSchedulesPage() {
           <h1 className="text-2xl font-extrabold text-slate-800">📅 Jadwal Bimbel</h1>
           <p className="text-sm text-slate-500 mt-0.5">Kelola dan terbitkan jadwal sesi belajar.</p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
-        >
-          <Plus className="h-4 w-4" /> Buat Jadwal
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
+          >
+            <Plus className="h-4 w-4" /> Buat Jadwal
+          </button>
+          <button
+            onClick={() => setShowGenerateModal(true)}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
+          >
+            <CalendarPlus className="h-4 w-4" /> Ambil dari Timetable
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -295,6 +339,69 @@ export default function AdminSchedulesPage() {
           emptyIcon="📭"
         />
       </div>
+
+      {/* Timetable Sync Modal */}
+      {showGenerateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-scaleIn">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-emerald-50/40 dark:bg-slate-800/40">
+              <h3 className="font-extrabold text-slate-800 dark:text-white flex items-center gap-2 text-sm">
+                <CalendarPlus className="h-4.5 w-4.5 text-emerald-600" />
+                Ambil Jadwal dari Timetable
+              </h3>
+              <button
+                onClick={() => setShowGenerateModal(false)}
+                className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleGenerateWeekly} className="p-6 space-y-4">
+              <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40 p-4 text-amber-800 dark:text-amber-300 text-xs space-y-2">
+                <div className="flex gap-2 font-bold items-center">
+                  <Info className="h-4.5 w-4.5 text-amber-600 shrink-0" />
+                  SINKRONISASI JADWAL &amp; WAHA
+                </div>
+                <p className="leading-relaxed">
+                  Tindakan ini akan mengambil semua Sesi Kelas tetap yang dikonfigurasi di Timetable, menghitung tanggal riilnya untuk minggu yang dipilih, dan menerbitkannya.
+                </p>
+                <p className="font-semibold leading-relaxed">
+                  Jadwal baru akan otomatis dibuat dalam status <strong className="underline">Diterbitkan (PUBLISHED)</strong>, dan notifikasi WhatsApp akan dikirim otomatis ke WhatsApp Orang Tua Siswa &amp; Tutor!
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Tanggal Mulai Minggu (Senin) *</label>
+                <input
+                  required
+                  type="date"
+                  value={generateForm.startDate}
+                  onChange={(e) => setGenerateForm({ ...generateForm, startDate: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-800 dark:text-white text-sm focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex gap-2 justify-end">
+                <button
+                  type="submit"
+                  disabled={generating}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm disabled:opacity-50 flex items-center gap-1.5 hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  {generating ? 'Sinkronisasi & Kirim WA...' : 'Sinkronkan Sekarang'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowGenerateModal(false)}
+                  className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer"
+                >
+                  Batal
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

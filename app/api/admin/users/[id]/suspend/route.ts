@@ -21,11 +21,25 @@ export async function PATCH(
     return NextResponse.json({ error: 'Cannot suspend admin account' }, { status: 403 })
   }
 
-  const updated = await prisma.user.update({
-    where: { id },
-    data: { suspended: !user.suspended },
-    select: { id: true, suspended: true },
+  const newSuspendedState = !user.suspended
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const updatedUser = await tx.user.update({
+      where: { id },
+      data: { suspended: newSuspendedState },
+      select: { id: true, suspended: true, role: true },
+    })
+
+    if (updatedUser.role === 'PARENT') {
+      await tx.student.updateMany({
+        where: { parentId: id },
+        data: { isActive: !newSuspendedState },
+      })
+    }
+
+    return updatedUser
   })
 
   return NextResponse.json(updated)
 }
+

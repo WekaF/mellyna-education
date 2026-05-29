@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
 
@@ -22,6 +22,11 @@ export default function AdminTutorsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [suspending, setSuspending] = useState<string | null>(null)
+
+  // Edit tutor states
+  const [editTutor, setEditTutor] = useState<Tutor | null>(null)
+  const [editForm, setEditForm] = useState({ name: '', email: '', password: '', phone: '' })
+  const [savingEdit, setSavingEdit] = useState(false)
 
   const fetchTutors = useCallback(async () => {
     setLoading(true)
@@ -60,6 +65,41 @@ export default function AdminTutorsPage() {
       setError(err.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleOpenEditModal = (tutor: Tutor) => {
+    setEditTutor(tutor)
+    setEditForm({
+      name: tutor.name,
+      email: tutor.email,
+      phone: tutor.phone || '',
+      password: '',
+    })
+    setError(null)
+  }
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editTutor) return
+    setSavingEdit(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/users/${editTutor.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Gagal mengubah data tutor.')
+      }
+      await fetchTutors()
+      setEditTutor(null)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setSavingEdit(false)
     }
   }
 
@@ -136,21 +176,29 @@ export default function AdminTutorsPage() {
       cell: ({ row }) => {
         const tutor = row.original
         return (
-          <button
-            onClick={() => handleToggleSuspend(tutor)}
-            disabled={suspending === tutor.id}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-lg cursor-pointer transition-colors disabled:opacity-50 ${
-              tutor.suspended
-                ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
-            }`}
-          >
-            {suspending === tutor.id ? '...' : tutor.suspended ? '✅ Aktifkan' : '🔒 Tangguhkan'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleToggleSuspend(tutor)}
+              disabled={suspending === tutor.id}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-lg cursor-pointer transition-colors disabled:opacity-50 ${
+                tutor.suspended
+                  ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                  : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+              }`}
+            >
+              {suspending === tutor.id ? '...' : tutor.suspended ? '✅ Aktifkan' : '🔒 Tangguhkan'}
+            </button>
+            <button
+              onClick={() => handleOpenEditModal(tutor)}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors cursor-pointer"
+            >
+              ✏️ Ubah
+            </button>
+          </div>
         )
       },
     },
-  ], [handleToggleSuspend, suspending])
+  ], [handleToggleSuspend, suspending, handleOpenEditModal])
 
   return (
     <div className="space-y-6">
@@ -249,6 +297,86 @@ export default function AdminTutorsPage() {
           emptyIcon="👩‍🏫"
         />
       </div>
+
+      {/* MODAL: EDIT TUTOR */}
+      {editTutor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white border border-indigo-150 rounded-3xl shadow-xl w-full max-w-lg overflow-hidden animate-scaleIn">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-indigo-50/40">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                ✏️ Ubah Data Tutor
+              </h3>
+              <button
+                onClick={() => setEditTutor(null)}
+                className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveEdit} className="p-6 space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap *</label>
+                  <input
+                    required
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Email *</label>
+                  <input
+                    required
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">No. HP (WhatsApp)</label>
+                  <input
+                    type="text"
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                    placeholder="mis. 6281234567890"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Ganti Password</label>
+                  <input
+                    type="password"
+                    minLength={6}
+                    value={editForm.password}
+                    onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                    placeholder="Kosongkan jika tidak diganti"
+                  />
+                </div>
+              </div>
+              <div className="pt-4 border-t border-slate-100 flex gap-2 justify-end">
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer disabled:opacity-50"
+                >
+                  {savingEdit ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditTutor(null)}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer"
+                >
+                  Batal
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
