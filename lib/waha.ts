@@ -38,3 +38,32 @@ export async function getSessionStatus(): Promise<string> {
     return 'OFFLINE'
   }
 }
+
+export async function sendWhatsAppFile(
+  phone: string,
+  base64Data: string,
+  filename: string,
+  mimetype: string,
+  caption: string
+): Promise<boolean> {
+  const chatId = `${phone.replace(/\D/g, '').replace(/^0/, '62')}@c.us`
+  try {
+    const res = await fetch(`${WAHA_BASE}/api/sendFile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_KEY },
+      body: JSON.stringify({
+        session: WAHA_SESSION,
+        chatId,
+        file: {
+          data: `data:${mimetype};base64,${base64Data}`,
+          filename,
+        },
+        caption,
+      }),
+    })
+    return res.ok
+  } catch (e) {
+    console.error('[Mellyna] WAHA sendFile failed:', e)
+    return false
+  }
+}
