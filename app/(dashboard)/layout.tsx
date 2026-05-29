@@ -1,7 +1,6 @@
 import React from 'react'
 import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSession } from '@/lib/session'
 import Sidebar from '@/components/dashboard/sidebar'
 import { ThemeToggleButton } from '@/components/common/ThemeToggleButton'
 
@@ -10,7 +9,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = await getServerSession(authOptions)
+  const session = await getSession()
 
   // Route protection - if no active session, redirect to login page
   if (!session || !session.user) {
