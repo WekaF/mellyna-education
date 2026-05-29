@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Plus, MessageCircle } from 'lucide-react'
+import { Plus, MessageCircle, Users } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
 import { formatRupiah } from '@/lib/utils'
@@ -32,6 +32,11 @@ export default function AdminBillingPage() {
   const [studentList, setStudentList] = useState<{ id: string; name: string; grade: string | null }[]>([])
   const [reminding, setReminding] = useState(false)
   const [remindResult, setRemindResult] = useState<{ sent: number; failed: number; skipped: number; total: number } | null>(null)
+  const [showBulkForm, setShowBulkForm] = useState(false)
+  const [bulkForm, setBulkForm] = useState({ classId: '', amount: '', description: '', dueDate: '' })
+  const [bulkSaving, setBulkSaving] = useState(false)
+  const [bulkResult, setBulkResult] = useState<{ created: number } | null>(null)
+  const [classList, setClassList] = useState<{ id: string; name: string; tutor: { name: string } }[]>([])
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true)
@@ -70,10 +75,46 @@ export default function AdminBillingPage() {
     }
   }
 
+  const fetchClassList = useCallback(async () => {
+    try {
+      const res = await fetch('/api/classes')
+      if (!res.ok) throw new Error()
+      setClassList(await res.json())
+    } catch {
+      console.error('Gagal memuat daftar kelas.')
+    }
+  }, [])
+
   useEffect(() => {
     fetchInvoices()
     fetchStudentList()
-  }, [fetchInvoices, fetchStudentList])
+    fetchClassList()
+  }, [fetchInvoices, fetchStudentList, fetchClassList])
+
+  const handleBulkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setBulkSaving(true)
+    setBulkResult(null)
+    try {
+      const res = await fetch('/api/invoices/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...bulkForm, amount: parseInt(bulkForm.amount) }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Gagal membuat invoice massal.')
+      }
+      const data = await res.json()
+      setBulkResult(data)
+      await fetchInvoices()
+      setBulkForm({ classId: '', amount: '', description: '', dueDate: '' })
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setBulkSaving(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -152,6 +193,12 @@ export default function AdminBillingPage() {
           >
             <MessageCircle className="h-4 w-4" />
             {reminding ? 'Mengirim...' : 'Kirim Pengingat WA'}
+          </button>
+          <button
+            onClick={() => { setShowBulkForm(true); setBulkResult(null) }}
+            className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
+          >
+            <Users className="h-4 w-4" /> Invoice Massal
           </button>
           <button
             onClick={() => setShowForm(true)}
@@ -243,6 +290,50 @@ export default function AdminBillingPage() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {showBulkForm && (
+        <div className="rounded-2xl bg-white border border-violet-100 shadow-md p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-bold text-slate-800">📦 Invoice Massal — Per Kelas</h2>
+            <button onClick={() => setShowBulkForm(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+          </div>
+          {bulkResult && (
+            <div className="mb-4 rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700">
+              ✅ Berhasil membuat <strong>{bulkResult.created}</strong> invoice untuk siswa aktif di kelas ini.
+            </div>
+          )}
+          <form onSubmit={handleBulkSubmit} className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Kelas *</label>
+              <select required value={bulkForm.classId} onChange={(e) => setBulkForm({ ...bulkForm, classId: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-violet-500 bg-white">
+                <option value="">Pilih Kelas</option>
+                {classList.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name} (Tutor: {c.tutor.name})</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Nominal (Rp) *</label>
+              <input required type="number" value={bulkForm.amount} onChange={(e) => setBulkForm({ ...bulkForm, amount: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-violet-500" placeholder="500000" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Keterangan *</label>
+              <input required type="text" value={bulkForm.description} onChange={(e) => setBulkForm({ ...bulkForm, description: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-violet-500" placeholder="mis. Biaya Bimbel Bulan Juni" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Jatuh Tempo *</label>
+              <input required type="date" value={bulkForm.dueDate} onChange={(e) => setBulkForm({ ...bulkForm, dueDate: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-violet-500" />
+            </div>
+            <div className="sm:col-span-2 flex gap-3">
+              <button type="submit" disabled={bulkSaving} className="bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer disabled:opacity-50">
+                {bulkSaving ? 'Membuat...' : '📦 Buat Invoice untuk Semua Siswa Aktif'}
+              </button>
+              <button type="button" onClick={() => setShowBulkForm(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer">Batal</button>
+            </div>
+          </form>
+          <p className="text-xs text-slate-400 mt-3">Invoice akan dibuat untuk semua siswa <strong>aktif</strong> yang terdaftar di kelas yang dipilih.</p>
         </div>
       )}
 
