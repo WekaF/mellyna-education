@@ -17,9 +17,10 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null
         const user = await prisma.user.findUnique({ where: { email: credentials.email } })
         if (!user?.password) return null
+        if (user.suspended) return null
         const valid = await bcrypt.compare(credentials.password, user.password)
         if (!valid) return null
-        return { id: user.id, name: user.name, email: user.email, role: user.role }
+        return { id: user.id, name: user.name, email: user.email, role: user.role, suspended: user.suspended }
       },
     }),
   ],
@@ -29,6 +30,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id
         token.role = (user as any).role
+        token.suspended = (user as any).suspended ?? false
       }
       return token
     },
@@ -36,6 +38,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id
         ;(session.user as any).role = token.role
+        ;(session.user as any).suspended = token.suspended
       }
       return session
     },
