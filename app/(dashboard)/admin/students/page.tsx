@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Plus, Pencil, Trash2, MessageCircle } from 'lucide-react'
+import { Plus, Pencil, Trash2, MessageCircle, UserX, UserCheck } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
 
@@ -11,6 +11,7 @@ interface Student {
   grade: string | null
   createdAt: string
   parentId: string
+  isActive: boolean
   parent: { name: string; email: string; phone: string | null }
 }
 
@@ -27,6 +28,7 @@ export default function AdminStudentsPage() {
   const [contactMessage, setContactMessage] = useState('')
   const [contactSending, setContactSending] = useState(false)
   const [contactError, setContactError] = useState<string | null>(null)
+  const [toggling, setToggling] = useState<string | null>(null)
 
   const fetchStudents = useCallback(async () => {
     setLoading(true)
@@ -124,6 +126,19 @@ export default function AdminStudentsPage() {
     }
   }
 
+  const handleToggleActive = useCallback(async (student: Student) => {
+    setToggling(student.id)
+    try {
+      const res = await fetch(`/api/students/${student.id}/status`, { method: 'PATCH' })
+      if (!res.ok) throw new Error()
+      await fetchStudents()
+    } catch {
+      setError('Gagal mengubah status siswa.')
+    } finally {
+      setToggling(null)
+    }
+  }, [fetchStudents])
+
   const columns = useMemo<ColumnDef<Student>[]>(() => [
     {
       accessorKey: 'name',
@@ -152,6 +167,19 @@ export default function AdminStudentsPage() {
       cell: ({ getValue }) => <span className="text-slate-400">{getValue() as string}</span>,
     },
     {
+      id: 'status',
+      header: 'Status',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const student = row.original
+        return student.isActive ? (
+          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Aktif</span>
+        ) : (
+          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500">Nonaktif</span>
+        )
+      },
+    },
+    {
       id: 'actions',
       header: '',
       enableSorting: false,
@@ -165,6 +193,18 @@ export default function AdminStudentsPage() {
               title="Hubungi Orang Tua via WA"
             >
               <MessageCircle className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleToggleActive(student)}
+              disabled={toggling === student.id}
+              className={`p-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 ${
+                student.isActive
+                  ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+                  : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
+              }`}
+              title={student.isActive ? 'Nonaktifkan siswa' : 'Aktifkan siswa'}
+            >
+              {student.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
             </button>
             <button
               onClick={() => handleEditClick(student)}
@@ -182,7 +222,7 @@ export default function AdminStudentsPage() {
         )
       },
     },
-  ], [handleDelete, handleEditClick, handleContactWA])
+  ], [handleDelete, handleEditClick, handleContactWA, handleToggleActive, toggling])
 
   return (
     <div className="space-y-6">
