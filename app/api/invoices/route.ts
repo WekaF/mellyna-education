@@ -22,7 +22,14 @@ export async function GET(req: NextRequest) {
   if (role === 'PARENT') {
     invoices = await prisma.invoice.findMany({
       where: { student: { parentId: userId } },
-      include: { student: { select: { name: true } } },
+      include: {
+        student: { select: { name: true } },
+        payments: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { method: true, paidAt: true },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     })
   } else {

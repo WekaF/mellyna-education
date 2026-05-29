@@ -9,7 +9,9 @@ interface Invoice {
   amount: number
   dueDate: string
   status: 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED'
+  paidAt: string | null
   student: { name: string }
+  payments: { method: string | null; paidAt: string | null }[]
 }
 
 const statusConfig = {
@@ -99,6 +101,31 @@ export default function ParentBillingPage() {
                     Jatuh tempo: {new Date(inv.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                     {isOverdue && ' ⚠️ Terlambat!'}
                   </p>
+                  {inv.status === 'PAID' && (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-emerald-600 font-medium">
+                      <span>✅ Lunas</span>
+                      {inv.paidAt && (
+                        <span className="text-slate-400">
+                          — {new Date(inv.paidAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </span>
+                      )}
+                      {inv.payments?.[0]?.method && (
+                        <span className="text-slate-400">
+                          via {
+                            inv.payments[0].method === 'CASH' ? 'Tunai' :
+                            inv.payments[0].method === 'BRI_TRANSFER' ? 'Transfer BRI' :
+                            inv.payments[0].method === 'gopay' ? 'GoPay' :
+                            inv.payments[0].method === 'shopeepay' ? 'ShopeePay' :
+                            inv.payments[0].method === 'bri_va' ? 'BRI Virtual Account' :
+                            inv.payments[0].method === 'qris' ? 'QRIS' :
+                            inv.payments[0].method === 'alfamart' ? 'Alfamart' :
+                            inv.payments[0].method === 'indomaret' ? 'Indomaret' :
+                            inv.payments[0].method
+                          }
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-lg font-extrabold text-slate-800">{formatRupiah(inv.amount)}</span>
