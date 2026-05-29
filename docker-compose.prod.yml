@@ -6,6 +6,7 @@ version: '3.8'
 services:
   app:
     image: ghcr.io/${GITHUB_REPOSITORY:-wekaf/mellyna-education}:latest
+    pull_policy: if_not_present
     restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL}
