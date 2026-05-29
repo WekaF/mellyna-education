@@ -1,4 +1,4 @@
-import { PrismaClient, Role, DayOfWeek } from '@prisma/client'
+import { PrismaClient, Role, DayOfWeek, Program } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
@@ -184,10 +184,12 @@ async function main() {
     const cls = await prisma.class.create({
       data: {
         name: `${slot.subject} ${DAY_LABEL[slot.day]} ${slot.time}`,
-        subject: slot.subject,
         dayOfWeek: slot.day,
         timeSlot: slot.time,
         tutorId: tutorMap[slot.tutor],
+        programs: {
+          create: [{ program: slot.subject as Program }],
+        },
       }
     })
     for (const studentName of slot.students) {

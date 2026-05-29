@@ -13,7 +13,8 @@ const SUBJECT_TO_PROGRAMS: Record<string, Program[]> = {
 }
 
 async function main() {
-  const classes = await prisma.class.findMany({ select: { id: true, subject: true } })
+  // subject column was dropped — this script has already run and is kept for reference only
+  const classes = await (prisma.class as any).findMany({ select: { id: true, subject: true } })
   let ok = 0, warn = 0
 
   for (const cls of classes) {

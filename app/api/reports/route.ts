@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
           endTime: true,
           topic: true,
           location: true,
-          class: { select: { name: true, subject: true } },
+          class: { select: { name: true, programs: { select: { program: true } } } },
         },
       },
       media: true,
