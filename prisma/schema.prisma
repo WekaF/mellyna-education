@@ -42,6 +42,16 @@ enum DayOfWeek {
   SUNDAY
 }
 
+enum Program {
+  SEMPOA
+  AHE
+  EFK
+  EYL
+  EFE
+  CALISTUNG
+  ENGLISH
+}
+
 enum InvoiceStatus {
   PENDING
   PAID
@@ -106,8 +116,18 @@ model Class {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
+  programs    ClassProgram[]
   enrollments Enrollment[]
   schedules   Schedule[]
+}
+
+model ClassProgram {
+  id        String  @id @default(cuid())
+  classId   String
+  program   Program
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, program])
 }
 
 model Enrollment {
@@ -271,4 +291,10 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model DailyPiket {
+  day       String   @id
+  staff     String
+  updatedAt DateTime @updatedAt
 }
