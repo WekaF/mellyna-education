@@ -105,7 +105,7 @@ export default function Sidebar({ user }: SidebarProps) {
   }
 
   const handleSignOut = () => {
-    signOut({ callbackUrl: '/login' })
+    signOut({ callbackUrl: '/' })
   }
 
   const isActiveLink = (href: string) => {
