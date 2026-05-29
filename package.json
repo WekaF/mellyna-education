@@ -35,6 +35,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.3.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "lucide-react": "^1.16.0",
     "midtrans-client": "^1.4.3",
     "minio": "^8.0.7",
@@ -45,6 +47,7 @@
     "react-hook-form": "^7.76.1",
     "react-select": "^5.10.2",
     "tailwind-merge": "^3.6.0",
+    "xlsx": "^0.18.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {
