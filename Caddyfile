@@ -1,0 +1,15 @@
+mellyna-education.my.id {
+    reverse_proxy app:3000
+}
+
+n8n.mellyna-education.my.id {
+    reverse_proxy n8n:5678
+}
+
+waha.mellyna-education.my.id {
+    reverse_proxy waha:3000
+}
+
+minio.mellyna-education.my.id {
+    reverse_proxy minio:9001
+}

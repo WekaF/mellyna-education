@@ -4,9 +4,26 @@ version: '3.8'
 # Jalankan: docker compose -f docker-compose.prod.yml up -d
 
 services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+      - n8n
+      - waha
+      - minio
+
   app:
-    image: ghcr.io/${GITHUB_REPOSITORY:-wekaf/mellyna-education}:latest
-    pull_policy: if_not_present
+    image: mellyna-app:latest
+    pull_policy: never
     restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL}
@@ -28,8 +45,6 @@ services:
       WAHA_API_KEY: ${WAHA_API_KEY}
       WAHA_SESSION: mellyna
       NEXT_PUBLIC_APP_NAME: "Mellyna Education"
-    ports:
-      - "3000:3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -103,3 +118,5 @@ volumes:
   minio_data:
   waha_data:
   n8n_data:
+  caddy_data:
+  caddy_config:
