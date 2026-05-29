@@ -16,7 +16,7 @@ const securityHeaders = [
       "img-src 'self' data: blob: http://localhost:9000 https:",
       "connect-src 'self'",
       "media-src 'self' http://localhost:9000 https:",
-      "frame-src https://app.sandbox.midtrans.com https://app.midtrans.com https://www.google.com https://maps.google.com",
+      "frame-src https://app.sandbox.midtrans.com https://app.midtrans.com",
       "worker-src 'self'",
     ].join('; '),
   },

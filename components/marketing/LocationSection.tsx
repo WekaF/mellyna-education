@@ -1,7 +1,10 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { MapPin, ExternalLink, Clock, Phone } from 'lucide-react'
+
+const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false })
 
 export default function LocationSection() {
   return (
@@ -108,7 +111,7 @@ export default function LocationSection() {
             </div>
           </motion.div>
 
-          {/* Map iframe */}
+          {/* Leaflet Map */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -116,16 +119,7 @@ export default function LocationSection() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="lg:col-span-3 rounded-3xl overflow-hidden border border-slate-100 shadow-lg min-h-[420px]"
           >
-            <iframe
-              src="https://www.google.com/maps?q=-7.041736,113.558241&output=embed&z=16"
-              width="100%"
-              height="100%"
-              style={{ border: 0, minHeight: '420px' }}
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              title="Lokasi Mellyna Education"
-            />
+            <LeafletMap />
           </motion.div>
         </div>
       </div>
