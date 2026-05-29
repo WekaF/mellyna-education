@@ -5,6 +5,7 @@ import {
   UsersRound,
   UserCheck,
   UserX,
+  UserPlus,
   CreditCard,
   BarChart2,
   FileText,
@@ -101,6 +102,12 @@ export default function AdminParentsPage() {
   
   // Suspension states to prevent double clicks
   const [togglingId, setTogglingId] = useState<string | null>(null)
+
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [addForm, setAddForm] = useState({ name: '', email: '', phone: '', password: '' })
+  const [addSaving, setAddSaving] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
+  const [addSuccess, setAddSuccess] = useState<string | null>(null)
 
   // Drawer / Modal states
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
@@ -439,6 +446,17 @@ export default function AdminParentsPage() {
             Pantau akun orang tua, status tagihan aktif, serta analisis grafik performa siswa bimbel secara riil.
           </p>
         </div>
+        <button
+          onClick={() => {
+            setShowAddForm(true)
+            setAddForm({ name: '', email: '', phone: '', password: '' })
+            setAddError(null)
+            setAddSuccess(null)
+          }}
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer shrink-0"
+        >
+          <UserPlus className="h-4 w-4" /> Tambah Wali Murid
+        </button>
       </div>
 
       {/* Stats Operational Cards */}
