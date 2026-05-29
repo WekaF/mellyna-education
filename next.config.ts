@@ -12,9 +12,10 @@ const securityHeaders = [
     value: [
       "default-src 'self'",
       "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://app.sandbox.midtrans.com https://app.midtrans.com",
-      "style-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: http://localhost:9000 https:",
-      "connect-src 'self'",
+      "connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com",
+      "font-src 'self' https://fonts.gstatic.com",
       "media-src 'self' http://localhost:9000 https:",
       "frame-src https://app.sandbox.midtrans.com https://app.midtrans.com",
       "worker-src 'self'",
