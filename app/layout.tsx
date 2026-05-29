@@ -3,6 +3,7 @@ import { Outfit } from 'next/font/google'
 import Script from 'next/script'
 import './globals.css'
 import { Providers } from './providers'
+import { PwaInstallPrompt } from '@/components/pwa-install-prompt'
 
 const outfit = Outfit({ subsets: ['latin'] })
 
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="id" suppressHydrationWarning>
       <body className={`${outfit.className} antialiased`} suppressHydrationWarning>
         <Providers>{children}</Providers>
+        <PwaInstallPrompt />
         {process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY && (
           <Script
             src={
