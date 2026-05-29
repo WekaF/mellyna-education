@@ -43,9 +43,9 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="rounded-3xl bg-gradient-to-r from-indigo-600 to-indigo-800 p-8 text-white shadow-xl shadow-indigo-600/10">
-        <h1 className="text-3xl font-extrabold tracking-tight">Dashboard Admin 👋</h1>
-        <p className="mt-2 text-indigo-100">Selamat datang! Berikut ringkasan operasional Mellyna Education hari ini.</p>
+      <div className="rounded-3xl bg-gradient-to-r from-indigo-600 to-indigo-800 p-5 sm:p-8 text-white shadow-xl shadow-indigo-600/10">
+        <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight">Dashboard Admin 👋</h1>
+        <p className="mt-2 text-sm sm:text-base text-indigo-100">Selamat datang! Berikut ringkasan operasional Mellyna Education hari ini.</p>
       </div>
 
       {/* Stats Cards */}
@@ -80,12 +80,12 @@ export default async function AdminDashboardPage() {
         ) : (
           <div className="divide-y divide-slate-100">
             {pendingInvoices.map((inv) => (
-              <div key={inv.id} className="flex items-center justify-between px-6 py-4">
-                <div>
-                  <p className="font-semibold text-sm text-slate-800">{inv.student.name}</p>
-                  <p className="text-xs text-slate-400">{inv.description}</p>
+              <div key={inv.id} className="flex items-start justify-between px-4 sm:px-6 py-4 gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-sm text-slate-800 truncate">{inv.student.name}</p>
+                  <p className="text-xs text-slate-400 truncate">{inv.description}</p>
                 </div>
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <p className="font-bold text-sm text-slate-800">{formatRupiah(inv.amount)}</p>
                   <p className="text-xs text-rose-500">Jatuh tempo: {new Date(inv.dueDate).toLocaleDateString('id-ID')}</p>
                 </div>

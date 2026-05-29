@@ -50,9 +50,9 @@ export default async function ParentDashboardPage() {
   return (
     <div className="space-y-8">
       {/* Top Banner card */}
-      <div className="rounded-3xl bg-gradient-to-r from-violet-600 to-violet-800 p-8 text-white shadow-xl shadow-violet-600/10 transition-shadow">
-        <h1 className="text-3xl font-extrabold tracking-tight">Dashboard Orang Tua 👋</h1>
-        <p className="mt-2 text-violet-100">Pantau perkembangan belajar, jadwal, dan tagihan anak Anda.</p>
+      <div className="rounded-3xl bg-gradient-to-r from-violet-600 to-violet-800 p-5 sm:p-8 text-white shadow-xl shadow-violet-600/10 transition-shadow">
+        <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight">Dashboard Orang Tua 👋</h1>
+        <p className="mt-2 text-sm sm:text-base text-violet-100">Pantau perkembangan belajar, jadwal, dan tagihan anak Anda.</p>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-3">
