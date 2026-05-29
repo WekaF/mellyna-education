@@ -66,20 +66,20 @@ function ProgramToggle({
   )
 }
 
-const emptyForm = { name: '', programs: [] as ProgramValue[], description: '', tutorId: '' }
+const makeEmptyForm = () => ({ name: '', programs: [] as ProgramValue[], description: '', tutorId: '' })
 
 export default function AdminClassesPage() {
   const [classes, setClasses] = useState<Class[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState(emptyForm)
+  const [form, setForm] = useState(makeEmptyForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tutors, setTutors] = useState<any[]>([])
 
   const [editClass, setEditClass] = useState<Class | null>(null)
   const [showEditForm, setShowEditForm] = useState(false)
-  const [editForm, setEditForm] = useState(emptyForm)
+  const [editForm, setEditForm] = useState(makeEmptyForm)
   const [editSaving, setEditSaving] = useState(false)
 
   const [enrollClass, setEnrollClass] = useState<Class | null>(null)
@@ -91,6 +91,7 @@ export default function AdminClassesPage() {
     setLoading(true)
     try {
       const res = await fetch('/api/classes')
+      if (!res.ok) throw new Error('Gagal memuat data kelas.')
       setClasses(await res.json())
     } catch {
       setError('Gagal memuat data kelas.')
@@ -102,6 +103,7 @@ export default function AdminClassesPage() {
   const fetchTutors = useCallback(async () => {
     try {
       const res = await fetch('/api/tutors')
+      if (!res.ok) return
       setTutors(await res.json())
     } catch {}
   }, [])
@@ -133,7 +135,7 @@ export default function AdminClassesPage() {
       if (!res.ok) throw new Error('Gagal menyimpan kelas.')
       await fetchClasses()
       setShowForm(false)
-      setForm(emptyForm)
+      setForm(makeEmptyForm())
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -148,8 +150,12 @@ export default function AdminClassesPage() {
     setEditSaving(true)
     setError(null)
     try {
-      const payload: any = { name: editForm.name, programs: editForm.programs, description: editForm.description }
-      if (editForm.tutorId) payload.tutorId = editForm.tutorId
+      const payload: { name: string; programs: ProgramValue[]; description: string; tutorId?: string } = {
+        name: editForm.name,
+        programs: editForm.programs,
+        description: editForm.description,
+        ...(editForm.tutorId ? { tutorId: editForm.tutorId } : {}),
+      }
       const res = await fetch(`/api/classes/${editClass.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -195,7 +201,7 @@ export default function AdminClassesPage() {
     if (!confirm('Keluarkan siswa dari kelas ini?')) return
     try {
       const delRes = await fetch(`/api/enrollments/${enrollmentId}`, { method: 'DELETE' })
-      if (!delRes.ok) throw new Error()
+      if (!delRes.ok) throw new Error('Gagal mengeluarkan siswa.')
       const refetchRes = await fetch('/api/classes')
       const updatedClasses = await refetchRes.json()
       setClasses(updatedClasses)
