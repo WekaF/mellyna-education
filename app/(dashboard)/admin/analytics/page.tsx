@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { exportToExcel, exportToPDF } from '@/lib/export'
+import { Download } from 'lucide-react'
 
 type Tab = 'attendance' | 'tutors' | 'students'
 
@@ -58,6 +60,76 @@ export default function AdminAnalyticsPage() {
 
   useEffect(() => { fetchData(tab) }, [tab, fetchData])
 
+  const handleExportAttendance = (format: 'excel' | 'pdf') => {
+    const rows = filteredAttendance.map((s) => ({
+      'Nama Siswa': s.name,
+      'Kelas': s.grade ?? '—',
+      'Total Sesi': s.total,
+      'Hadir': s.present,
+      'Alpha': s.absent,
+      'Sakit': s.sick,
+      'Izin': s.permission,
+      'Kehadiran (%)': s.rate ?? '—',
+    }))
+    if (format === 'excel') {
+      exportToExcel(rows, 'laporan-absensi-siswa', 'Absensi')
+    } else {
+      exportToPDF(
+        ['Nama Siswa', 'Kelas', 'Total', 'Hadir', 'Alpha', 'Sakit', 'Izin', 'Kehadiran %'],
+        filteredAttendance.map((s) => [s.name, s.grade ?? '—', s.total, s.present, s.absent, s.sick, s.permission, s.rate !== null ? `${s.rate}%` : '—']),
+        'laporan-absensi-siswa',
+        'Laporan Absensi Siswa — Mellyna Education'
+      )
+    }
+  }
+
+  const handleExportTutors = (format: 'excel' | 'pdf') => {
+    const rows = filteredTutors.map((t) => ({
+      'Tutor': t.name,
+      'Email': t.email,
+      'Status': t.suspended ? 'Ditangguhkan' : 'Aktif',
+      'Total Jadwal': t.totalSchedules,
+      'Jadwal Selesai': t.completedSchedules,
+      'Laporan Terisi': t.reportsFilled,
+      'Rate Laporan (%)': t.reportRate ?? '—',
+      'Kehadiran Siswa (%)': t.avgAttendanceRate ?? '—',
+    }))
+    if (format === 'excel') {
+      exportToExcel(rows, 'laporan-performa-tutor', 'Performa Tutor')
+    } else {
+      exportToPDF(
+        ['Tutor', 'Status', 'Jadwal', 'Selesai', 'Laporan', 'Rate Laporan %', 'Kehadiran %'],
+        filteredTutors.map((t) => [t.name, t.suspended ? 'Ditangguhkan' : 'Aktif', t.totalSchedules, t.completedSchedules, t.reportsFilled, t.reportRate !== null ? `${t.reportRate}%` : '—', t.avgAttendanceRate !== null ? `${t.avgAttendanceRate}%` : '—']),
+        'laporan-performa-tutor',
+        'Laporan Performa Tutor — Mellyna Education'
+      )
+    }
+  }
+
+  const handleExportStudents = (format: 'excel' | 'pdf') => {
+    const rows = filteredStudents.map((s) => ({
+      'Nama Siswa': s.name,
+      'Kelas': s.grade ?? '—',
+      'Status': s.isActive ? 'Aktif' : 'Nonaktif',
+      'Total Laporan': s.totalReports,
+      'Nilai Rata-Rata': s.avgScore ?? '—',
+      'Nilai Terakhir': s.lastScore ?? '—',
+      'Tren': s.trend === 'up' ? 'Meningkat' : s.trend === 'down' ? 'Menurun' : s.trend === 'stable' ? 'Stabil' : '—',
+      'Kehadiran (%)': s.attendanceRate ?? '—',
+      'Aktivitas Terakhir': s.lastActivity ? new Date(s.lastActivity).toLocaleDateString('id-ID') : '—',
+    }))
+    if (format === 'excel') {
+      exportToExcel(rows, 'laporan-progress-siswa', 'Progress Siswa')
+    } else {
+      exportToPDF(
+        ['Nama', 'Kelas', 'Status', 'Laporan', 'Avg Nilai', 'Nilai Terakhir', 'Tren', 'Kehadiran %'],
+        filteredStudents.map((s) => [s.name, s.grade ?? '—', s.isActive ? 'Aktif' : 'Nonaktif', s.totalReports, s.avgScore ?? '—', s.lastScore ?? '—', s.trend === 'up' ? 'Meningkat' : s.trend === 'down' ? 'Menurun' : s.trend === 'stable' ? 'Stabil' : '—', s.attendanceRate !== null ? `${s.attendanceRate}%` : '—']),
+        'laporan-progress-siswa',
+        'Laporan Progress Siswa — Mellyna Education'
+      )
+    }
+  }
+
   const tabs: { key: Tab; label: string; emoji: string }[] = [
     { key: 'attendance', label: 'Absensi Siswa', emoji: '📋' },
     { key: 'tutors', label: 'Performa Tutor', emoji: '👩‍🏫' },
@@ -108,6 +180,17 @@ export default function AdminAnalyticsPage() {
         </div>
       ) : (
         <>
+          {tab === 'attendance' && !loading && filteredAttendance.length > 0 && (
+            <div className="flex justify-end gap-2">
+              <button onClick={() => handleExportAttendance('excel')} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 cursor-pointer border border-emerald-200 transition-colors">
+                <Download className="h-3.5 w-3.5" /> Excel
+              </button>
+              <button onClick={() => handleExportAttendance('pdf')} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 cursor-pointer border border-rose-200 transition-colors">
+                <Download className="h-3.5 w-3.5" /> PDF
+              </button>
+            </div>
+          )}
+
           {tab === 'attendance' && (
             <div className="rounded-2xl bg-white border border-slate-100 shadow-xs overflow-hidden">
               <div className="overflow-x-auto">
@@ -137,6 +220,17 @@ export default function AdminAnalyticsPage() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {tab === 'tutors' && !loading && filteredTutors.length > 0 && (
+            <div className="flex justify-end gap-2">
+              <button onClick={() => handleExportTutors('excel')} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 cursor-pointer border border-emerald-200 transition-colors">
+                <Download className="h-3.5 w-3.5" /> Excel
+              </button>
+              <button onClick={() => handleExportTutors('pdf')} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 cursor-pointer border border-rose-200 transition-colors">
+                <Download className="h-3.5 w-3.5" /> PDF
+              </button>
             </div>
           )}
 
@@ -175,6 +269,17 @@ export default function AdminAnalyticsPage() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {tab === 'students' && !loading && filteredStudents.length > 0 && (
+            <div className="flex justify-end gap-2">
+              <button onClick={() => handleExportStudents('excel')} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 cursor-pointer border border-emerald-200 transition-colors">
+                <Download className="h-3.5 w-3.5" /> Excel
+              </button>
+              <button onClick={() => handleExportStudents('pdf')} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 cursor-pointer border border-rose-200 transition-colors">
+                <Download className="h-3.5 w-3.5" /> PDF
+              </button>
             </div>
           )}
 
