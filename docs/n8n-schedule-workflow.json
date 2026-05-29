@@ -55,6 +55,21 @@
     },
     {
       "parameters": {
+        "amount": 5,
+        "unit": "seconds"
+      },
+      "id": "b2c4e8f1-a3d5-47e9-b6c8-d9f2a1e4b7c3",
+      "name": "Wait 5 Seconds",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        240
+      ],
+      "webhookId": "c3d5e7f9-b1a3-45c7-d9e1-f3b5a7c9d1e3"
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "http://host.docker.internal:3001/api/sendText",
         "sendHeaders": true,
@@ -68,7 +83,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"session\": \"default\",\n  \"chatId\": \"{{ $json.parentPhone.replace(/\\D/g, '').replace(/^0/, '62') }}@c.us\",\n  \"text\": \"Halo *{{ $json.parentName }}*,\\n\\nJadwal belajar baru untuk anak Anda *{{ $json.studentName }}* telah diterbitkan!\\n\\n🎓 *Kelas*: {{ $json.className }}\\n📚 *Materi*: {{ $json.topic }}\\n📅 *Tanggal*: {{ $json.date }}\\n⏰ *Waktu*: {{ $json.startTime }} - {{ $json.endTime }}\\n\\nSampai jumpa di kelas! 📚🎓\"\n}",
+        "jsonBody": "={\n  \"session\": \"mellyna\",\n  \"chatId\": \"{{ $json.parentPhone.replace(/\\D/g, '').replace(/^0/, '62') }}@c.us\",\n  \"text\": \"Halo *{{ $json.parentName }}*,\\n\\nJadwal belajar baru untuk anak Anda *{{ $json.studentName }}* telah diterbitkan!\\n\\n🎓 *Kelas*: {{ $json.className }}\\n📚 *Materi*: {{ $json.topic }}\\n📅 *Tanggal*: {{ $json.date }}\\n⏰ *Waktu*: {{ $json.startTime }} - {{ $json.endTime }}\\n\\nSampai jumpa di kelas! 📚🎓\"\n}",
         "options": {}
       },
       "id": "f8a9a463-c7c1-45cf-81ff-3fa8a9c2b451",
@@ -76,7 +91,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        880,
+        1100,
         240
       ]
     }
@@ -105,6 +120,17 @@
       ]
     },
     "Split Recipients": {
+      "main": [
+        [
+          {
+            "node": "Wait 5 Seconds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5 Seconds": {
       "main": [
         [
           {
