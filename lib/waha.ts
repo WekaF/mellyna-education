@@ -2,6 +2,15 @@ const WAHA_BASE = process.env.WAHA_BASE_URL ?? 'http://localhost:3001'
 const WAHA_KEY = process.env.WAHA_API_KEY ?? ''
 const WAHA_SESSION = process.env.WAHA_SESSION ?? 'mellyna'
 
+export function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+// Returns random ms between min and max (inclusive)
+export function randomDelay(minMs = 3000, maxMs = 7000): number {
+  return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs
+}
+
 export async function sendWhatsApp(phone: string, message: string): Promise<boolean> {
   const chatId = `${phone.replace(/\D/g, '').replace(/^0/, '62')}@c.us`
   try {
