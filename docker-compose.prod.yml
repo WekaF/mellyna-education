@@ -74,6 +74,10 @@ services:
       WHATSAPP_API_KEY: ${WAHA_API_KEY}
       WHATSAPP_HOOK_URL: http://app:3000/api/webhooks/waha
       WHATSAPP_HOOK_EVENTS: "session.status"
+      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USER:-admin}
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_API_KEY}
+    ports:
+      - "3001:3000"
     volumes:
       - waha_data:/tmp/waha-sessions
 
@@ -85,6 +89,11 @@ services:
       - N8N_BASIC_AUTH_USER=${N8N_USER}
       - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}
       - WEBHOOK_URL=${N8N_PUBLIC_URL}
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - GENERIC_TIMEZONE=Asia/Jakarta
+    ports:
+      - "5678:5678"
     volumes:
       - n8n_data:/home/node/.n8n
 
