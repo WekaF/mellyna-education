@@ -176,14 +176,13 @@ async function main() {
 
   // Classes + Enrollments
   console.log(`Seeding ${CLASS_SLOTS.length} class slots...`)
-  const DAY_LABEL: Record<DayOfWeek, string> = {
-    MONDAY: 'Senin', TUESDAY: 'Selasa', WEDNESDAY: 'Rabu',
-    THURSDAY: 'Kamis', FRIDAY: "Jum'at", SATURDAY: 'Sabtu', SUNDAY: 'Minggu',
-  }
+  const subjectCounter: Record<string, number> = {}
   for (const slot of CLASS_SLOTS) {
+    subjectCounter[slot.subject] = (subjectCounter[slot.subject] ?? 0) + 1
+    const letter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[subjectCounter[slot.subject] - 1] ?? subjectCounter[slot.subject]
     const cls = await prisma.class.create({
       data: {
-        name: `${slot.subject} ${DAY_LABEL[slot.day]} ${slot.time}`,
+        name: `${slot.subject} ${letter}`,
         dayOfWeek: slot.day,
         timeSlot: slot.time,
         tutorId: tutorMap[slot.tutor],
