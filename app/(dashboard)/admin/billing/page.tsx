@@ -32,6 +32,8 @@ export default function AdminBillingPage() {
   const [studentList, setStudentList] = useState<{ id: string; name: string; grade: string | null }[]>([])
   const [reminding, setReminding] = useState(false)
   const [remindResult, setRemindResult] = useState<{ sent: number; failed: number; skipped: number; total: number } | null>(null)
+  const [sendingWAId, setSendingWAId] = useState<string | null>(null)
+  const [waFeedback, setWaFeedback] = useState<{ id: string; ok: boolean; msg: string } | null>(null)
   const [showBulkForm, setShowBulkForm] = useState(false)
   const [bulkForm, setBulkForm] = useState({ classId: '', amount: '', description: '', dueDate: '' })
   const [bulkSaving, setBulkSaving] = useState(false)
@@ -119,6 +121,25 @@ export default function AdminBillingPage() {
       setBulkSaving(false)
     }
   }
+
+  const handleDownloadPDF = useCallback((invoiceId: string) => {
+    window.open(`/api/invoices/${invoiceId}/pdf`, '_blank')
+  }, [])
+
+  const handleSendWA = useCallback(async (invoiceId: string) => {
+    setSendingWAId(invoiceId)
+    setWaFeedback(null)
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}/send-wa`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Gagal mengirim')
+      setWaFeedback({ id: invoiceId, ok: true, msg: `Invoice terkirim ke ${data.sentTo}` })
+    } catch (err: any) {
+      setWaFeedback({ id: invoiceId, ok: false, msg: err.message })
+    } finally {
+      setSendingWAId(null)
+    }
+  }, [])
 
   const handleManualPay = async () => {
     if (!manualPayModal) return
@@ -237,8 +258,9 @@ export default function AdminBillingPage() {
       header: 'Aksi',
       cell: ({ row }) => {
         const inv = row.original
+        const sending = sendingWAId === inv.id
         return (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-wrap">
             {(inv.status === 'PENDING' || inv.status === 'OVERDUE') && (
               <button
                 onClick={() => setManualPayModal({ invoiceId: inv.id, studentName: inv.student.name, amount: inv.amount })}
@@ -263,11 +285,26 @@ export default function AdminBillingPage() {
                 Hapus
               </button>
             )}
+            <button
+              onClick={() => handleDownloadPDF(inv.id)}
+              title="Download PDF"
+              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+            >
+              PDF
+            </button>
+            <button
+              onClick={() => handleSendWA(inv.id)}
+              disabled={sending}
+              title="Kirim Invoice via WhatsApp"
+              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 disabled:opacity-50 transition-colors cursor-pointer"
+            >
+              {sending ? '...' : 'WA'}
+            </button>
           </div>
         )
       },
     },
-  ], [handleCancelInvoice, handleDeleteInvoice])
+  ], [handleCancelInvoice, handleDeleteInvoice, handleDownloadPDF, handleSendWA, sendingWAId])
 
   return (
     <div className="space-y-6">
@@ -309,6 +346,16 @@ export default function AdminBillingPage() {
         <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700 flex items-center justify-between">
           <span>✅ Pengingat terkirim: <strong>{remindResult.sent}</strong> berhasil, {remindResult.failed} gagal, {remindResult.skipped} dilewati (tidak ada HP).</span>
           <button onClick={() => setRemindResult(null)} className="ml-3 text-emerald-500 hover:text-emerald-700 font-bold cursor-pointer">✕</button>
+        </div>
+      )}
+      {waFeedback && (
+        <div className={`rounded-xl border px-4 py-3 text-sm flex items-center justify-between ${
+          waFeedback.ok
+            ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+            : 'bg-rose-50 border-rose-100 text-rose-600'
+        }`}>
+          <span>{waFeedback.ok ? '✅' : '⚠️'} {waFeedback.msg}</span>
+          <button onClick={() => setWaFeedback(null)} className="ml-3 font-bold cursor-pointer opacity-60 hover:opacity-100">✕</button>
         </div>
       )}
 
