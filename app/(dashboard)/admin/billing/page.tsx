@@ -37,6 +37,10 @@ export default function AdminBillingPage() {
   const [bulkSaving, setBulkSaving] = useState(false)
   const [bulkResult, setBulkResult] = useState<{ created: number } | null>(null)
   const [classList, setClassList] = useState<{ id: string; name: string; tutor: { name: string } }[]>([])
+  const [manualPayModal, setManualPayModal] = useState<{ invoiceId: string; studentName: string; amount: number } | null>(null)
+  const [manualMethod, setManualMethod] = useState<'CASH' | 'BRI_TRANSFER' | 'OTHER'>('CASH')
+  const [manualNotes, setManualNotes] = useState('')
+  const [manualSaving, setManualSaving] = useState(false)
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true)
@@ -116,6 +120,58 @@ export default function AdminBillingPage() {
     }
   }
 
+  const handleManualPay = async () => {
+    if (!manualPayModal) return
+    setManualSaving(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/payments/manual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoiceId: manualPayModal.invoiceId, method: manualMethod, notes: manualNotes }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Gagal mencatat pembayaran.')
+      }
+      setManualPayModal(null)
+      setManualNotes('')
+      await fetchInvoices()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setManualSaving(false)
+    }
+  }
+
+  const handleCancelInvoice = useCallback(async (id: string) => {
+    if (!confirm('Batalkan invoice ini?')) return
+    setError(null)
+    try {
+      const res = await fetch(`/api/invoices/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'CANCELLED' }),
+      })
+      if (!res.ok) throw new Error()
+      await fetchInvoices()
+    } catch {
+      setError('Gagal membatalkan invoice.')
+    }
+  }, [fetchInvoices])
+
+  const handleDeleteInvoice = useCallback(async (id: string) => {
+    if (!confirm('Hapus invoice ini permanen? Tindakan tidak bisa dibatalkan.')) return
+    setError(null)
+    try {
+      const res = await fetch(`/api/invoices/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      await fetchInvoices()
+    } catch {
+      setError('Gagal menghapus invoice.')
+    }
+  }, [fetchInvoices])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -176,7 +232,42 @@ export default function AdminBillingPage() {
         )
       },
     },
-  ], [])
+    {
+      id: 'actions',
+      header: 'Aksi',
+      cell: ({ row }) => {
+        const inv = row.original
+        return (
+          <div className="flex items-center gap-1">
+            {(inv.status === 'PENDING' || inv.status === 'OVERDUE') && (
+              <button
+                onClick={() => setManualPayModal({ invoiceId: inv.id, studentName: inv.student.name, amount: inv.amount })}
+                className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 px-2 py-1 rounded-lg hover:bg-emerald-50 transition-colors cursor-pointer"
+              >
+                Tandai Lunas
+              </button>
+            )}
+            {inv.status === 'PENDING' && (
+              <button
+                onClick={() => handleCancelInvoice(inv.id)}
+                className="text-xs font-semibold text-amber-600 hover:text-amber-700 px-2 py-1 rounded-lg hover:bg-amber-50 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+            )}
+            {inv.status !== 'PAID' && (
+              <button
+                onClick={() => handleDeleteInvoice(inv.id)}
+                className="text-xs font-semibold text-rose-500 hover:text-rose-700 px-2 py-1 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+              >
+                Hapus
+              </button>
+            )}
+          </div>
+        )
+      },
+    },
+  ], [handleCancelInvoice, handleDeleteInvoice])
 
   return (
     <div className="space-y-6">
@@ -334,6 +425,56 @@ export default function AdminBillingPage() {
             </div>
           </form>
           <p className="text-xs text-slate-400 mt-3">Invoice akan dibuat untuk semua siswa <strong>aktif</strong> yang terdaftar di kelas yang dipilih.</p>
+        </div>
+      )}
+
+      {manualPayModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
+            <h2 className="font-bold text-slate-800 mb-1">Tandai Lunas Manual</h2>
+            <p className="text-sm text-slate-500 mb-4">
+              {manualPayModal.studentName} — {formatRupiah(manualPayModal.amount)}
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Metode Pembayaran *</label>
+                <select
+                  value={manualMethod}
+                  onChange={(e) => setManualMethod(e.target.value as typeof manualMethod)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-500 bg-white"
+                >
+                  <option value="CASH">Tunai (Bayar Langsung)</option>
+                  <option value="BRI_TRANSFER">Transfer BRI (Manual)</option>
+                  <option value="OTHER">Lainnya</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Catatan (opsional)</label>
+                <input
+                  type="text"
+                  value={manualNotes}
+                  onChange={(e) => setManualNotes(e.target.value)}
+                  placeholder="mis. Bayar tunai ke Bu Mellyna tgl 1 Juni"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={handleManualPay}
+                  disabled={manualSaving}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer disabled:opacity-50 flex-1"
+                >
+                  {manualSaving ? 'Menyimpan...' : 'Konfirmasi Lunas'}
+                </button>
+                <button
+                  onClick={() => { setManualPayModal(null); setManualNotes('') }}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer"
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
