@@ -3,12 +3,22 @@ import { getServerSession } from 'next-auth'
 import { z } from 'zod'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { DayOfWeek, Program } from '@prisma/client'
+
+const classInclude = {
+  tutor: { select: { name: true, email: true } },
+  programs: { select: { program: true } },
+  enrollments: { include: { student: true } },
+  schedules: { orderBy: { date: 'desc' as const }, take: 5 },
+}
 
 const updateClassSchema = z.object({
   name: z.string().min(1).optional(),
-  subject: z.string().min(1).optional(),
+  programs: z.array(z.nativeEnum(Program)).min(1).optional(),
   description: z.string().optional(),
   tutorId: z.string().optional(),
+  dayOfWeek: z.nativeEnum(DayOfWeek).nullable().optional(),
+  timeSlot: z.string().nullable().optional(),
 })
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -16,14 +26,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
-  const kelas = await prisma.class.findUnique({
-    where: { id },
-    include: {
-      tutor: { select: { name: true, email: true } },
-      enrollments: { include: { student: true } },
-      schedules: { orderBy: { date: 'desc' }, take: 5 },
-    },
-  })
+  const kelas = await prisma.class.findUnique({ where: { id }, include: classInclude })
 
   if (!kelas) return NextResponse.json({ error: 'Not Found' }, { status: 404 })
   return NextResponse.json(kelas)
@@ -45,7 +48,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const kelas = await prisma.class.update({ where: { id }, data: parsed.data })
+  const { programs, ...classData } = parsed.data
+  const updateData: any = { ...classData }
+
+  if (programs) {
+    updateData.programs = {
+      deleteMany: {},
+      create: programs.map(program => ({ program })),
+    }
+  }
+
+  const kelas = await prisma.class.update({
+    where: { id },
+    data: updateData,
+    include: classInclude,
+  })
+
   return NextResponse.json(kelas)
 }
 

@@ -3,12 +3,26 @@ import { getServerSession } from 'next-auth'
 import { z } from 'zod'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { DayOfWeek, Program } from '@prisma/client'
+
+const classInclude = {
+  tutor: { select: { name: true, email: true } },
+  _count: { select: { enrollments: true } },
+  programs: { select: { program: true } },
+  enrollments: {
+    include: {
+      student: { select: { id: true, name: true, grade: true } },
+    },
+  },
+}
 
 const createClassSchema = z.object({
   name: z.string().min(1),
-  subject: z.string().min(1),
+  programs: z.array(z.nativeEnum(Program)).min(1),
   description: z.string().optional(),
   tutorId: z.string().min(1),
+  dayOfWeek: z.nativeEnum(DayOfWeek).nullable().optional(),
+  timeSlot: z.string().nullable().optional(),
 })
 
 export async function GET(req: NextRequest) {
@@ -18,35 +32,13 @@ export async function GET(req: NextRequest) {
   const role = (session.user as any).role
   const userId = (session.user as any).id
 
-  let classes
-  if (role === 'TUTOR') {
-    classes = await prisma.class.findMany({
-      where: { tutorId: userId },
-      include: {
-        tutor: { select: { name: true, email: true } },
-        _count: { select: { enrollments: true } },
-        enrollments: {
-          include: {
-            student: { select: { id: true, name: true, grade: true } },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
-  } else {
-    classes = await prisma.class.findMany({
-      include: {
-        tutor: { select: { name: true, email: true } },
-        _count: { select: { enrollments: true } },
-        enrollments: {
-          include: {
-            student: { select: { id: true, name: true, grade: true } },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
-  }
+  const where = role === 'TUTOR' ? { tutorId: userId } : {}
+
+  const classes = await prisma.class.findMany({
+    where,
+    include: classInclude,
+    orderBy: { createdAt: 'desc' },
+  })
 
   return NextResponse.json(classes)
 }
@@ -66,6 +58,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const kelas = await prisma.class.create({ data: parsed.data })
+  const { programs, ...classData } = parsed.data
+  const kelas = await prisma.class.create({
+    data: {
+      ...classData,
+      programs: {
+        create: programs.map(program => ({ program })),
+      },
+    },
+    include: classInclude,
+  })
+
   return NextResponse.json(kelas, { status: 201 })
 }
