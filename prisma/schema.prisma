@@ -122,22 +122,27 @@ model Enrollment {
 }
 
 model Schedule {
-  id          String         @id @default(cuid())
-  classId     String
-  class       Class          @relation(fields: [classId], references: [id])
-  date        DateTime
-  startTime   String
-  endTime     String
-  topic       String?
-  location    String?
-  status      ScheduleStatus @default(DRAFT)
-  publishedAt DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id                String         @id @default(cuid())
+  classId           String
+  class             Class          @relation(fields: [classId], references: [id])
+  date              DateTime
+  startTime         String
+  endTime           String
+  topic             String?
+  location          String?
+  status            ScheduleStatus @default(DRAFT)
+  publishedAt       DateTime?
+  isRecurring       Boolean        @default(false)
+  recurrenceGroupId String?
+  recurrenceWeeks   Int?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   attendances  Attendance[]
   reports      LearningReport[]
   participants ScheduleParticipant[]
+
+  @@index([recurrenceGroupId])
 }
 
 model Attendance {
