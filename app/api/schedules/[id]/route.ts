@@ -45,11 +45,24 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const role = (session.user as any).role
-  if (role !== 'SUPER_ADMIN') {
+  const userId = (session.user as any).id
+
+  if (role !== 'SUPER_ADMIN' && role !== 'TUTOR') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   const { id } = await params
+
+  const existing = await prisma.schedule.findUnique({
+    where: { id },
+    include: { class: { select: { tutorId: true } } },
+  })
+  if (!existing) return NextResponse.json({ error: 'Not Found' }, { status: 404 })
+
+  if (role === 'TUTOR' && existing.class.tutorId !== userId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const body = await req.json()
   const parsed = updateScheduleSchema.safeParse(body)
   if (!parsed.success) {
@@ -57,9 +70,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const { date, ...rest } = parsed.data
+
+  const updateData =
+    role === 'SUPER_ADMIN'
+      ? { ...rest, ...(date ? { date: new Date(date) } : {}) }
+      : { topic: rest.topic, location: rest.location }
+
   const schedule = await prisma.schedule.update({
     where: { id },
-    data: { ...rest, ...(date ? { date: new Date(date) } : {}) },
+    data: updateData,
   })
 
   return NextResponse.json(schedule)
