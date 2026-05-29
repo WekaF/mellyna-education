@@ -22,8 +22,8 @@ services:
       - minio
 
   app:
-    image: mellyna-app:latest
-    pull_policy: never
+    image: ghcr.io/wekaf/mellyna-education:latest
+    pull_policy: always
     restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL}
