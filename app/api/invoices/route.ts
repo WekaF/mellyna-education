@@ -18,22 +18,47 @@ export async function GET(req: NextRequest) {
   const role = (session.user as any).role
   const userId = (session.user as any).id
 
+  const { searchParams } = new URL(req.url)
+  const month = searchParams.get('month') ? parseInt(searchParams.get('month')!) : null
+  const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : null
+  const classId = searchParams.get('classId') ?? null
+
+  const dateFilter =
+    month !== null && year !== null
+      ? {
+          createdAt: {
+            gte: new Date(year, month - 1, 1),
+            lt: new Date(year, month, 1),
+          },
+        }
+      : year !== null
+      ? {
+          createdAt: {
+            gte: new Date(year, 0, 1),
+            lt: new Date(year + 1, 0, 1),
+          },
+        }
+      : {}
+
+  const classFilter =
+    classId
+      ? {
+          student: {
+            enrollments: { some: { classId } },
+          },
+        }
+      : {}
+
   let invoices
   if (role === 'PARENT') {
     invoices = await prisma.invoice.findMany({
-      where: { student: { parentId: userId } },
-      include: {
-        student: { select: { name: true } },
-        payments: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-          select: { method: true, paidAt: true },
-        },
-      },
+      where: { student: { parentId: userId }, ...dateFilter },
+      include: { student: { select: { name: true } } },
       orderBy: { createdAt: 'desc' },
     })
   } else {
     invoices = await prisma.invoice.findMany({
+      where: { ...dateFilter, ...classFilter },
       include: { student: { select: { name: true } } },
       orderBy: { createdAt: 'desc' },
     })
