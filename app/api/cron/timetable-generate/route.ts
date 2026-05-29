@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { sendWhatsApp } from '@/lib/waha'
+import { sendWhatsApp, sleep, randomDelay } from '@/lib/waha'
 import { DayOfWeek, ScheduleStatus } from '@prisma/client'
 
 const DAY_OFFSETS: Record<DayOfWeek, number> = {
@@ -164,6 +164,7 @@ Terima kasih,
 Mellyna Education`
 
           await sendWhatsApp(parent.phone, message)
+          await sleep(randomDelay(3000, 7000))
         }
 
         // Broadcast to tutor
@@ -181,6 +182,7 @@ Silakan konfirmasi kehadiran siswa setelah sesi selesai melalui portal tutor.
 Mellyna Education`
 
           await sendWhatsApp(c.tutor.phone, tutorMessage)
+          await sleep(randomDelay(3000, 7000))
         }
       }).catch(err => {
         console.error('[Cron Timetable Auto-Broadcast] error:', err)
