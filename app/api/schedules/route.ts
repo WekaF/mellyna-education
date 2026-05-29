@@ -12,6 +12,8 @@ const createScheduleSchema = z.object({
   topic: z.string().optional(),
   location: z.string().optional(),
   studentIds: z.array(z.string().min(1)).min(1, 'Pilih minimal 1 siswa'),
+  isRecurring: z.boolean().default(false),
+  recurrenceWeeks: z.number().int().min(1).max(52).default(1),
 })
 
 export async function GET(req: NextRequest) {
@@ -75,7 +77,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { studentIds, ...scheduleData } = parsed.data
+  const { studentIds, isRecurring, recurrenceWeeks, ...scheduleData } = parsed.data
 
   // Verify all selected students are enrolled in the class
   const enrollments = await prisma.enrollment.findMany({
@@ -86,14 +88,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Beberapa siswa yang dipilih tidak terdaftar di kelas ini.' }, { status: 400 })
   }
 
-  const schedule = await prisma.schedule.create({
-    data: { ...scheduleData, date: new Date(scheduleData.date) },
-  })
+  const recurrenceGroupId = isRecurring ? crypto.randomUUID() : undefined
+  const weeksCount = isRecurring ? recurrenceWeeks : 1
 
-  await prisma.scheduleParticipant.createMany({
-    data: studentIds.map((studentId) => ({ scheduleId: schedule.id, studentId })),
-    skipDuplicates: true,
-  })
+  const createdSchedules = await prisma.$transaction(
+    Array.from({ length: weeksCount }, (_, i) => {
+      const scheduleDate = new Date(scheduleData.date)
+      scheduleDate.setDate(scheduleDate.getDate() + i * 7)
+      return prisma.schedule.create({
+        data: {
+          ...scheduleData,
+          date: scheduleDate,
+          isRecurring,
+          recurrenceGroupId,
+          recurrenceWeeks: isRecurring ? weeksCount : undefined,
+          participants: {
+            create: studentIds.map((studentId) => ({ studentId })),
+          },
+        },
+      })
+    })
+  )
 
-  return NextResponse.json(schedule, { status: 201 })
+  return NextResponse.json(
+    { schedules: createdSchedules, count: createdSchedules.length },
+    { status: 201 }
+  )
 }
