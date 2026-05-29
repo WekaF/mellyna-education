@@ -36,7 +36,7 @@ export default async function DashboardLayout({
       <Sidebar user={user} />
 
       {/* Main content area with dynamic margins for desktop layout */}
-      <div className="md:pl-64 lg:pl-72 flex flex-col min-h-screen transition-all duration-300 relative z-[1]">
+      <div className="md:pl-64 lg:pl-72 flex flex-col min-h-screen transition-all duration-300">
         {/* Top Header bar inside the dashboard */}
         <header className="hidden md:flex items-center justify-between px-8 py-5 border-b border-slate-200 dark:border-slate-800/60 bg-white/45 dark:bg-[#151f32]/45 backdrop-blur-md sticky top-0 z-30 transition-all duration-300">
           <div>
@@ -53,9 +53,7 @@ export default async function DashboardLayout({
         </header>
 
         <main className="flex-1 p-6 md:p-8 lg:p-10 w-full mx-auto max-w-7xl">
-          <div className="animate-fade-in duration-300">
-            {children}
-          </div>
+          {children}
         </main>
       </div>
     </div>
