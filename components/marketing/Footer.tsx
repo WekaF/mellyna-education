@@ -44,7 +44,14 @@ export default function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2.5">
                 <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-indigo-400" />
-                <span>Mellyna Education, Indonesia</span>
+                <a
+                  href="https://maps.app.goo.gl/ZFnnCMCh7yo27j9m7"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white transition-colors duration-200 leading-snug"
+                >
+                  Lihat Lokasi di Google Maps
+                </a>
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone className="h-4 w-4 text-emerald-400" />
