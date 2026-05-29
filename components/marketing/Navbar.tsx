@@ -9,6 +9,7 @@ const navLinks = [
   { label: 'Program', href: '#program' },
   { label: 'Cara Kerja', href: '#cara-kerja' },
   { label: 'Harga', href: '#harga' },
+  { label: 'Lokasi', href: '#lokasi' },
 ]
 
 export default function Navbar() {

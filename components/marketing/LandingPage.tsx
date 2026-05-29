@@ -5,6 +5,7 @@ import ProgramsSection from './ProgramsSection'
 import HowItWorksSection from './HowItWorksSection'
 import PricingSection from './PricingSection'
 import CTASection from './CTASection'
+import LocationSection from './LocationSection'
 import Footer from './Footer'
 
 export default function LandingPage() {
@@ -16,6 +17,7 @@ export default function LandingPage() {
       <ProgramsSection />
       <HowItWorksSection />
       <PricingSection />
+      <LocationSection />
       <CTASection />
       <Footer />
     </div>
