@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
   const tutors = await prisma.user.findMany({
     where: { role: Role.TUTOR },
-    select: { id: true, name: true, email: true, phone: true, createdAt: true },
+    select: { id: true, name: true, email: true, phone: true, suspended: true, createdAt: true },
     orderBy: { name: 'asc' },
   })
 

@@ -10,6 +10,7 @@ interface Tutor {
   name: string
   email: string
   phone: string | null
+  suspended: boolean
   createdAt: string
 }
 
@@ -20,6 +21,7 @@ export default function AdminTutorsPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [suspending, setSuspending] = useState<string | null>(null)
 
   const fetchTutors = useCallback(async () => {
     setLoading(true)
@@ -61,6 +63,23 @@ export default function AdminTutorsPage() {
     }
   }
 
+  const handleToggleSuspend = useCallback(async (tutor: Tutor) => {
+    if (!confirm(`${tutor.suspended ? 'Aktifkan kembali' : 'Tangguhkan'} akun tutor "${tutor.name}"?`)) return
+    setSuspending(tutor.id)
+    try {
+      const res = await fetch(`/api/admin/users/${tutor.id}/suspend`, { method: 'PATCH' })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Gagal mengubah status.')
+      }
+      await fetchTutors()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setSuspending(null)
+    }
+  }, [fetchTutors])
+
   const columns = useMemo<ColumnDef<Tutor>[]>(() => [
     {
       accessorKey: 'name',
@@ -87,6 +106,19 @@ export default function AdminTutorsPage() {
       ),
     },
     {
+      id: 'status',
+      header: 'Status',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const tutor = row.original
+        return tutor.suspended ? (
+          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-600">Ditangguhkan</span>
+        ) : (
+          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Aktif</span>
+        )
+      },
+    },
+    {
       id: 'createdAt',
       accessorFn: (row) =>
         new Date(row.createdAt).toLocaleDateString('id-ID', {
@@ -97,7 +129,28 @@ export default function AdminTutorsPage() {
       header: 'Terdaftar',
       cell: ({ getValue }) => <span className="text-slate-400">{getValue() as string}</span>,
     },
-  ], [])
+    {
+      id: 'actions',
+      header: '',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const tutor = row.original
+        return (
+          <button
+            onClick={() => handleToggleSuspend(tutor)}
+            disabled={suspending === tutor.id}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-lg cursor-pointer transition-colors disabled:opacity-50 ${
+              tutor.suspended
+                ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+            }`}
+          >
+            {suspending === tutor.id ? '...' : tutor.suspended ? '✅ Aktifkan' : '🔒 Tangguhkan'}
+          </button>
+        )
+      },
+    },
+  ], [handleToggleSuspend, suspending])
 
   return (
     <div className="space-y-6">
