@@ -58,4 +58,34 @@ describe('POST /api/payments/manual', () => {
     const json = await res.json()
     expect(json.success).toBe(true)
   })
+
+  it('returns 400 for invalid method enum', async () => {
+    ;(prisma.invoice.findUnique as jest.Mock).mockResolvedValue({ id: 'x', amount: 500000, status: 'PENDING' })
+    const res = await POST(makeReq({ invoiceId: 'x', method: 'INVALID_METHOD' }))
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when invoice is CANCELLED', async () => {
+    ;(prisma.invoice.findUnique as jest.Mock).mockResolvedValue({ id: 'x', amount: 500000, status: 'CANCELLED' })
+    const res = await POST(makeReq({ invoiceId: 'x', method: 'CASH' }))
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 for malformed JSON body', async () => {
+    ;(getServerSession as jest.Mock).mockResolvedValue({ user: { role: 'SUPER_ADMIN' } })
+    const badReq = new NextRequest('http://localhost/api/payments/manual', {
+      method: 'POST',
+      body: 'not-json',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const res = await POST(badReq)
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 500 when transaction fails', async () => {
+    ;(prisma.invoice.findUnique as jest.Mock).mockResolvedValue({ id: 'x', amount: 500000, status: 'PENDING' })
+    ;(prisma.$transaction as jest.Mock).mockRejectedValue(new Error('DB error'))
+    const res = await POST(makeReq({ invoiceId: 'x', method: 'CASH' }))
+    expect(res.status).toBe(500)
+  })
 })
