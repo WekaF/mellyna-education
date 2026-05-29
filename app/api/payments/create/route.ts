@@ -48,6 +48,14 @@ export async function POST(req: NextRequest) {
           name: invoice.description.substring(0, 50),
         },
       ],
+      enabled_payments: [
+        'bri_va',
+        'gopay',
+        'shopeepay',
+        'qris',
+        'alfamart',
+        'indomaret',
+      ],
     }
 
     const transaction = await snap.createTransaction(parameter)
