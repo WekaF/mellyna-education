@@ -30,4 +30,25 @@ describe('generateInvoicePdf', () => {
     const result = await generateInvoicePdf(mockInvoice)
     expect(result.toString('ascii', 0, 4)).toBe('%PDF')
   })
+
+  it('handles null phone and grade gracefully', async () => {
+    const invoiceNoOptionals: InvoiceData = {
+      ...mockInvoice,
+      student: {
+        name: 'Anak Tanpa Grade',
+        grade: null,
+        parent: { name: 'Orang Tua', phone: null, email: 'test@example.com' },
+      },
+    }
+    const result = await generateInvoicePdf(invoiceNoOptionals)
+    expect(result).toBeInstanceOf(Buffer)
+    expect(result.toString('ascii', 0, 4)).toBe('%PDF')
+  })
+
+  it('handles PAID status badge', async () => {
+    const paidInvoice: InvoiceData = { ...mockInvoice, status: 'PAID' }
+    const result = await generateInvoicePdf(paidInvoice)
+    expect(result).toBeInstanceOf(Buffer)
+    expect(result.length).toBeGreaterThan(1000)
+  })
 })

@@ -5,7 +5,7 @@ export interface InvoiceData {
   description: string
   amount: number
   dueDate: Date
-  status: string
+  status: 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED'
   paidAt: Date | null
   createdAt: Date
   student: {
