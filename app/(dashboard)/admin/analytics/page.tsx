@@ -150,12 +150,12 @@ export default function AdminAnalyticsPage() {
         <p className="text-sm text-slate-500 mt-0.5">Ringkasan performa tutor, absensi, dan perkembangan siswa.</p>
       </div>
 
-      <div className="flex gap-2 border-b border-slate-200">
+      <div className="flex border-b border-slate-200 overflow-x-auto">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => { setTab(t.key); setSearch('') }}
-            className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
+            className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
               tab === t.key
                 ? 'border-indigo-500 text-indigo-600'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
