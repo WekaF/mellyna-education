@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, MessageCircle } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
 import { formatRupiah } from '@/lib/utils'
@@ -30,6 +30,8 @@ export default function AdminBillingPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [studentList, setStudentList] = useState<{ id: string; name: string; grade: string | null }[]>([])
+  const [reminding, setReminding] = useState(false)
+  const [remindResult, setRemindResult] = useState<{ sent: number; failed: number; skipped: number; total: number } | null>(null)
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true)
@@ -52,6 +54,21 @@ export default function AdminBillingPage() {
       console.error('Gagal memuat daftar siswa.')
     }
   }, [])
+
+  const handleRemind = async () => {
+    if (!confirm('Kirim pengingat WA ke semua orang tua dengan tagihan PENDING?')) return
+    setReminding(true)
+    setRemindResult(null)
+    try {
+      const res = await fetch('/api/admin/billing/remind', { method: 'POST' })
+      if (!res.ok) throw new Error()
+      setRemindResult(await res.json())
+    } catch {
+      setError('Gagal mengirim pengingat.')
+    } finally {
+      setReminding(false)
+    }
+  }
 
   useEffect(() => {
     fetchInvoices()
@@ -127,17 +144,33 @@ export default function AdminBillingPage() {
           <h1 className="text-2xl font-extrabold text-slate-800">💳 Tagihan & Invoice</h1>
           <p className="text-sm text-slate-500 mt-0.5">Kelola tagihan bimbel dan pantau status pembayaran.</p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
-        >
-          <Plus className="h-4 w-4" /> Buat Invoice
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleRemind}
+            disabled={reminding}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
+          >
+            <MessageCircle className="h-4 w-4" />
+            {reminding ? 'Mengirim...' : 'Kirim Pengingat WA'}
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
+          >
+            <Plus className="h-4 w-4" /> Buat Invoice
+          </button>
+        </div>
       </div>
 
       {error && (
         <div className="rounded-xl bg-rose-50 border border-rose-100 px-4 py-3 text-sm text-rose-600">
           ⚠️ {error}
+        </div>
+      )}
+      {remindResult && (
+        <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700 flex items-center justify-between">
+          <span>✅ Pengingat terkirim: <strong>{remindResult.sent}</strong> berhasil, {remindResult.failed} gagal, {remindResult.skipped} dilewati (tidak ada HP).</span>
+          <button onClick={() => setRemindResult(null)} className="ml-3 text-emerald-500 hover:text-emerald-700 font-bold cursor-pointer">✕</button>
         </div>
       )}
 
