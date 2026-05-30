@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { z } from 'zod'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { notifyParentNewReport } from '@/lib/report-notify'
 
 const upsertReportSchema = z.object({
   studentId: z.string().min(1),
@@ -83,6 +84,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
+  // Check if this report already exists and was already notified
+  const existing = await prisma.learningReport.findUnique({
+    where: {
+      studentId_scheduleId: {
+        studentId: parsed.data.studentId,
+        scheduleId: parsed.data.scheduleId,
+      },
+    },
+    select: { id: true, parentNotifiedAt: true },
+  })
+
   const report = await prisma.learningReport.upsert({
     where: {
       studentId_scheduleId: {
@@ -94,5 +106,48 @@ export async function POST(req: NextRequest) {
     create: { ...parsed.data, tutorId: userId },
   })
 
+  // Notify parent only on first save (not on edits that were already notified)
+  if (!existing?.parentNotifiedAt) {
+    void sendParentNotification(report.id)
+  }
+
   return NextResponse.json(report, { status: 201 })
+}
+
+async function sendParentNotification(reportId: string): Promise<void> {
+  try {
+    const full = await prisma.learningReport.findUnique({
+      where: { id: reportId },
+      include: {
+        student: {
+          include: { parent: { select: { name: true, phone: true } } },
+        },
+        schedule: {
+          include: { class: { select: { name: true } } },
+        },
+      },
+    })
+
+    if (!full?.student.parent?.phone) return
+
+    const sent = await notifyParentNewReport({
+      parentPhone: full.student.parent.phone,
+      parentName: full.student.parent.name,
+      studentName: full.student.name,
+      className: full.schedule.class.name,
+      scheduleDate: full.schedule.date,
+      topic: full.schedule.topic,
+      score: full.score,
+      content: full.content,
+    })
+
+    if (sent) {
+      await prisma.learningReport.update({
+        where: { id: reportId },
+        data: { parentNotifiedAt: new Date() },
+      })
+    }
+  } catch (e) {
+    console.error('[Report Notify] Failed to notify parent:', e)
+  }
 }
