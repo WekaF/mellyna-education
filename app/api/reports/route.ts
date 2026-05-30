@@ -148,6 +148,6 @@ async function sendParentNotification(reportId: string): Promise<void> {
       })
     }
   } catch (e) {
-    console.error('[Report Notify] Failed to notify parent:', e)
+    console.error(`[Report Notify] Failed for report ${reportId}:`, e)
   }
 }
