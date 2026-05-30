@@ -1,6 +1,6 @@
 const WAHA_BASE = process.env.WAHA_BASE_URL ?? 'http://localhost:3001'
 const WAHA_KEY = process.env.WAHA_API_KEY ?? ''
-const WAHA_SESSION = process.env.WAHA_SESSION ?? 'mellyna'
+const WAHA_SESSION = process.env.WAHA_SESSION ?? 'default'
 
 export function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -19,9 +19,14 @@ export async function sendWhatsApp(phone: string, message: string): Promise<bool
       headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_KEY },
       body: JSON.stringify({ session: WAHA_SESSION, chatId, text: message }),
     })
-    return res.ok
+    if (!res.ok) {
+      const body = await res.text().catch(() => '(no body)')
+      console.error(`[WAHA] sendText failed ${res.status} for ${chatId}: ${body}`)
+      return false
+    }
+    return true
   } catch (e) {
-    console.error('[Mellyna] WAHA send failed:', e)
+    console.error('[WAHA] sendText network error:', e)
     return false
   }
 }
@@ -61,9 +66,14 @@ export async function sendWhatsAppFile(
         caption,
       }),
     })
-    return res.ok
+    if (!res.ok) {
+      const body = await res.text().catch(() => '(no body)')
+      console.error(`[WAHA] sendFile failed ${res.status} for ${chatId}: ${body}`)
+      return false
+    }
+    return true
   } catch (e) {
-    console.error('[Mellyna] WAHA sendFile failed:', e)
+    console.error('[WAHA] sendFile network error:', e)
     return false
   }
 }

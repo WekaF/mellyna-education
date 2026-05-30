@@ -43,7 +43,7 @@ services:
       N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET}
       WAHA_BASE_URL: http://waha:3000
       WAHA_API_KEY: ${WAHA_API_KEY}
-      WAHA_SESSION: mellyna
+      WAHA_SESSION: default
       NEXT_PUBLIC_APP_NAME: "Mellyna Education"
     depends_on:
       postgres:

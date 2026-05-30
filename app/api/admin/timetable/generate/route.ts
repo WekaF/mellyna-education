@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { sendWhatsApp, sleep, randomDelay } from '@/lib/waha'
+import { sendWhatsApp, sleep, randomDelay, getSessionStatus } from '@/lib/waha'
 import { DayOfWeek, ScheduleStatus } from '@prisma/client'
 
 const DAY_OFFSETS: Record<DayOfWeek, number> = {
@@ -139,6 +139,12 @@ export async function POST(req: NextRequest) {
       const timeStr = `${start} - ${end}`
 
       Promise.resolve().then(async () => {
+        const sessionStatus = await getSessionStatus()
+        if (sessionStatus !== 'WORKING') {
+          console.error(`[Timetable Auto-Broadcast] WAHA session not WORKING (status: ${sessionStatus}). Skipping broadcast for class ${c.name}.`)
+          return
+        }
+
         // Broadcast to parents
         for (const p of schedule.participants) {
           const parent = p.student.parent
