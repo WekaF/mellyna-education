@@ -1,4 +1,4 @@
-import PDFDocument from 'pdfkit'
+import { jsPDF } from 'jspdf'
 
 export interface InvoiceData {
   id: string
@@ -21,17 +21,17 @@ export interface InvoiceData {
 
 // ── Design tokens ──────────────────────────────────────────────
 const C = {
-  teal:      '#0d9488',
-  tealDark:  '#134e4a',
-  tealLight: '#f0fdfa',
-  tealMid:   '#99f6e4',
-  navy:      '#0f172a',
-  slate:     '#1e293b',
-  gray:      '#64748b',
-  light:     '#f8fafc',
-  border:    '#e2e8f0',
-  white:     '#ffffff',
-} as const
+  teal:      [13, 148, 136]   as [number, number, number],
+  tealDark:  [19, 78, 74]     as [number, number, number],
+  tealLight: [240, 253, 250]  as [number, number, number],
+  tealMid:   [153, 246, 228]  as [number, number, number],
+  navy:      [15, 23, 42]     as [number, number, number],
+  slate:     [30, 41, 59]     as [number, number, number],
+  gray:      [100, 116, 139]  as [number, number, number],
+  light:     [248, 250, 252]  as [number, number, number],
+  border:    [226, 232, 240]  as [number, number, number],
+  white:     [255, 255, 255]  as [number, number, number],
+}
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING:   'BELUM LUNAS',
@@ -40,11 +40,11 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: 'DIBATALKAN',
 }
 
-const STATUS_COLORS: Record<string, { bg: string; text: string; bar: string }> = {
-  PAID:      { bg: '#d1fae5', text: '#065f46', bar: '#10b981' },
-  PENDING:   { bg: '#fef3c7', text: '#92400e', bar: '#f59e0b' },
-  OVERDUE:   { bg: '#fee2e2', text: '#991b1b', bar: '#ef4444' },
-  CANCELLED: { bg: '#f1f5f9', text: '#475569', bar: '#94a3b8' },
+const STATUS_COLORS: Record<string, { bg: [number,number,number]; text: [number,number,number]; bar: [number,number,number] }> = {
+  PAID:      { bg: [209,250,229], text: [6,95,70],   bar: [16,185,129] },
+  PENDING:   { bg: [254,243,199], text: [146,64,14],  bar: [245,158,11] },
+  OVERDUE:   { bg: [254,226,226], text: [153,27,27],  bar: [239,68,68]  },
+  CANCELLED: { bg: [241,245,249], text: [71,85,105],  bar: [148,163,184]},
 }
 
 function formatRp(n: number): string {
@@ -70,222 +70,224 @@ function invoiceNumber(invoice: InvoiceData): string {
   return `INV-${y}${m}-${suffix}`
 }
 
+function setFill(doc: jsPDF, color: [number, number, number]) {
+  doc.setFillColor(color[0], color[1], color[2])
+}
+
+function setTextColor(doc: jsPDF, color: [number, number, number]) {
+  doc.setTextColor(color[0], color[1], color[2])
+}
+
+function setDrawColor(doc: jsPDF, color: [number, number, number]) {
+  doc.setDrawColor(color[0], color[1], color[2])
+}
+
 export function generateInvoicePdf(invoice: InvoiceData): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 0, size: 'A4' })
-    const chunks: Buffer[] = []
-    doc.on('data', (c: Buffer) => chunks.push(c))
-    doc.on('end', () => resolve(Buffer.concat(chunks)))
-    doc.on('error', reject)
+    try {
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
 
-    const W = doc.page.width   // 595.28
-    const H = doc.page.height  // 841.89
-    const ACC = 8              // left accent bar width
-    const P = 38               // left content padding
-    const R = W - 40           // right edge
-    const sc = STATUS_COLORS[invoice.status] ?? STATUS_COLORS['PENDING']
-    const invNo = invoiceNumber(invoice)
+      const W = 595.28
+      const H = 841.89
+      const ACC = 8   // left accent bar width
+      const P = 38    // left content padding
+      const R = W - 40 // right edge
 
-    // ── White background ─────────────────────────────────────
-    doc.rect(0, 0, W, H).fill(C.white)
+      const sc = STATUS_COLORS[invoice.status] ?? STATUS_COLORS['PENDING']
+      const invNo = invoiceNumber(invoice)
 
-    // ── Left accent bar (full height) ─────────────────────────
-    doc.rect(0, 0, ACC, H).fill(C.teal)
+      // ── White background ─────────────────────────────────────
+      setFill(doc, C.white)
+      doc.rect(0, 0, W, H, 'F')
 
-    // ── Teal header band ──────────────────────────────────────
-    doc.rect(ACC, 0, W - ACC, 88).fill(C.teal)
+      // ── Left accent bar (full height) ─────────────────────────
+      setFill(doc, C.teal)
+      doc.rect(0, 0, ACC, H, 'F')
 
-    // Company name (white on teal)
-    doc
-      .fill(C.white)
-      .fontSize(22)
-      .font('Helvetica-Bold')
-      .text('MELLYNA EDUCATION', P, 22)
-    doc
-      .fill(C.tealMid)
-      .fontSize(9)
-      .font('Helvetica')
-      .text('Bimbingan Belajar & Kursus Sempoa  •  Yogyakarta', P, 52)
+      // ── Teal header band ──────────────────────────────────────
+      setFill(doc, C.teal)
+      doc.rect(ACC, 0, W - ACC, 88, 'F')
 
-    // INVOICE label (right side of header)
-    doc
-      .fill(C.white)
-      .fontSize(30)
-      .font('Helvetica-Bold')
-      .text('INVOICE', 0, 18, { width: R, align: 'right' })
-    doc
-      .fill(C.tealMid)
-      .fontSize(9)
-      .font('Helvetica')
-      .text(`No. ${invNo}`, 0, 57, { width: R, align: 'right' })
+      // Company name (white on teal)
+      setTextColor(doc, C.white)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(22)
+      doc.text('MELLYNA EDUCATION', P, 40)
 
-    // ── Status colour stripe (8px, just below header) ─────────
-    doc.rect(ACC, 88, W - ACC, 8).fill(sc.bar)
+      setTextColor(doc, C.tealMid)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.text('Bimbingan Belajar & Kursus Sempoa  •  Yogyakarta', P, 60)
 
-    // ── Two-column meta section (y = 110 to ~205) ─────────────
-    const metaY = 108
+      // INVOICE label (right side of header)
+      setTextColor(doc, C.white)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(30)
+      doc.text('INVOICE', R, 38, { align: 'right' })
 
-    // Left — Bill To
-    doc
-      .fill(C.gray)
-      .fontSize(8)
-      .font('Helvetica-Bold')
-      .text('TAGIHAN KEPADA', P, metaY)
-    doc
-      .fill(C.navy)
-      .fontSize(12)
-      .font('Helvetica-Bold')
-      .text(invoice.student.parent.name, P, metaY + 14)
+      setTextColor(doc, C.tealMid)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.text(`No. ${invNo}`, R, 58, { align: 'right' })
 
-    doc.fill(C.gray).fontSize(9).font('Helvetica')
-    let infoY = metaY + 32
-    if (invoice.student.parent.phone) {
-      doc.text(`HP: ${invoice.student.parent.phone}`, P, infoY)
+      // ── Status colour stripe (8px, just below header) ─────────
+      setFill(doc, sc.bar)
+      doc.rect(ACC, 88, W - ACC, 8, 'F')
+
+      // ── Two-column meta section (y = 108 to ~205) ──────────────
+      const metaY = 108
+
+      // Left — Bill To
+      setTextColor(doc, C.gray)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8)
+      doc.text('TAGIHAN KEPADA', P, metaY + 8)
+
+      setTextColor(doc, C.navy)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(12)
+      doc.text(invoice.student.parent.name, P, metaY + 24)
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      setTextColor(doc, C.gray)
+      let infoY = metaY + 42
+      if (invoice.student.parent.phone) {
+        doc.text(`HP: ${invoice.student.parent.phone}`, P, infoY)
+        infoY += 14
+      }
+      doc.text(invoice.student.parent.email, P, infoY)
       infoY += 14
-    }
-    doc.text(invoice.student.parent.email, P, infoY)
-    infoY += 14
-    doc.text(
-      `Siswa: ${invoice.student.name}${invoice.student.grade ? ` (${invoice.student.grade})` : ''}`,
-      P,
-      infoY
-    )
+      const gradeStr = invoice.student.grade ? ` (${invoice.student.grade})` : ''
+      doc.text(`Siswa: ${invoice.student.name}${gradeStr}`, P, infoY)
 
-    // Right — Invoice detail box (light background)
-    const boxX = W / 2 + 20
-    const boxW = R - boxX
-    doc.rect(boxX, metaY, boxW, 90).fill(C.light)
+      // Right — Invoice detail box
+      const boxX = W / 2 + 20
+      const boxW = R - boxX
+      setFill(doc, C.light)
+      doc.rect(boxX, metaY, boxW, 90, 'F')
 
-    doc
-      .fill(C.gray)
-      .fontSize(8)
-      .font('Helvetica-Bold')
-      .text('DETAIL INVOICE', boxX + 12, metaY + 12)
+      setTextColor(doc, C.gray)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8)
+      doc.text('DETAIL INVOICE', boxX + 12, metaY + 20)
 
-    const detailRows: [string, string][] = [
-      ['No. Invoice', invNo],
-      ['Tanggal', formatDate(invoice.createdAt)],
-      ['Jatuh Tempo', formatDate(invoice.dueDate)],
-    ]
-    if (invoice.paidAt) detailRows.push(['Tgl. Bayar', formatDate(invoice.paidAt)])
+      const detailRows: [string, string][] = [
+        ['No. Invoice', invNo],
+        ['Tanggal', formatDate(invoice.createdAt)],
+        ['Jatuh Tempo', formatDate(invoice.dueDate)],
+      ]
+      if (invoice.paidAt) detailRows.push(['Tgl. Bayar', formatDate(invoice.paidAt)])
 
-    detailRows.forEach(([label, value], i) => {
-      const ry = metaY + 28 + i * 16
-      doc.fill(C.gray).fontSize(8).font('Helvetica').text(label, boxX + 12, ry)
-      doc
-        .fill(C.slate)
-        .fontSize(8)
-        .font('Helvetica-Bold')
-        .text(value, boxX + 12, ry, { width: boxW - 24, align: 'right' })
-    })
-
-    // ── Status badge ──────────────────────────────────────────
-    const badgeY = 214
-    doc.rect(P, badgeY, 160, 30).fill(sc.bg)
-    doc
-      .fill(sc.text)
-      .fontSize(12)
-      .font('Helvetica-Bold')
-      .text(STATUS_LABELS[invoice.status] ?? invoice.status, P, badgeY + 9, {
-        width: 160,
-        align: 'center',
+      detailRows.forEach(([label, value], i) => {
+        const ry = metaY + 36 + i * 16
+        setTextColor(doc, C.gray)
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(8)
+        doc.text(label, boxX + 12, ry)
+        setTextColor(doc, C.slate)
+        doc.setFont('helvetica', 'bold')
+        doc.text(value, boxX + boxW - 12, ry, { align: 'right' })
       })
 
-    // ── Items table ───────────────────────────────────────────
-    const tableY = 264
+      // ── Status badge ──────────────────────────────────────────
+      const badgeY = 214
+      setFill(doc, sc.bg)
+      doc.rect(P, badgeY, 160, 30, 'F')
+      setTextColor(doc, sc.text)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(12)
+      const statusLabel = STATUS_LABELS[invoice.status] ?? invoice.status
+      doc.text(statusLabel, P + 80, badgeY + 20, { align: 'center' })
 
-    // Table header (dark)
-    doc.rect(P, tableY, R - P, 26).fill(C.slate)
-    doc.fill(C.white).fontSize(9).font('Helvetica-Bold')
-    doc.text('KETERANGAN', P + 12, tableY + 9)
-    doc.text('NOMINAL', 0, tableY + 9, { width: R - 8, align: 'right' })
+      // ── Items table ───────────────────────────────────────────
+      const tableY = 264
 
-    // Data row (light)
-    doc.rect(P, tableY + 26, R - P, 40).fill(C.light)
-    doc
-      .fill(C.navy)
-      .fontSize(9)
-      .font('Helvetica')
-      .text(invoice.description, P + 12, tableY + 37, { width: R - P - 130 })
-    doc
-      .fill(C.slate)
-      .fontSize(9)
-      .font('Helvetica-Bold')
-      .text(formatRp(invoice.amount), 0, tableY + 37, { width: R - 8, align: 'right' })
+      // Table header (dark)
+      setFill(doc, C.slate)
+      doc.rect(P, tableY, R - P, 26, 'F')
+      setTextColor(doc, C.white)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.text('KETERANGAN', P + 12, tableY + 17)
+      doc.text('NOMINAL', R - 8, tableY + 17, { align: 'right' })
 
-    // Table bottom border
-    doc
-      .moveTo(P, tableY + 66)
-      .lineTo(R, tableY + 66)
-      .strokeColor(C.border)
-      .lineWidth(1)
-      .stroke()
+      // Data row (light)
+      setFill(doc, C.light)
+      doc.rect(P, tableY + 26, R - P, 40, 'F')
+      setTextColor(doc, C.navy)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      // description with wrapping
+      const maxDescW = R - P - 140
+      const descLines = doc.splitTextToSize(invoice.description, maxDescW)
+      doc.text(descLines, P + 12, tableY + 43)
+      setTextColor(doc, C.slate)
+      doc.setFont('helvetica', 'bold')
+      doc.text(formatRp(invoice.amount), R - 8, tableY + 43, { align: 'right' })
 
-    // ── Total box ─────────────────────────────────────────────
-    const totalY = tableY + 80
-    const totalBoxW = 230
-    const totalBoxX = R - totalBoxW
-    doc.rect(totalBoxX, totalY, totalBoxW, 46).fill(C.tealLight)
-    doc
-      .fill(C.tealDark)
-      .fontSize(9)
-      .font('Helvetica-Bold')
-      .text('TOTAL PEMBAYARAN', totalBoxX + 14, totalY + 8)
-    doc
-      .fill(C.teal)
-      .fontSize(16)
-      .font('Helvetica-Bold')
-      .text(formatRp(invoice.amount), totalBoxX, totalY + 22, {
-        width: totalBoxW - 14,
-        align: 'right',
-      })
+      // Table bottom border
+      setDrawColor(doc, C.border)
+      doc.setLineWidth(1)
+      doc.line(P, tableY + 66, R, tableY + 66)
 
-    // ── Payment note ──────────────────────────────────────────
-    const noteY = totalY + 62
-    doc
-      .moveTo(P, noteY)
-      .lineTo(R, noteY)
-      .strokeColor(C.border)
-      .lineWidth(0.5)
-      .stroke()
+      // ── Total box ─────────────────────────────────────────────
+      const totalY = tableY + 80
+      const totalBoxW = 230
+      const totalBoxX = R - totalBoxW
+      setFill(doc, C.tealLight)
+      doc.rect(totalBoxX, totalY, totalBoxW, 46, 'F')
+      setTextColor(doc, C.tealDark)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.text('TOTAL PEMBAYARAN', totalBoxX + 14, totalY + 18)
+      setTextColor(doc, C.teal)
+      doc.setFontSize(16)
+      doc.text(formatRp(invoice.amount), totalBoxX + totalBoxW - 14, totalY + 38, { align: 'right' })
 
-    doc
-      .fill(C.gray)
-      .fontSize(8)
-      .font('Helvetica-Bold')
-      .text('CARA PEMBAYARAN', P, noteY + 14)
-    doc
-      .fill(C.gray)
-      .fontSize(8)
-      .font('Helvetica')
-      .text(
+      // ── Payment note ──────────────────────────────────────────
+      const noteY = totalY + 62
+      setDrawColor(doc, C.border)
+      doc.setLineWidth(0.5)
+      doc.line(P, noteY, R, noteY)
+
+      setTextColor(doc, C.gray)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8)
+      doc.text('CARA PEMBAYARAN', P, noteY + 20)
+      doc.setFont('helvetica', 'normal')
+      const noteText =
         'Pembayaran dapat dilakukan melalui portal Mellyna Education (Midtrans) atau transfer bank. ' +
-        'Hubungi admin untuk konfirmasi atau pertanyaan lebih lanjut.',
-        P,
-        noteY + 28,
-        { width: R - P }
-      )
+        'Hubungi admin untuk konfirmasi atau pertanyaan lebih lanjut.'
+      const noteLines = doc.splitTextToSize(noteText, R - P)
+      doc.text(noteLines, P, noteY + 34)
 
-    // ── Footer ────────────────────────────────────────────────
-    const footerY = H - 52
-    doc.rect(ACC, footerY, W - ACC, 52).fill(C.tealLight)
-    doc.rect(0, footerY, ACC, 52).fill(C.teal)
-    doc
-      .fill(C.teal)
-      .fontSize(10)
-      .font('Helvetica-Bold')
-      .text('MELLYNA EDUCATION', P, footerY + 12)
-    doc
-      .fill(C.gray)
-      .fontSize(7.5)
-      .font('Helvetica')
-      .text(
+      // ── Footer ────────────────────────────────────────────────
+      const footerY = H - 52
+      setFill(doc, C.tealLight)
+      doc.rect(ACC, footerY, W - ACC, 52, 'F')
+      setFill(doc, C.teal)
+      doc.rect(0, footerY, ACC, 52, 'F')
+
+      setTextColor(doc, C.teal)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(10)
+      doc.text('MELLYNA EDUCATION', P, footerY + 22)
+
+      setTextColor(doc, C.gray)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(7.5)
+      doc.text(
         `info@mellynaeducation.id  •  Yogyakarta, Indonesia  •  Diterbitkan otomatis ${formatDate(new Date())}`,
         P,
-        footerY + 30,
-        { width: R - P }
+        footerY + 38,
       )
 
-    doc.end()
+      // ── Output as Buffer ──────────────────────────────────────
+      const uint8 = doc.output('arraybuffer')
+      resolve(Buffer.from(uint8))
+    } catch (e) {
+      reject(e)
+    }
   })
 }
