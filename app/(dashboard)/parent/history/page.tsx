@@ -42,6 +42,10 @@ export default async function ParentHistoryPage({
     select: { id: true, name: true },
   })
 
+  if (studentId && !children.some((c) => c.id === studentId)) {
+    redirect('/parent/history')
+  }
+
   const schedules = await prisma.schedule.findMany({
     where: {
       status: { in: ['COMPLETED', 'PUBLISHED'] },
