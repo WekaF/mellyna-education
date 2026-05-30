@@ -28,7 +28,13 @@ export async function GET(req: NextRequest) {
   let schedules
   if (role === 'TUTOR') {
     schedules = await prisma.schedule.findMany({
-      where: { class: { tutorId: userId }, ...(classId ? { classId } : {}) },
+      where: {
+        OR: [
+          { class: { tutorId: userId } },
+          { class: { additionalTutors: { some: { tutorId: userId } } } },
+        ],
+        ...(classId ? { classId } : {}),
+      },
       include: {
         class: { include: { tutor: { select: { name: true } } } },
         _count: { select: { participants: true } },

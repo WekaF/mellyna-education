@@ -11,7 +11,13 @@ export default async function TutorDashboardPage() {
   const userId = (session.user as any).id
 
   const schedules = await prisma.schedule.findMany({
-    where: { class: { tutorId: userId }, date: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
+    where: {
+      OR: [
+        { class: { tutorId: userId } },
+        { class: { additionalTutors: { some: { tutorId: userId } } } },
+      ],
+      date: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+    },
     include: {
       class: { select: { name: true, _count: { select: { enrollments: true } } } },
       _count: { select: { reports: true, participants: true } },
