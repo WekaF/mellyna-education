@@ -35,6 +35,10 @@ export async function uploadFile(buffer: Buffer, filename: string, mimetype: str
   await ensureBucket()
   const key = `${Date.now()}-${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`
   await minioClient.putObject(BUCKET, key, buffer, buffer.length, { 'Content-Type': mimetype })
+  // Prefer MINIO_PUBLIC_URL (public-facing domain) over internal Docker hostname
+  if (process.env.MINIO_PUBLIC_URL) {
+    return `${process.env.MINIO_PUBLIC_URL.replace(/\/$/, '')}/${BUCKET}/${key}`
+  }
   const protocol = process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http'
   return `${protocol}://${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}/${BUCKET}/${key}`
 }

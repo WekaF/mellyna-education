@@ -31,6 +31,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost', port: '9000' },
       { protocol: 'https', hostname: process.env.MINIO_ENDPOINT || 'localhost' },
+      { protocol: 'https', hostname: 'media.mellyna-education.my.id' },
       { protocol: 'https', hostname: 'sempoakreatif.com' },
       { protocol: 'https', hostname: 'ahe.education' },
     ],

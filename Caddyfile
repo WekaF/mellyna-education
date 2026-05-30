@@ -10,6 +10,10 @@ waha.mellyna-education.my.id {
     reverse_proxy waha:3000
 }
 
+media.mellyna-education.my.id {
+    reverse_proxy minio:9000
+}
+
 minio.mellyna-education.my.id {
     reverse_proxy minio:9001
 }

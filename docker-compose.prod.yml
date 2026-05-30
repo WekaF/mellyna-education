@@ -39,6 +39,7 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
       MINIO_BUCKET: mellyna-media
       MINIO_USE_SSL: "false"
+      MINIO_PUBLIC_URL: https://media.mellyna-education.my.id
       N8N_WEBHOOK_BASE_URL: ${N8N_WEBHOOK_BASE_URL}
       N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET}
       WAHA_BASE_URL: http://waha:3000
