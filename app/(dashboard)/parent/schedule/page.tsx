@@ -33,6 +33,7 @@ export default async function ParentSchedulePage() {
         include: {
           tutor: { select: { name: true } },
           student: { select: { id: true, name: true } },
+          media: true,
         },
       },
     },

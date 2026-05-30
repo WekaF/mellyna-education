@@ -29,6 +29,13 @@ interface Schedule {
   reports: Report[]
 }
 
+interface Media {
+  id: string
+  url: string
+  type: 'PHOTO' | 'VIDEO'
+  filename: string
+}
+
 interface Report {
   id: string
   studentId: string
@@ -37,6 +44,7 @@ interface Report {
   createdAt: string
   tutor: { name: string }
   student: { id: string; name: string }
+  media: Media[]
 }
 
 interface ParentScheduleListProps {
@@ -223,6 +231,26 @@ export default function ParentScheduleList({ schedules }: ParentScheduleListProp
                             <p className="text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed">{report.content}</p>
                             {report.score !== null && (
                               <p className="font-semibold text-indigo-600 dark:text-indigo-400">Nilai: {report.score}/100</p>
+                            )}
+                            {report.media && report.media.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {report.media.map((m) => (
+                                  <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer" className="block shrink-0">
+                                    {m.type === 'PHOTO' ? (
+                                      <img
+                                        src={m.url}
+                                        alt={m.filename}
+                                        className="h-16 w-16 rounded-lg object-cover border border-slate-200 dark:border-slate-700"
+                                      />
+                                    ) : (
+                                      <div className="h-16 w-16 rounded-lg border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 flex flex-col items-center justify-center gap-0.5">
+                                        <span className="text-xl">🎥</span>
+                                        <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400">VIDEO</span>
+                                      </div>
+                                    )}
+                                  </a>
+                                ))}
+                              </div>
                             )}
                             <p className="text-[10px] text-slate-400 dark:text-slate-500">
                               Tutor: {report.tutor.name} · {new Date(report.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}

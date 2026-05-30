@@ -83,9 +83,13 @@ export default async function ParentProgressPage({ searchParams }: { searchParam
                             <img src={m.url} alt={m.filename} className="h-full w-full object-cover" />
                           </div>
                         ) : (
-                          <div className="h-24 w-24 rounded-xl border border-slate-200 bg-slate-100 flex items-center justify-center">
-                            <span className="text-2xl">🎥</span>
-                          </div>
+                          <video
+                            src={m.url}
+                            controls
+                            preload="metadata"
+                            className="h-24 w-24 rounded-xl object-cover border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-pointer"
+                            title={m.filename}
+                          />
                         )}
                       </a>
                     ))}
