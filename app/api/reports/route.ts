@@ -128,7 +128,7 @@ async function sendParentNotification(reportId: string): Promise<void> {
       },
     })
 
-    if (!full?.student.parent?.phone) return
+    if (!full || !full.student?.parent?.phone) return
 
     const sent = await notifyParentNewReport({
       parentPhone: full.student.parent.phone,
