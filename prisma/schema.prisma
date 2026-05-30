@@ -78,11 +78,12 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  children      Student[]        @relation("ParentStudents")
-  tutorClasses  Class[]          @relation("TutorClasses")
-  reports       LearningReport[]
-  accounts      Account[]
-  sessions      Session[]
+  children                 Student[]        @relation("ParentStudents")
+  tutorClasses             Class[]          @relation("TutorClasses")
+  additionalTutorClasses   ClassTutor[]     @relation("AdditionalTutorClasses")
+  reports                  LearningReport[]
+  accounts                 Account[]
+  sessions                 Session[]
 }
 
 model Student {
@@ -115,9 +116,10 @@ model Class {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  programs    ClassProgram[]
-  enrollments Enrollment[]
-  schedules   Schedule[]
+  programs           ClassProgram[]
+  enrollments        Enrollment[]
+  schedules          Schedule[]
+  additionalTutors   ClassTutor[]   @relation("AdditionalTutors")
 }
 
 model ClassProgram {
@@ -138,6 +140,17 @@ model Enrollment {
   joinedAt  DateTime @default(now())
 
   @@unique([studentId, classId])
+}
+
+model ClassTutor {
+  id        String   @id @default(cuid())
+  classId   String
+  tutorId   String
+  class     Class    @relation("AdditionalTutors", fields: [classId], references: [id], onDelete: Cascade)
+  tutor     User     @relation("AdditionalTutorClasses", fields: [tutorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([classId, tutorId])
 }
 
 model Schedule {
