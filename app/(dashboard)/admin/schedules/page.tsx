@@ -218,7 +218,7 @@ export default function AdminSchedulesPage() {
           <h1 className="text-2xl font-extrabold text-slate-800">📅 Jadwal Bimbel</h1>
           <p className="text-sm text-slate-500 mt-0.5">Kelola dan terbitkan jadwal sesi belajar.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowForm(true)}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
