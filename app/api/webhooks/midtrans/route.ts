@@ -10,6 +10,10 @@ export async function POST(req: NextRequest) {
     const { order_id, status_code, gross_amount, signature_key, transaction_status } = body
 
     const serverKey = process.env.MIDTRANS_SERVER_KEY ?? ''
+    if (!serverKey) {
+      console.error('[Midtrans Webhook] MIDTRANS_SERVER_KEY not configured')
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
     const expectedSignature = createHash('sha512')
       .update(`${order_id}${status_code}${gross_amount}${serverKey}`)
       .digest('hex')
