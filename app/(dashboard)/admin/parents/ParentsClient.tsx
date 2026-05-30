@@ -19,7 +19,8 @@ import {
   Clock,
   Sparkles,
   BookOpen,
-  Check
+  Check,
+  Pencil,
 } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
@@ -112,6 +113,11 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
   const [addError, setAddError] = useState<string | null>(null)
   const [addSuccess, setAddSuccess] = useState<string | null>(null)
 
+  const [editingParent, setEditingParent] = useState<Parent | null>(null)
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', password: '' })
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+
   // Drawer / Modal states
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [selectedParent, setSelectedParent] = useState<Parent | null>(null)
@@ -155,6 +161,51 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
       setAddSaving(false)
     }
   }, [addForm, fetchParents])
+
+  const handleStartEdit = useCallback((parent: Parent) => {
+    setEditingParent(parent)
+    setEditForm({ name: parent.name, email: parent.email, phone: parent.phone || '', password: '' })
+    setEditError(null)
+  }, [])
+
+  const handleEditSave = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingParent) return
+    setEditSaving(true)
+    setEditError(null)
+    try {
+      const body: any = {
+        name: editForm.name,
+        email: editForm.email,
+        phone: editForm.phone || null,
+      }
+      if (editForm.password.trim().length >= 6) body.password = editForm.password
+
+      const res = await fetch(`/api/users/${editingParent.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Gagal memperbarui data.')
+
+      setParents((prev) =>
+        prev.map((p) =>
+          p.id === editingParent.id
+            ? { ...p, name: data.name, email: data.email, phone: data.phone }
+            : p
+        )
+      )
+      if (selectedParent?.id === editingParent.id) {
+        setSelectedParent((prev) => prev ? { ...prev, name: data.name, email: data.email, phone: data.phone } : null)
+      }
+      setEditingParent(null)
+    } catch (err: any) {
+      setEditError(err.message)
+    } finally {
+      setEditSaving(false)
+    }
+  }, [editingParent, editForm, selectedParent])
 
   // Handle Account Suspension Toggle
   const handleToggleSuspend = useCallback(async (parent: Parent) => {
@@ -369,6 +420,14 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
         return (
           <div className="flex items-center gap-2">
             <button
+              onClick={() => handleStartEdit(parent)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg cursor-pointer transition-all border bg-slate-50 border-slate-200 text-slate-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 dark:bg-slate-900/40 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-indigo-950/20 dark:hover:text-indigo-400"
+              title="Edit data wali murid"
+            >
+              <Pencil className="h-3 w-3" />
+              Edit
+            </button>
+            <button
               onClick={() => handleToggleSuspend(parent)}
               disabled={isToggling}
               className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-lg cursor-pointer transition-all duration-200 disabled:opacity-50 border ${
@@ -414,7 +473,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
         )
       },
     },
-  ], [handleToggleSuspend, togglingId])
+  ], [handleToggleSuspend, togglingId, handleStartEdit])
 
   // Calculation for student analytics
   const studentAnalytics = useMemo(() => {
@@ -1119,6 +1178,95 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
 
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {editingParent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => setEditingParent(null)} />
+          <div className="relative w-full max-w-md bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-800/60 rounded-3xl p-6 shadow-2xl z-10">
+            <div className="absolute top-0 left-0 w-full h-[5px] bg-gradient-to-r from-indigo-500 to-violet-500 rounded-t-3xl" />
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-800/60 mb-5">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-800 dark:text-white">✏️ Edit Wali Murid</h3>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{editingParent.name}</p>
+              </div>
+              <button
+                onClick={() => setEditingParent(null)}
+                className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {editError && (
+              <div className="mb-4 rounded-xl bg-rose-50 dark:bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>{editError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleEditSave} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Nama Lengkap</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                  required
+                  className="block w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 px-3.5 py-2.5 text-sm text-slate-800 dark:text-white outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Email</label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                  required
+                  className="block w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 px-3.5 py-2.5 text-sm text-slate-800 dark:text-white outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">No. HP / WhatsApp</label>
+                <input
+                  type="text"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="08123456789"
+                  className="block w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 px-3.5 py-2.5 text-sm text-slate-800 dark:text-white outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                  Password Baru <span className="text-slate-400 normal-case font-normal">(kosongkan jika tidak diubah)</span>
+                </label>
+                <input
+                  type="password"
+                  value={editForm.password}
+                  onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
+                  placeholder="Min. 6 karakter"
+                  className="block w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 px-3.5 py-2.5 text-sm text-slate-800 dark:text-white outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all"
+                />
+              </div>
+              <div className="flex gap-3 pt-3 border-t border-slate-100 dark:border-slate-800/60">
+                <button
+                  type="button"
+                  onClick={() => setEditingParent(null)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-850 transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSaving}
+                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold text-xs transition-all cursor-pointer"
+                >
+                  {editSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
