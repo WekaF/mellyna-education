@@ -29,6 +29,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
     }
 
+    // Idempotency guard: skip if already processed
+    if (invoice.status === 'PAID' && (transaction_status === 'settlement' || transaction_status === 'capture')) {
+      console.log(`[Midtrans Webhook] Invoice ${invoice.id} already PAID, skipping duplicate webhook`)
+      return NextResponse.json({ status: 'ok' })
+    }
+
     const paymentId = invoice.payments[0]?.id
 
     if (transaction_status === 'settlement' || transaction_status === 'capture') {
@@ -81,7 +87,10 @@ async function sendPaidReceipt(invoiceId: string, paidAt: Date): Promise<void> {
       },
     })
 
-    if (!inv?.student.parent?.phone) return
+    if (!inv?.student.parent?.phone) {
+      console.warn(`[Midtrans] No parent phone for invoice ${invoiceId}, skipping receipt`)
+      return
+    }
 
     const pdfBuffer = await generateInvoicePdf({
       id: inv.id,
@@ -125,7 +134,7 @@ async function sendPaidReceipt(invoiceId: string, paidAt: Date): Promise<void> {
     await sendWhatsAppFile(inv.student.parent.phone, base64, filename, 'application/pdf', caption)
     console.log(`[Midtrans] Receipt sent to ${inv.student.parent.phone} for ${invNo}`)
   } catch (e) {
-    console.error('[Midtrans] Failed to send receipt:', e)
+    console.error(`[Midtrans] Failed to send receipt for invoice ${invoiceId}:`, e)
   }
 }
 
