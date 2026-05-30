@@ -61,6 +61,11 @@ export async function POST(req: NextRequest) {
       where: { dayOfWeek: { not: null }, timeSlot: { not: null } },
       include: {
         tutor: { select: { name: true, phone: true } },
+        additionalTutors: {
+          include: {
+            tutor: { select: { name: true, phone: true } },
+          },
+        },
         programs: { select: { program: true } },
         enrollments: {
           include: {
@@ -150,17 +155,24 @@ export async function POST(req: NextRequest) {
         }
 
         // Broadcast to parents
+        const topicStr = schedule.topic ? `\n📚 Materi: ${schedule.topic}` : ''
+        const locationStr = schedule.location ? `\n📍 Lokasi: ${schedule.location}` : ''
+
+        const tutorNames = [
+          c.tutor,
+          ...c.additionalTutors.map((at: { tutor: { name: string; phone: string | null } }) => at.tutor),
+        ].map(t => t.name).join(', ')
+
         for (const p of schedule.participants) {
           const parent = p.student.parent
           if (!parent.phone) continue
 
           const message = `Halo Bunda/Ayah ${parent.name},
 
-Berikut adalah jadwal belajar rutin untuk ${p.student.name} besok:
+Berikut adalah jadwal belajar untuk ${p.student.name}:
 🏫 Kelas: ${c.name}
-👨‍🏫 Tutor: ${c.tutor.name}
-🕐 Waktu: ${dateStr}, ${timeStr}
-📍 Lokasi: Ruang Belajar Mellyna
+👨‍🏫 Tutor: ${tutorNames}
+🕐 Waktu: ${dateStr}, ${timeStr}${topicStr}${locationStr}
 
 Sistem secara otomatis menjadwalkan ${p.student.name} untuk hadir. Jika berhalangan (sakit/izin), silakan hubungi kami dengan membalas pesan ini atau ajukan di portal akademik.
 
@@ -172,22 +184,30 @@ Mellyna Education`
           await sleep(randomDelay(3000, 7000))
         }
 
-        // Broadcast to tutor
-        if (c.tutor.phone) {
-          const studentNames = schedule.participants.map(p => p.student.name).join(', ')
-          const tutorMessage = `Halo ${c.tutor.name},
+        // Broadcast to all tutors (primary + additional)
+        const allTutors = [
+          c.tutor,
+          ...c.additionalTutors.map((at: { tutor: { name: string; phone: string | null } }) => at.tutor),
+        ]
+        const studentNames = schedule.participants.map((p: { student: { name: string } }) => p.student.name).join(', ')
+
+        for (const tutorUser of allTutors) {
+          if (!tutorUser.phone) continue
+          const tutorMessage = `Halo ${tutorUser.name},
 
 Jadwal mengajar rutin Anda telah diterbitkan secara otomatis dari Timetable:
 🏫 Kelas: ${c.name}
 🕐 Waktu: ${dateStr}, ${timeStr}
+📚 Materi: ${schedule.topic || '-'}
+📍 Lokasi: ${schedule.location || '-'}
 👥 Peserta (${schedule.participants.length} siswa): ${studentNames}
 
 Silakan konfirmasi kehadiran siswa setelah sesi selesai melalui portal tutor.
 
 Mellyna Education`
 
-          console.log(`[Timetable Auto-Broadcast] Sending WhatsApp to tutor ${c.tutor.name} (${c.tutor.phone})`)
-          await sendWhatsApp(c.tutor.phone, tutorMessage)
+          console.log(`[Timetable Auto-Broadcast] Sending WhatsApp to tutor ${tutorUser.name} (${tutorUser.phone})`)
+          await sendWhatsApp(tutorUser.phone, tutorMessage)
           await sleep(randomDelay(3000, 7000))
         }
       }).catch(err => {
