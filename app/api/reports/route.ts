@@ -125,6 +125,10 @@ async function sendParentNotification(reportId: string): Promise<void> {
         schedule: {
           include: { class: { select: { name: true } } },
         },
+        media: {
+          where: { type: 'VIDEO' },
+          select: { url: true, filename: true },
+        },
       },
     })
 
@@ -139,6 +143,7 @@ async function sendParentNotification(reportId: string): Promise<void> {
       topic: full.schedule.topic,
       score: full.score,
       content: full.content,
+      mediaVideos: full.media,
     })
 
     if (sent) {

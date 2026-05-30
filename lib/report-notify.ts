@@ -9,6 +9,7 @@ export interface ParentReportData {
   topic: string | null
   score: number | null
   content: string
+  mediaVideos?: { url: string; filename: string }[]
 }
 
 const fmtDateLong = (d: Date) =>
@@ -37,7 +38,17 @@ export async function notifyParentNewReport(data: ParentReportData): Promise<boo
   ]
   if (data.topic) lines.push(`📖 Materi: ${data.topic}`)
   if (data.score !== null) lines.push(`⭐ Nilai: ${data.score}/100`)
-  lines.push(``, `💬 *Catatan Tutor:*`, data.content, ``, `Terima kasih,`, `Mellyna Education`)
+  lines.push(``, `💬 *Catatan Tutor:*`, data.content)
+
+  if (data.mediaVideos && data.mediaVideos.length > 0) {
+    lines.push(``, `🎥 *Video Pembelajaran dari Tutor:*`)
+    data.mediaVideos.forEach(v => {
+      lines.push(`   📥 ${v.filename}: ${v.url}`)
+    })
+    lines.push(`   _(Buka link di atas untuk melihat/mengunduh video)_`)
+  }
+
+  lines.push(``, `Terima kasih,`, `Mellyna Education`)
   return sendWhatsApp(data.parentPhone, lines.join('\n'))
 }
 
