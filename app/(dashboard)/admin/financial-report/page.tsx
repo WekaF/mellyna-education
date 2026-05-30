@@ -46,9 +46,9 @@ function SummaryCard({
   label, count, amount, colorClass,
 }: { label: string; count: number; amount: number; colorClass: string }) {
   return (
-    <div className={`rounded-2xl p-5 border shadow-xs ${colorClass}`}>
+    <div className={`rounded-2xl p-4 sm:p-5 border shadow-xs ${colorClass}`}>
       <p className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">{label}</p>
-      <p className="text-2xl font-extrabold">{formatRupiah(amount)}</p>
+      <p className="text-base sm:text-2xl font-extrabold leading-tight">{formatRupiah(amount)}</p>
       <p className="text-xs mt-1 opacity-60">{count} invoice</p>
     </div>
   )
