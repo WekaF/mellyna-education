@@ -7,7 +7,12 @@ import { prisma } from '@/lib/db'
 import { DayOfWeek, Program } from '@prisma/client'
 
 const classDetailInclude = {
-  tutor: { select: { name: true, email: true } },
+  tutor: { select: { id: true, name: true, email: true } },
+  additionalTutors: {
+    include: {
+      tutor: { select: { id: true, name: true } },
+    },
+  },
   programs: { select: { program: true } },
   enrollments: { include: { student: true } },
   schedules: { orderBy: { date: 'desc' as const }, take: 5 },
@@ -18,6 +23,7 @@ const updateClassSchema = z.object({
   programs: z.array(z.nativeEnum(Program)).min(1).optional(),
   description: z.string().optional(),
   tutorId: z.string().optional(),
+  additionalTutorIds: z.array(z.string()).optional(),
   dayOfWeek: z.nativeEnum(DayOfWeek).nullable().optional(),
   timeSlot: z.string().nullable().optional(),
 })
@@ -49,7 +55,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { programs, ...classData } = parsed.data
+  const { programs, additionalTutorIds, ...classData } = parsed.data
 
   const kelas = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     if (programs) {
@@ -57,6 +63,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       await tx.classProgram.createMany({
         data: programs.map(program => ({ classId: id, program })),
       })
+    }
+    if (additionalTutorIds !== undefined) {
+      await tx.classTutor.deleteMany({ where: { classId: id } })
+      const primaryTutorId = classData.tutorId
+      const filteredIds = primaryTutorId
+        ? additionalTutorIds.filter(tid => tid !== primaryTutorId)
+        : additionalTutorIds
+      if (filteredIds.length > 0) {
+        await tx.classTutor.createMany({
+          data: filteredIds.map(tutorId => ({ classId: id, tutorId })),
+          skipDuplicates: true,
+        })
+      }
     }
     return tx.class.update({
       where: { id },

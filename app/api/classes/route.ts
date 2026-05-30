@@ -6,7 +6,12 @@ import { prisma } from '@/lib/db'
 import { DayOfWeek, Program } from '@prisma/client'
 
 const classListInclude = {
-  tutor: { select: { name: true, email: true } },
+  tutor: { select: { id: true, name: true, email: true } },
+  additionalTutors: {
+    include: {
+      tutor: { select: { id: true, name: true } },
+    },
+  },
   _count: { select: { enrollments: true } },
   programs: { select: { program: true } },
   enrollments: {
@@ -21,6 +26,7 @@ const createClassSchema = z.object({
   programs: z.array(z.nativeEnum(Program)).min(1),
   description: z.string().optional(),
   tutorId: z.string().min(1),
+  additionalTutorIds: z.array(z.string()).optional(),
   dayOfWeek: z.nativeEnum(DayOfWeek).nullable().optional(),
   timeSlot: z.string().nullable().optional(),
 })
@@ -58,15 +64,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { programs, ...classData } = parsed.data
-  const kelas = await prisma.class.create({
-    data: {
-      ...classData,
-      programs: {
-        create: programs.map(program => ({ program })),
+  const { programs, additionalTutorIds, ...classData } = parsed.data
+  const kelas = await prisma.$transaction(async (tx) => {
+    const created = await tx.class.create({
+      data: {
+        ...classData,
+        programs: {
+          create: programs.map(program => ({ program })),
+        },
       },
-    },
-    include: classListInclude,
+    })
+    if (additionalTutorIds && additionalTutorIds.length > 0) {
+      await tx.classTutor.createMany({
+        data: additionalTutorIds
+          .filter(id => id !== classData.tutorId)
+          .map(tutorId => ({ classId: created.id, tutorId })),
+        skipDuplicates: true,
+      })
+    }
+    return tx.class.findUniqueOrThrow({ where: { id: created.id }, include: classListInclude })
   })
 
   return NextResponse.json(kelas, { status: 201 })
