@@ -52,7 +52,7 @@ async function runDailyAdminDigest(): Promise<NextResponse> {
   }
 
   const admins = await prisma.user.findMany({
-    where: { role: 'SUPER_ADMIN' },
+    where: { role: 'SUPER_ADMIN', phone: { not: null } },
     select: { phone: true, name: true },
   })
 
