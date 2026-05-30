@@ -69,6 +69,11 @@ async function handleCron(req: NextRequest) {
       where: { dayOfWeek: { not: null }, timeSlot: { not: null } },
       include: {
         tutor: { select: { name: true, phone: true } },
+        additionalTutors: {
+          include: {
+            tutor: { select: { name: true, phone: true } },
+          },
+        },
         programs: { select: { program: true } },
         enrollments: {
           include: {
@@ -149,6 +154,11 @@ async function handleCron(req: NextRequest) {
       const timeStr = `${start} - ${end}`
 
       Promise.resolve().then(async () => {
+        const tutorNames = [
+          c.tutor,
+          ...c.additionalTutors.map((at: { tutor: { name: string; phone: string | null } }) => at.tutor),
+        ].map(t => t.name).join(', ')
+
         // Broadcast to parents
         for (const p of schedule.participants) {
           const parent = p.student.parent
@@ -158,7 +168,7 @@ async function handleCron(req: NextRequest) {
 
 Berikut adalah jadwal belajar rutin untuk ${p.student.name} besok:
 🏫 Kelas: ${c.name}
-👨‍🏫 Tutor: ${c.tutor.name}
+👨‍🏫 Tutor: ${tutorNames}
 🕐 Waktu: ${dateStr}, ${timeStr}
 📍 Lokasi: Ruang Belajar Mellyna
 
@@ -171,10 +181,16 @@ Mellyna Education`
           await sleep(randomDelay(3000, 7000))
         }
 
-        // Broadcast to tutor
-        if (c.tutor.phone) {
-          const studentNames = schedule.participants.map(p => p.student.name).join(', ')
-          const tutorMessage = `Halo ${c.tutor.name},
+        // Broadcast to all tutors (primary + additional)
+        const allTutors = [
+          c.tutor,
+          ...c.additionalTutors.map((at: { tutor: { name: string; phone: string | null } }) => at.tutor),
+        ]
+        const studentNames = schedule.participants.map((p: { student: { name: string } }) => p.student.name).join(', ')
+
+        for (const tutorUser of allTutors) {
+          if (!tutorUser.phone) continue
+          const tutorMessage = `Halo ${tutorUser.name},
 
 Jadwal mengajar rutin Anda telah diterbitkan secara otomatis dari Timetable:
 🏫 Kelas: ${c.name}
@@ -185,7 +201,7 @@ Silakan konfirmasi kehadiran siswa setelah sesi selesai melalui portal tutor.
 
 Mellyna Education`
 
-          await sendWhatsApp(c.tutor.phone, tutorMessage)
+          await sendWhatsApp(tutorUser.phone, tutorMessage)
           await sleep(randomDelay(3000, 7000))
         }
       }).catch(err => {

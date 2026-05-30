@@ -55,11 +55,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const existing = await prisma.schedule.findUnique({
     where: { id },
-    include: { class: { select: { tutorId: true } } },
+    include: {
+      class: {
+        select: {
+          tutorId: true,
+          additionalTutors: {
+            where: { tutorId: userId },
+            select: { tutorId: true },
+          },
+        },
+      },
+    },
   })
   if (!existing) return NextResponse.json({ error: 'Not Found' }, { status: 404 })
 
-  if (role === 'TUTOR' && existing.class.tutorId !== userId) {
+  if (role === 'TUTOR' && existing.class.tutorId !== userId && existing.class.additionalTutors.length === 0) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
