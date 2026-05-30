@@ -45,7 +45,14 @@ export default function ProfileClient({ user }: ProfileClientProps) {
         body: JSON.stringify(body),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Gagal menyimpan.')
+      if (!res.ok) {
+        const msg = typeof data.error === 'string'
+          ? data.error
+          : typeof data.error === 'object' && data.error !== null
+            ? Object.values(data.error).flat().join(' ')
+            : 'Gagal menyimpan.'
+        throw new Error(msg)
+      }
 
       setSuccess('Profil berhasil diperbarui!')
       setForm((f) => ({ ...f, password: '', confirmPassword: '' }))

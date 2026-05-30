@@ -19,7 +19,7 @@ export async function PUT(req: NextRequest) {
   const body = await req.json()
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 })
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
   const { name, phone, password } = parsed.data
