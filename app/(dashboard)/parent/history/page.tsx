@@ -42,15 +42,13 @@ export default async function ParentHistoryPage({
     select: { id: true, name: true },
   })
 
-  const studentFilter = studentId ? { id: studentId } : {}
-
   const schedules = await prisma.schedule.findMany({
     where: {
       status: { in: ['COMPLETED', 'PUBLISHED'] },
       date: { lte: new Date() },
       class: {
         enrollments: {
-          some: { student: { parentId: userId, ...studentFilter } },
+          some: { student: { parentId: userId, ...(studentId ? { id: studentId } : {}) } },
         },
       },
     },
@@ -60,17 +58,17 @@ export default async function ParentHistoryPage({
           name: true,
           tutor: { select: { name: true } },
           enrollments: {
-            where: { student: { parentId: userId, ...studentFilter } },
+            where: { student: { parentId: userId, ...(studentId ? { id: studentId } : {}) } },
             include: { student: { select: { id: true, name: true } } },
           },
         },
       },
       attendances: {
-        where: { student: { parentId: userId, ...studentFilter } },
+        where: { student: { parentId: userId, ...(studentId ? { id: studentId } : {}) } },
         include: { student: { select: { id: true, name: true } } },
       },
       reports: {
-        where: { student: { parentId: userId, ...studentFilter } },
+        where: { student: { parentId: userId, ...(studentId ? { id: studentId } : {}) } },
         include: {
           tutor: { select: { name: true } },
           student: { select: { id: true, name: true } },
