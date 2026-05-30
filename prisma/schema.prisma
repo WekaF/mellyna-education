@@ -189,17 +189,18 @@ model ScheduleParticipant {
 }
 
 model LearningReport {
-  id         String   @id @default(cuid())
-  studentId  String
-  scheduleId String
-  tutorId    String
-  student    Student  @relation(fields: [studentId], references: [id])
-  schedule   Schedule @relation(fields: [scheduleId], references: [id])
-  tutor      User     @relation(fields: [tutorId], references: [id])
-  content    String   @db.Text
-  score      Int?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id               String    @id @default(cuid())
+  studentId        String
+  scheduleId       String
+  tutorId          String
+  student          Student   @relation(fields: [studentId], references: [id])
+  schedule         Schedule  @relation(fields: [scheduleId], references: [id])
+  tutor            User      @relation(fields: [tutorId], references: [id])
+  content          String    @db.Text
+  score            Int?
+  parentNotifiedAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   media Media[]
 
