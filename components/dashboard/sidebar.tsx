@@ -105,8 +105,10 @@ export default function Sidebar({ user }: SidebarProps) {
         return [
           { name: 'Dashboard', href: '/parent', icon: LayoutDashboard },
           { name: 'Perkembangan', href: '/parent/progress', icon: TrendingUp },
+          { name: 'Riwayat Belajar', href: '/parent/history', icon: BookOpen },
           { name: 'Jadwal', href: '/parent/schedule', icon: Calendar },
           { name: 'Tagihan', href: '/parent/billing', icon: CreditCard },
+          { name: 'Profil Saya', href: '/parent/profile', icon: Settings },
         ]
       default:
         return []
