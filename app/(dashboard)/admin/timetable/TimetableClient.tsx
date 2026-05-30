@@ -33,6 +33,14 @@ const PROGRAM_COLORS: Record<string, string> = {
   ENGLISH:   'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800',
 }
 
+function slotEndTime(start: string): string {
+  const [h, m] = start.split(':').map(Number)
+  const totalMins = h * 60 + m + 45
+  const endH = Math.floor(totalMins / 60) % 24
+  const endM = totalMins % 60
+  return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`
+}
+
 interface ClassModel {
   id: string
   name: string
@@ -42,6 +50,7 @@ interface ClassModel {
   timeSlot: string | null
   tutorId: string
   tutor: { id: string; name: string }
+  additionalTutors: { tutor: { id: string; name: string } }[]
   enrollments: { id: string; studentId: string; student: { id: string; name: string; grade: string | null } }[]
 }
 
@@ -86,6 +95,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
     name: '',
     programs: ['SEMPOA'] as ProgramValue[],
     tutorId: '',
+    additionalTutorIds: [] as string[],
     description: '',
     dayOfWeek: '' as DayOfWeek | '',
     timeSlot: '',
@@ -241,6 +251,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
       name: '',
       programs: ['SEMPOA'] as ProgramValue[],
       tutorId: tutors[0]?.id || '',
+      additionalTutorIds: [],
       description: '',
       dayOfWeek: day,
       timeSlot: slot,
@@ -255,6 +266,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
       name: cls.name,
       programs: cls.programs.map(p => p.program),
       tutorId: cls.tutorId,
+      additionalTutorIds: cls.additionalTutors.map(at => at.tutor.id),
       description: cls.description || '',
       dayOfWeek: cls.dayOfWeek || '',
       timeSlot: cls.timeSlot || '',
@@ -465,6 +477,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                 name: '',
                 programs: ['SEMPOA'] as ProgramValue[],
                 tutorId: tutors[0]?.id || '',
+                additionalTutorIds: [],
                 description: '',
                 dayOfWeek: 'MONDAY',
                 timeSlot: '08:00',
@@ -535,6 +548,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                 <td className="p-3 text-center font-bold text-slate-500 dark:text-slate-400 bg-slate-50/30 dark:bg-slate-800/20 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-center items-center h-full min-h-[90px]">
                   <Clock className="h-3.5 w-3.5 mb-1 opacity-70" />
                   {slot}
+                  <span className="text-[9px] text-slate-400 font-normal block">–{slotEndTime(slot)}</span>
                 </td>
                 {DAYS.map(day => {
                   const cellClasses = grid[day.key]?.[slot] ?? []
@@ -577,8 +591,9 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                           <h4 className="font-bold text-slate-800 dark:text-slate-200 mt-1.5 text-[11px] leading-tight">
                             {cls.name}
                           </h4>
-                          <div className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 flex items-center gap-1">
-                            <User className="h-2.5 w-2.5 opacity-60" /> {cls.tutor.name}
+                          <div className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 flex items-center gap-1 flex-wrap">
+                            <User className="h-2.5 w-2.5 opacity-60 shrink-0" />
+                            {[cls.tutor.name, ...cls.additionalTutors.map(at => at.tutor.name)].join(', ')}
                           </div>
                           <div className="mt-2 pt-1 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-[10px]">
                             <span className="text-slate-400 dark:text-slate-500 font-medium">👥 Siswa</span>
@@ -687,6 +702,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                             name: match.name,
                             programs: match.programs.map(p => p.program),
                             tutorId: match.tutorId,
+                            additionalTutorIds: match.additionalTutors.map(at => at.tutor.id),
                             description: match.description || '',
                             dayOfWeek: classForm.dayOfWeek,
                             timeSlot: classForm.timeSlot,
@@ -763,6 +779,45 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                         <option key={t.id} value={t.id}>{t.name}</option>
                       ))}
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">
+                      Tutor Tambahan <span className="font-normal text-slate-400">(opsional)</span>
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {tutors
+                        .filter(t => t.id !== classForm.tutorId)
+                        .map(t => {
+                          const selected = classForm.additionalTutorIds.includes(t.id)
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => {
+                                const ids = classForm.additionalTutorIds
+                                setClassForm({
+                                  ...classForm,
+                                  additionalTutorIds: selected
+                                    ? ids.filter(id => id !== t.id)
+                                    : [...ids, t.id],
+                                })
+                              }}
+                              className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all border cursor-pointer flex items-center gap-1 ${
+                                selected
+                                  ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
+                                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300'
+                              }`}
+                            >
+                              {selected && <Check className="h-3 w-3" />}
+                              {t.name}
+                            </button>
+                          )
+                        })}
+                      {tutors.filter(t => t.id !== classForm.tutorId).length === 0 && (
+                        <span className="text-[10px] text-slate-400">Tidak ada tutor lain tersedia.</span>
+                      )}
+                    </div>
                   </div>
 
                   <div>
