@@ -174,7 +174,13 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
     setEditSaving(true)
     setEditError(null)
     try {
-      const body: any = {
+      if (editForm.password.trim().length > 0 && editForm.password.trim().length < 6) {
+        setEditError('Password minimal 6 karakter.')
+        setEditSaving(false)
+        return
+      }
+
+      const body: Record<string, string | null> = {
         name: editForm.name,
         email: editForm.email,
         phone: editForm.phone || null,
@@ -1194,6 +1200,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
               </div>
               <button
                 onClick={() => setEditingParent(null)}
+                aria-label="Tutup"
                 className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors cursor-pointer"
               >
                 <X className="h-4 w-4" />
