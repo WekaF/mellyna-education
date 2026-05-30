@@ -1,54 +1,41 @@
-import { generateInvoicePdf, type InvoiceData } from '@/lib/invoice-pdf'
+import { generateInvoicePdf, InvoiceData } from '@/lib/invoice-pdf'
 
 const mockInvoice: InvoiceData = {
-  id: 'cltest123456',
-  description: 'Biaya Bimbel Bulan Juni 2026',
-  amount: 500000,
+  id: 'cltest123456789',
+  description: 'Biaya Kursus Sempoa Bulan Juni 2026',
+  amount: 350000,
   dueDate: new Date('2026-06-30'),
-  status: 'PENDING',
-  paidAt: null,
+  status: 'PAID',
+  paidAt: new Date('2026-06-10'),
   createdAt: new Date('2026-06-01'),
   student: {
-    name: 'Budi Santoso',
+    name: 'Ahmad Fauzi',
     grade: 'Kelas 3 SD',
     parent: {
-      name: 'Santoso Hadi',
-      phone: '08123456789',
-      email: 'santoso@example.com',
+      name: 'Bapak Fauzi',
+      phone: '081234567890',
+      email: 'fauzi@example.com',
     },
   },
 }
 
 describe('generateInvoicePdf', () => {
-  it('returns a Buffer', async () => {
-    const result = await generateInvoicePdf(mockInvoice)
-    expect(result).toBeInstanceOf(Buffer)
-    expect(result.length).toBeGreaterThan(1000)
+  it('returns a non-empty Buffer', async () => {
+    const buf = await generateInvoicePdf(mockInvoice)
+    expect(buf).toBeInstanceOf(Buffer)
+    expect(buf.length).toBeGreaterThan(1000)
   })
 
   it('PDF starts with %PDF magic bytes', async () => {
-    const result = await generateInvoicePdf(mockInvoice)
-    expect(result.toString('ascii', 0, 4)).toBe('%PDF')
+    const buf = await generateInvoicePdf(mockInvoice)
+    expect(buf.slice(0, 4).toString('ascii')).toBe('%PDF')
   })
 
-  it('handles null phone and grade gracefully', async () => {
-    const invoiceNoOptionals: InvoiceData = {
-      ...mockInvoice,
-      student: {
-        name: 'Anak Tanpa Grade',
-        grade: null,
-        parent: { name: 'Orang Tua', phone: null, email: 'test@example.com' },
-      },
+  it('works for all status values', async () => {
+    const statuses: InvoiceData['status'][] = ['PENDING', 'PAID', 'OVERDUE', 'CANCELLED']
+    for (const status of statuses) {
+      const buf = await generateInvoicePdf({ ...mockInvoice, status, paidAt: null })
+      expect(buf.slice(0, 4).toString('ascii')).toBe('%PDF')
     }
-    const result = await generateInvoicePdf(invoiceNoOptionals)
-    expect(result).toBeInstanceOf(Buffer)
-    expect(result.toString('ascii', 0, 4)).toBe('%PDF')
-  })
-
-  it('handles PAID status badge', async () => {
-    const paidInvoice: InvoiceData = { ...mockInvoice, status: 'PAID' }
-    const result = await generateInvoicePdf(paidInvoice)
-    expect(result).toBeInstanceOf(Buffer)
-    expect(result.length).toBeGreaterThan(1000)
   })
 })

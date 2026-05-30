@@ -39,7 +39,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       student: invoice.student,
     })
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

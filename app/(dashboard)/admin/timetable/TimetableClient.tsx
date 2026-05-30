@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Plus, Edit, Users, Trash2, CalendarPlus, X, Check, Search, Sparkles, Send, Clock, User, Info } from 'lucide-react'
-import { DayOfWeek } from '@prisma/client'
+
+type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
 
 const DAYS: { key: DayOfWeek; label: string }[] = [
   { key: 'MONDAY',    label: 'Senin' },
