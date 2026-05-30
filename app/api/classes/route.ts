@@ -38,7 +38,14 @@ export async function GET(req: NextRequest) {
   const role = (session.user as any).role
   const userId = (session.user as any).id
 
-  const where = role === 'TUTOR' ? { tutorId: userId } : {}
+  const where = role === 'TUTOR'
+    ? {
+        OR: [
+          { tutorId: userId },
+          { additionalTutors: { some: { tutorId: userId } } },
+        ],
+      }
+    : {}
 
   const classes = await prisma.class.findMany({
     where,
