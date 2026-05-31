@@ -23,6 +23,8 @@ const TIME_SLOTS = [
 const PROGRAMS = ['SEMPOA', 'AHE', 'EFK', 'EYL', 'EFE', 'CALISTUNG', 'ENGLISH'] as const
 type ProgramValue = typeof PROGRAMS[number]
 
+const MAIN_PROGRAMS_ORDER = ['SEMPOA', 'CALISTUNG', 'ENGLISH'] as const
+
 const PROGRAM_COLORS: Record<string, string> = {
   SEMPOA:    'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800',
   AHE:       'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800',
@@ -44,6 +46,7 @@ function slotEndTime(start: string): string {
 interface ClassModel {
   id: string
   name: string
+  mainProgram: ProgramValue | null
   programs: { program: ProgramValue }[]
   description: string | null
   dayOfWeek: DayOfWeek | null
@@ -102,6 +105,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
   })
   const [mode, setMode] = useState<'select' | 'new'>('select')
   const [selectedExistingClassId, setSelectedExistingClassId] = useState('')
+  const [classSearch, setClassSearch] = useState('')
   const [savingClass, setSavingClass] = useState(false)
 
   // Enrollments Modal state
@@ -242,6 +246,26 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
     })
   }, [grid])
 
+  // Grouped + filtered classes for the select dropdown
+  const filteredGroupedClasses = useMemo(() => {
+    const search = classSearch.toLowerCase()
+    const filtered = classes.filter(c =>
+      !search ||
+      c.name.toLowerCase().includes(search) ||
+      c.tutor.name.toLowerCase().includes(search) ||
+      c.programs.some(p => p.program.toLowerCase().includes(search))
+    )
+    const grouped: Record<string, ClassModel[]> = {}
+    for (const prog of MAIN_PROGRAMS_ORDER) {
+      grouped[prog] = filtered.filter(c => c.mainProgram === prog)
+    }
+    const other = filtered.filter(
+      c => !c.mainProgram || !MAIN_PROGRAMS_ORDER.includes(c.mainProgram as any)
+    )
+    if (other.length > 0) grouped['LAINNYA'] = other
+    return grouped
+  }, [classes, classSearch])
+
   // Class Form Handlers
   const handleOpenAddModal = (day: DayOfWeek, slot: string) => {
     setSelectedClass(null)
@@ -313,6 +337,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
       await fetchData()
       setSuccessMsg(`Sesi kelas berhasil disimpan ke Timetable!`)
       setShowClassModal(false)
+      setClassSearch('')
       setTimeout(() => setSuccessMsg(null), 4000)
     } catch (err: any) {
       setError(err.message)
@@ -342,6 +367,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
       await fetchData()
       setSuccessMsg(`Sesi "${selectedClass.name}" berhasil dilepas dari Timetable.`)
       setShowClassModal(false)
+      setClassSearch('')
       setTimeout(() => setSuccessMsg(null), 4000)
     } catch (err: any) {
       setError(err.message)
@@ -367,6 +393,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
       await fetchData()
       setSuccessMsg(`Kelas "${selectedClass.name}" berhasil dihapus secara permanen.`)
       setShowClassModal(false)
+      setClassSearch('')
       setTimeout(() => setSuccessMsg(null), 4000)
     } catch (err: any) {
       setError(err.message)
@@ -655,7 +682,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                 {selectedClass ? 'Ubah Sesi Timetable' : 'Tambah Sesi Timetable'}
               </h3>
               <button
-                onClick={() => setShowClassModal(false)}
+                onClick={() => { setShowClassModal(false); setClassSearch('') }}
                 className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-700 cursor-pointer"
               >
                 <X className="h-5 w-5" />
@@ -694,6 +721,20 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                 <div className="space-y-4 animate-fadeIn">
                   <div>
                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Pilih Kelas Bimbingan *</label>
+
+                    {/* Search filter */}
+                    <div className="relative mb-2">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Cari kelas, tutor, atau program..."
+                        value={classSearch}
+                        onChange={e => setClassSearch(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-800 dark:text-white text-sm focus:outline-none focus:border-indigo-500 bg-white"
+                      />
+                    </div>
+
+                    {/* Grouped select */}
                     <select
                       required
                       value={selectedExistingClassId}
@@ -716,11 +757,23 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                       className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-800 dark:text-white text-sm focus:outline-none focus:border-indigo-500 bg-white"
                     >
                       <option value="">-- Pilih Kelas --</option>
-                      {classes.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} ({c.programs.map(p => p.program).join(' + ')}) • {c.tutor.name} {c.dayOfWeek ? `(Aktif: ${DAYS.find(d => d.key === c.dayOfWeek)?.label || c.dayOfWeek} ${c.timeSlot})` : '(Belum Terjadwal)'}
-                        </option>
-                      ))}
+                      {Object.entries(filteredGroupedClasses).map(([prog, groupClasses]) => {
+                        if (groupClasses.length === 0) return null
+                        return (
+                          <optgroup key={prog} label={`── ${prog} (${groupClasses.length}) ──`}>
+                            {groupClasses.map(c => (
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                                {c.programs.length > 0 && ` (${c.programs.map(p => p.program).join(' + ')})`}
+                                {' • '}{c.tutor.name}
+                                {' '}{c.dayOfWeek
+                                  ? `(Aktif: ${DAYS.find(d => d.key === c.dayOfWeek)?.label || c.dayOfWeek} ${c.timeSlot})`
+                                  : '(Belum Terjadwal)'}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )
+                      })}
                     </select>
                   </div>
                   {selectedExistingClassId && (
@@ -908,7 +961,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowClassModal(false)}
+                    onClick={() => { setShowClassModal(false); setClassSearch('') }}
                     className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer"
                   >
                     Batal
