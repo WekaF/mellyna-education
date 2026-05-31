@@ -438,6 +438,14 @@ export default function SchedulesClient({ initialSchedules, classes }: Props) {
                 <span className="font-bold text-emerald-700">Diterbitkan</span> secara permanen.
                 Tindakan ini tidak dapat dibatalkan.
               </p>
+              <div className="rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 px-3 py-2.5 text-xs text-amber-800 dark:text-amber-300 space-y-1">
+                <p className="font-bold">⚠️ Data yang ikut terhapus:</p>
+                <ul className="list-disc list-inside space-y-0.5 text-amber-700 dark:text-amber-400">
+                  <li>Absensi siswa pada jadwal tersebut</li>
+                  <li>Laporan belajar tutor (jika ada)</li>
+                  <li>File foto &amp; video yang diupload tutor di MinIO</li>
+                </ul>
+              </div>
               <div className="flex gap-2 justify-end pt-2">
                 <button
                   onClick={handleBulkDelete}

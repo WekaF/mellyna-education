@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { z } from 'zod'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { deleteFile } from '@/lib/storage'
 
 const updateScheduleSchema = z.object({
   date: z.string().optional(),
@@ -104,6 +105,24 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params
+
+  // Collect all media files linked to this schedule's reports before deleting
+  const bucket = process.env.MINIO_BUCKET ?? 'mellyna-media'
+  const mediaFiles = await prisma.media.findMany({
+    where: { report: { scheduleId: id } },
+    select: { url: true },
+  })
+
+  // Delete MinIO objects first (best-effort — don't fail if storage errors)
+  await Promise.allSettled(
+    mediaFiles.map(({ url }) => {
+      const key = url.split(`/${bucket}/`)[1]
+      if (!key) return Promise.resolve()
+      return deleteFile(key).catch(err =>
+        console.error(`[Schedule Delete] MinIO delete failed for key ${key}:`, err)
+      )
+    })
+  )
 
   await prisma.$transaction([
     prisma.attendance.deleteMany({ where: { scheduleId: id } }),
