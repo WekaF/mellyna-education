@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Plus, Users, Pencil, Info } from 'lucide-react'
+import { Plus, Users, Pencil, Info, Trash2 } from 'lucide-react'
 
 const PROGRAMS = ['SEMPOA', 'AHE', 'EFK', 'EYL', 'EFE', 'CALISTUNG', 'ENGLISH'] as const
 type ProgramValue = typeof PROGRAMS[number]
@@ -78,9 +78,10 @@ interface ClassCardProps {
   cls: Class
   onEdit: (cls: Class) => void
   onEnroll: (cls: Class) => void
+  onDelete: (cls: Class) => void
 }
 
-function ClassCard({ cls, onEdit, onEnroll }: ClassCardProps) {
+function ClassCard({ cls, onEdit, onEnroll, onDelete }: ClassCardProps) {
   return (
     <div className="rounded-2xl bg-white border border-slate-100 shadow-xs p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between">
@@ -92,12 +93,20 @@ function ClassCard({ cls, onEdit, onEnroll }: ClassCardProps) {
             ))}
           </div>
         </div>
-        <button
-          onClick={() => onEdit(cls)}
-          className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
-        >
-          <Pencil className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onEdit(cls)}
+            className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => onDelete(cls)}
+            className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
       <p className="text-xs text-slate-500">{cls.description || 'Tidak ada deskripsi.'}</p>
 
@@ -270,6 +279,18 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
     }
   }
 
+  const handleDelete = useCallback(async (cls: Class) => {
+    if (!confirm(`Hapus kelas "${cls.name}"? Semua data enrollment akan ikut terhapus.`)) return
+    setError(null)
+    try {
+      const res = await fetch(`/api/classes/${cls.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Gagal menghapus kelas.')
+      await fetchClasses()
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }, [fetchClasses])
+
   const handleEditOpen = useCallback((cls: Class) => {
     setEditClass(cls)
     setEditForm({
@@ -413,7 +434,7 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {group.map((cls) => (
-                    <ClassCard key={cls.id} cls={cls} onEdit={handleEditOpen} onEnroll={setEnrollClass} />
+                    <ClassCard key={cls.id} cls={cls} onEdit={handleEditOpen} onEnroll={setEnrollClass} onDelete={handleDelete} />
                   ))}
                 </div>
               </div>
@@ -430,7 +451,7 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {ungrouped.map((cls) => (
-                    <ClassCard key={cls.id} cls={cls} onEdit={handleEditOpen} onEnroll={setEnrollClass} />
+                    <ClassCard key={cls.id} cls={cls} onEdit={handleEditOpen} onEnroll={setEnrollClass} onDelete={handleDelete} />
                   ))}
                 </div>
               </div>
