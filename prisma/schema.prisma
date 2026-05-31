@@ -52,6 +52,12 @@ enum Program {
   ENGLISH
 }
 
+enum MilestoneStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
 enum InvoiceStatus {
   PENDING
   PAID
@@ -82,6 +88,7 @@ model User {
   tutorClasses             Class[]          @relation("TutorClasses")
   additionalTutorClasses   ClassTutor[]     @relation("AdditionalTutorClasses")
   reports                  LearningReport[]
+  milestoneUpdates         StudentMilestone[] @relation("MilestoneUpdater")
   accounts                 Account[]
   sessions                 Session[]
 }
@@ -103,6 +110,7 @@ model Student {
   reports     LearningReport[]
   invoices             Invoice[]
   scheduleParticipants ScheduleParticipant[]
+  studentMilestones    StudentMilestone[]
 }
 
 model Class {
@@ -310,4 +318,36 @@ model DailyPiket {
   day       String   @id
   staff     String
   updatedAt DateTime @updatedAt
+}
+
+model Milestone {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  program     Program
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  studentMilestones StudentMilestone[]
+
+  @@index([program, order])
+}
+
+model StudentMilestone {
+  id          String          @id @default(cuid())
+  studentId   String
+  milestoneId String
+  status      MilestoneStatus @default(NOT_STARTED)
+  completedAt DateTime?
+  notes       String?
+  updatedById String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  student     Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  milestone   Milestone       @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  updatedBy   User?           @relation("MilestoneUpdater", fields: [updatedById], references: [id])
+
+  @@unique([studentId, milestoneId])
 }
