@@ -733,7 +733,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                           ].filter(Boolean).join(', ') || 'Tutor Terpilih'}
                         </span>
                       </div>
-                      {classForm.description && <div className="text-slate-500 dark:text-slate-400 mt-1 italic">"{classForm.description}"</div>}
+                      {classForm.description && <div className="text-slate-500 dark:text-slate-400 mt-1 italic">&quot;{classForm.description}&quot;</div>}
                     </div>
                   )}
                 </div>
