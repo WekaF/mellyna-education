@@ -61,7 +61,7 @@ jobs:
         with:
           host: ${{ secrets.SUMOPOD_HOST }}
           username: ${{ secrets.SUMOPOD_USER }}
-          key: ${{ secrets.SUMOPOD_SSH_KEY }}
+          password: ${{ secrets.SUMOPOD_PASSWORD }}
           script: |
             cd /opt/mellyna-education
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
