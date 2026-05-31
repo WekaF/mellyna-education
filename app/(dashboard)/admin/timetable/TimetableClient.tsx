@@ -431,7 +431,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
       }
 
       setShowGenerateModal(false)
-      if (data.wahaStatus && data.wahaStatus !== 'WORKING') {
+      if (data.wahaStatus !== 'WORKING') {
         setError(`⚠️ WAHA ${data.wahaStatus}: ${data.message}`)
       } else {
         setSuccessMsg(data.message || 'Jadwal berhasil diterbitkan dan WhatsApp broadcast disiarkan!')
