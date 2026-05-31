@@ -266,7 +266,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
       name: cls.name,
       programs: cls.programs.map(p => p.program),
       tutorId: cls.tutorId,
-      additionalTutorIds: cls.additionalTutors.map(at => at.tutor.id),
+      additionalTutorIds: (cls.additionalTutors ?? []).map(at => at.tutor.id),
       description: cls.description || '',
       dayOfWeek: cls.dayOfWeek || '',
       timeSlot: cls.timeSlot || '',
@@ -593,7 +593,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                           </h4>
                           <div className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 flex items-center gap-1 flex-wrap">
                             <User className="h-2.5 w-2.5 opacity-60 shrink-0" />
-                            {[cls.tutor.name, ...cls.additionalTutors.map(at => at.tutor.name)].join(', ')}
+                            {[cls.tutor.name, ...(cls.additionalTutors ?? []).map(at => at.tutor.name)].join(', ')}
                           </div>
                           <div className="mt-2 pt-1 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-[10px]">
                             <span className="text-slate-400 dark:text-slate-500 font-medium">👥 Siswa</span>
@@ -702,7 +702,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                             name: match.name,
                             programs: match.programs.map(p => p.program),
                             tutorId: match.tutorId,
-                            additionalTutorIds: match.additionalTutors.map(at => at.tutor.id),
+                            additionalTutorIds: (match.additionalTutors ?? []).map(at => at.tutor.id),
                             description: match.description || '',
                             dayOfWeek: classForm.dayOfWeek,
                             timeSlot: classForm.timeSlot,
@@ -723,7 +723,16 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                     <div className="rounded-xl bg-slate-50 dark:bg-slate-800/30 p-3.5 border dark:border-slate-800 space-y-1 text-xs">
                       <div className="text-slate-450 dark:text-slate-450 font-semibold uppercase tracking-wider text-[9px]">Detail Kelas Terpilih:</div>
                       <div className="font-bold text-slate-800 dark:text-slate-200">Program: <span className="text-indigo-650 dark:text-indigo-400">{classForm.programs.join(' + ')}</span></div>
-                      <div className="font-bold text-slate-800 dark:text-slate-200">Tutor Pengajar: <span className="text-slate-600 dark:text-slate-350">{tutors.find(t => t.id === classForm.tutorId)?.name || 'Tutor Terpilih'}</span></div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">
+                        Tutor: <span className="text-slate-600 dark:text-slate-350">
+                          {[
+                            tutors.find(t => t.id === classForm.tutorId)?.name,
+                            ...classForm.additionalTutorIds
+                              .map(id => tutors.find(t => t.id === id)?.name)
+                              .filter(Boolean),
+                          ].filter(Boolean).join(', ') || 'Tutor Terpilih'}
+                        </span>
+                      </div>
                       {classForm.description && <div className="text-slate-500 dark:text-slate-400 mt-1 italic">"{classForm.description}"</div>}
                     </div>
                   )}
