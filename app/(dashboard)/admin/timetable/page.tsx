@@ -17,12 +17,17 @@ export default async function TimetablePage() {
     // mirrors /api/classes GET for admin (no role filter)
     prisma.class.findMany({
       include: {
-        tutor: { select: { name: true, email: true } },
+        tutor: { select: { id: true, name: true, email: true } },
         _count: { select: { enrollments: true } },
         programs: { select: { program: true } },
         enrollments: {
           include: {
             student: { select: { id: true, name: true, grade: true } },
+          },
+        },
+        additionalTutors: {
+          include: {
+            tutor: { select: { id: true, name: true } },
           },
         },
       },
