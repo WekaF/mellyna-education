@@ -7,6 +7,300 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                     String             @id @default(cuid())
+  name                   String
+  email                  String             @unique
+  emailVerified          DateTime?
+  password               String?
+  phone                  String?
+  role                   Role               @default(PARENT)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  suspended              Boolean            @default(false)
+  accounts               Account[]
+  tutorClasses           Class[]            @relation("TutorClasses")
+  additionalTutorClasses ClassTutor[]       @relation("AdditionalTutorClasses")
+  reports                LearningReport[]
+  sessions               Session[]
+  children               Student[]          @relation("ParentStudents")
+  milestoneUpdates       StudentMilestone[] @relation("MilestoneUpdater")
+  milestoneReports     MilestoneReport[] @relation("MilestoneReportGenerator")
+}
+
+model Student {
+  id                   String                @id @default(cuid())
+  name                 String
+  birthDate            DateTime?
+  grade                String?
+  notes                String?
+  parentId             String
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  isActive             Boolean               @default(true)
+  attendances          Attendance[]
+  enrollments          Enrollment[]
+  invoices             Invoice[]
+  reports              LearningReport[]
+  scheduleParticipants ScheduleParticipant[]
+  parent               User                  @relation("ParentStudents", fields: [parentId], references: [id])
+  studentMilestones    StudentMilestone[]
+  milestoneReports     MilestoneReport[]
+}
+
+model Class {
+  id               String         @id @default(cuid())
+  name             String
+  description      String?
+  tutorId          String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  dayOfWeek        DayOfWeek?
+  timeSlot         String?
+  mainProgram      Program?
+  tutor            User           @relation("TutorClasses", fields: [tutorId], references: [id])
+  programs         ClassProgram[]
+  additionalTutors ClassTutor[]   @relation("AdditionalTutors")
+  enrollments      Enrollment[]
+  schedules        Schedule[]
+}
+
+model ClassProgram {
+  id      String  @id @default(cuid())
+  classId String
+  program Program
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, program])
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  studentId String
+  classId   String
+  joinedAt  DateTime @default(now())
+  class     Class    @relation(fields: [classId], references: [id])
+  student   Student  @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, classId])
+}
+
+model ClassTutor {
+  id        String   @id @default(cuid())
+  classId   String
+  tutorId   String
+  createdAt DateTime @default(now())
+  class     Class    @relation("AdditionalTutors", fields: [classId], references: [id], onDelete: Cascade)
+  tutor     User     @relation("AdditionalTutorClasses", fields: [tutorId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, tutorId])
+}
+
+model Schedule {
+  id                String                @id @default(cuid())
+  classId           String
+  date              DateTime
+  startTime         String
+  endTime           String
+  topic             String?
+  location          String?
+  status            ScheduleStatus        @default(DRAFT)
+  publishedAt       DateTime?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  isRecurring       Boolean               @default(false)
+  recurrenceGroupId String?
+  recurrenceWeeks   Int?
+  attendances       Attendance[]
+  reports           LearningReport[]
+  class             Class                 @relation(fields: [classId], references: [id])
+  participants      ScheduleParticipant[]
+
+  @@index([recurrenceGroupId])
+}
+
+model Attendance {
+  id         String           @id @default(cuid())
+  studentId  String
+  scheduleId String
+  status     AttendanceStatus @default(PRESENT)
+  notes      String?
+  markedAt   DateTime         @default(now())
+  schedule   Schedule         @relation(fields: [scheduleId], references: [id])
+  student    Student          @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, scheduleId])
+}
+
+model ScheduleParticipant {
+  id         String   @id @default(cuid())
+  scheduleId String
+  studentId  String
+  createdAt  DateTime @default(now())
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, studentId])
+}
+
+model LearningReport {
+  id               String    @id @default(cuid())
+  studentId        String
+  scheduleId       String
+  tutorId          String
+  content          String
+  score            Int?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  parentNotifiedAt DateTime?
+  schedule         Schedule  @relation(fields: [scheduleId], references: [id])
+  student          Student   @relation(fields: [studentId], references: [id])
+  tutor            User      @relation(fields: [tutorId], references: [id])
+  media            Media[]
+
+  @@unique([studentId, scheduleId])
+}
+
+model Media {
+  id        String         @id @default(cuid())
+  reportId  String
+  url       String
+  type      MediaType
+  filename  String
+  size      Int
+  createdAt DateTime       @default(now())
+  report    LearningReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  authorId  String
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Invoice {
+  id          String        @id @default(cuid())
+  studentId   String
+  amount      Int
+  description String
+  dueDate     DateTime
+  status      InvoiceStatus @default(PENDING)
+  midtransId  String?
+  paidAt      DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  student     Student       @relation(fields: [studentId], references: [id])
+  payments    Payment[]
+}
+
+model Payment {
+  id           String        @id @default(cuid())
+  invoiceId    String
+  amount       Int
+  method       String?
+  status       PaymentStatus @default(PENDING)
+  snapToken    String?
+  snapUrl      String?
+  midtransData Json?
+  paidAt       DateTime?
+  createdAt    DateTime      @default(now())
+  invoice      Invoice       @relation(fields: [invoiceId], references: [id])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model DailyPiket {
+  day       String   @id
+  staff     String
+  updatedAt DateTime @updatedAt
+}
+
+model Milestone {
+  id                String             @id @default(cuid())
+  name              String
+  description       String?
+  program           Program
+  order             Int                @default(0)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  studentMilestones StudentMilestone[]
+
+  @@index([program, order])
+}
+
+model StudentMilestone {
+  id          String          @id @default(cuid())
+  studentId   String
+  milestoneId String
+  status      MilestoneStatus @default(NOT_STARTED)
+  completedAt DateTime?
+  notes       String?
+  updatedById String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  milestone   Milestone       @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  student     Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  updatedBy   User?           @relation("MilestoneUpdater", fields: [updatedById], references: [id])
+
+  @@unique([studentId, milestoneId])
+}
+
+model MilestoneReport {
+  id             String           @id @default(cuid())
+  studentId      String
+  periodType     ReportPeriodType
+  periodLabel    String
+  periodStart    DateTime
+  periodEnd      DateTime
+  notes          String?          @db.Text
+  snapshotJson   Json
+  sessionSummary Json
+  generatedById  String
+  notifiedAt     DateTime?
+  createdAt      DateTime         @default(now())
+
+  student     Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  generatedBy User    @relation("MilestoneReportGenerator", fields: [generatedById], references: [id])
+
+  @@index([studentId, createdAt])
+}
+
 enum Role {
   SUPER_ADMIN
   TUTOR
@@ -58,6 +352,12 @@ enum MilestoneStatus {
   COMPLETED
 }
 
+enum ReportPeriodType {
+  MONTHLY
+  SEMESTER
+  CUSTOM
+}
+
 enum InvoiceStatus {
   PENDING
   PAID
@@ -70,285 +370,4 @@ enum PaymentStatus {
   SUCCESS
   FAILED
   EXPIRED
-}
-
-model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  emailVerified DateTime?
-  password      String?
-  phone         String?
-  role          Role      @default(PARENT)
-  suspended     Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  children                 Student[]        @relation("ParentStudents")
-  tutorClasses             Class[]          @relation("TutorClasses")
-  additionalTutorClasses   ClassTutor[]     @relation("AdditionalTutorClasses")
-  reports                  LearningReport[]
-  milestoneUpdates         StudentMilestone[] @relation("MilestoneUpdater")
-  accounts                 Account[]
-  sessions                 Session[]
-}
-
-model Student {
-  id        String    @id @default(cuid())
-  name      String
-  birthDate DateTime?
-  grade     String?
-  notes     String?
-  parentId  String
-  isActive  Boolean   @default(true)
-  parent    User      @relation("ParentStudents", fields: [parentId], references: [id])
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  enrollments Enrollment[]
-  attendances Attendance[]
-  reports     LearningReport[]
-  invoices             Invoice[]
-  scheduleParticipants ScheduleParticipant[]
-  studentMilestones    StudentMilestone[]
-}
-
-model Class {
-  id          String     @id @default(cuid())
-  name        String
-  description String?
-  mainProgram Program?
-  dayOfWeek   DayOfWeek?
-  timeSlot    String?
-  tutorId     String
-  tutor       User       @relation("TutorClasses", fields: [tutorId], references: [id])
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  programs           ClassProgram[]
-  enrollments        Enrollment[]
-  schedules          Schedule[]
-  additionalTutors   ClassTutor[]   @relation("AdditionalTutors")
-}
-
-model ClassProgram {
-  id        String  @id @default(cuid())
-  classId   String
-  program   Program
-  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
-
-  @@unique([classId, program])
-}
-
-model Enrollment {
-  id        String   @id @default(cuid())
-  studentId String
-  classId   String
-  student   Student  @relation(fields: [studentId], references: [id])
-  class     Class    @relation(fields: [classId], references: [id])
-  joinedAt  DateTime @default(now())
-
-  @@unique([studentId, classId])
-}
-
-model ClassTutor {
-  id        String   @id @default(cuid())
-  classId   String
-  tutorId   String
-  class     Class    @relation("AdditionalTutors", fields: [classId], references: [id], onDelete: Cascade)
-  tutor     User     @relation("AdditionalTutorClasses", fields: [tutorId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  @@unique([classId, tutorId])
-}
-
-model Schedule {
-  id                String         @id @default(cuid())
-  classId           String
-  class             Class          @relation(fields: [classId], references: [id])
-  date              DateTime
-  startTime         String
-  endTime           String
-  topic             String?
-  location          String?
-  status            ScheduleStatus @default(DRAFT)
-  publishedAt       DateTime?
-  isRecurring       Boolean        @default(false)
-  recurrenceGroupId String?
-  recurrenceWeeks   Int?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-
-  attendances  Attendance[]
-  reports      LearningReport[]
-  participants ScheduleParticipant[]
-
-  @@index([recurrenceGroupId])
-}
-
-model Attendance {
-  id         String           @id @default(cuid())
-  studentId  String
-  scheduleId String
-  student    Student          @relation(fields: [studentId], references: [id])
-  schedule   Schedule         @relation(fields: [scheduleId], references: [id])
-  status     AttendanceStatus @default(PRESENT)
-  notes      String?
-  markedAt   DateTime         @default(now())
-
-  @@unique([studentId, scheduleId])
-}
-
-model ScheduleParticipant {
-  id         String   @id @default(cuid())
-  scheduleId String
-  studentId  String
-  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
-  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-
-  @@unique([scheduleId, studentId])
-}
-
-model LearningReport {
-  id               String    @id @default(cuid())
-  studentId        String
-  scheduleId       String
-  tutorId          String
-  student          Student   @relation(fields: [studentId], references: [id])
-  schedule         Schedule  @relation(fields: [scheduleId], references: [id])
-  tutor            User      @relation(fields: [tutorId], references: [id])
-  content          String    @db.Text
-  score            Int?
-  parentNotifiedAt DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  media Media[]
-
-  @@unique([studentId, scheduleId])
-}
-
-model Media {
-  id        String         @id @default(cuid())
-  reportId  String
-  report    LearningReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  url       String
-  type      MediaType
-  filename  String
-  size      Int
-  createdAt DateTime       @default(now())
-}
-
-model Announcement {
-  id        String   @id @default(cuid())
-  title     String
-  content   String   @db.Text
-  authorId  String
-  published Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Invoice {
-  id          String        @id @default(cuid())
-  studentId   String
-  student     Student       @relation(fields: [studentId], references: [id])
-  amount      Int
-  description String
-  dueDate     DateTime
-  status      InvoiceStatus @default(PENDING)
-  midtransId  String?
-  paidAt      DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  payments Payment[]
-}
-
-model Payment {
-  id           String        @id @default(cuid())
-  invoiceId    String
-  invoice      Invoice       @relation(fields: [invoiceId], references: [id])
-  amount       Int
-  method       String?
-  status       PaymentStatus @default(PENDING)
-  snapToken    String?
-  snapUrl      String?
-  midtransData Json?
-  paidAt       DateTime?
-  createdAt    DateTime      @default(now())
-}
-
-// NextAuth required models
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-model DailyPiket {
-  day       String   @id
-  staff     String
-  updatedAt DateTime @updatedAt
-}
-
-model Milestone {
-  id          String   @id @default(cuid())
-  name        String
-  description String?  @db.Text
-  program     Program
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  studentMilestones StudentMilestone[]
-
-  @@index([program, order])
-}
-
-model StudentMilestone {
-  id          String          @id @default(cuid())
-  studentId   String
-  milestoneId String
-  status      MilestoneStatus @default(NOT_STARTED)
-  completedAt DateTime?
-  notes       String?
-  updatedById String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-
-  student     Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  milestone   Milestone       @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
-  updatedBy   User?           @relation("MilestoneUpdater", fields: [updatedById], references: [id])
-
-  @@unique([studentId, milestoneId])
 }
