@@ -307,11 +307,22 @@ export default function TutorReportsPage() {
                                 </div>
                               </a>
                             ) : (
-                              <a href={m.url} target="_blank" rel="noopener noreferrer">
-                                <div className="h-20 w-20 rounded-xl border border-slate-200 bg-slate-100 flex items-center justify-center">
-                                  <span className="text-2xl">🎥</span>
-                                </div>
-                              </a>
+                              <div className="space-y-1">
+                                <video
+                                  src={m.url}
+                                  preload="metadata"
+                                  className="h-20 w-36 rounded-xl border border-slate-200 bg-slate-100 object-cover"
+                                  title={m.filename}
+                                />
+                                <a
+                                  href={m.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-[10px] text-indigo-600 hover:underline font-medium"
+                                >
+                                  🔗 Lihat Video
+                                </a>
+                              </div>
                             )}
                             <button
                               onClick={() => handleDeleteMedia(student.id, m.id)}
