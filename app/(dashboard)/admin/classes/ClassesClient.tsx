@@ -74,6 +74,52 @@ function ProgramToggle({
 
 const makeEmptyForm = () => ({ name: '', mainProgram: '' as ProgramValue | '', programs: [] as ProgramValue[], description: '', tutorId: '' })
 
+interface ClassCardProps {
+  cls: Class
+  onEdit: (cls: Class) => void
+  onEnroll: (cls: Class) => void
+}
+
+function ClassCard({ cls, onEdit, onEnroll }: ClassCardProps) {
+  return (
+    <div className="rounded-2xl bg-white border border-slate-100 shadow-xs p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="font-bold text-slate-800">{cls.name}</h3>
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {cls.programs.map(({ program }) => (
+              <ProgramBadge key={program} program={program} />
+            ))}
+          </div>
+        </div>
+        <button
+          onClick={() => onEdit(cls)}
+          className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
+      </div>
+      <p className="text-xs text-slate-500">{cls.description || 'Tidak ada deskripsi.'}</p>
+
+      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <Users className="h-3.5 w-3.5" />
+          <span>{cls._count.enrollments} Siswa</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onEnroll(cls)}
+            className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
+          >
+            Kelola Siswa
+          </button>
+          <span className="text-xs text-slate-600 font-medium">Tutor: {cls.tutor.name}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 interface TutorOption {
   id: string
   name: string
@@ -224,53 +270,17 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
     }
   }
 
-  const ClassCard = ({ cls }: { cls: Class }) => (
-    <div key={cls.id} className="rounded-2xl bg-white border border-slate-100 shadow-xs p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="font-bold text-slate-800">{cls.name}</h3>
-          <div className="flex flex-wrap gap-1 mt-1.5">
-            {cls.programs.map(({ program }) => (
-              <ProgramBadge key={program} program={program} />
-            ))}
-          </div>
-        </div>
-        <button
-          onClick={() => {
-            setEditClass(cls)
-            setEditForm({
-              name: cls.name,
-              mainProgram: cls.mainProgram ?? '',
-              programs: cls.programs.map(p => p.program).filter(p => SUB_PROGRAMS.includes(p as any)),
-              description: cls.description || '',
-              tutorId: '',
-            })
-            setShowEditForm(true)
-          }}
-          className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
-        >
-          <Pencil className="h-4 w-4" />
-        </button>
-      </div>
-      <p className="text-xs text-slate-500">{cls.description || 'Tidak ada deskripsi.'}</p>
-
-      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <Users className="h-3.5 w-3.5" />
-          <span>{cls._count.enrollments} Siswa</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setEnrollClass(cls)}
-            className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
-          >
-            Kelola Siswa
-          </button>
-          <span className="text-xs text-slate-600 font-medium">Tutor: {cls.tutor.name}</span>
-        </div>
-      </div>
-    </div>
-  )
+  const handleEditOpen = useCallback((cls: Class) => {
+    setEditClass(cls)
+    setEditForm({
+      name: cls.name,
+      mainProgram: cls.mainProgram ?? '',
+      programs: cls.programs.map(p => p.program).filter(p => SUB_PROGRAMS.includes(p)),
+      description: cls.description || '',
+      tutorId: '',
+    })
+    setShowEditForm(true)
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -341,7 +351,7 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
                   <button
                     key={p}
                     type="button"
-                    onClick={() => setForm(f => ({ ...f, mainProgram: f.mainProgram === p ? '' : p }))}
+                    onClick={() => setForm(f => ({ ...f, mainProgram: p, programs: [] }))}
                     className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all border cursor-pointer ${
                       form.mainProgram === p
                         ? `${PROGRAM_COLORS[p]} shadow-sm`
@@ -403,7 +413,7 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {group.map((cls) => (
-                    <ClassCard key={cls.id} cls={cls} />
+                    <ClassCard key={cls.id} cls={cls} onEdit={handleEditOpen} onEnroll={setEnrollClass} />
                   ))}
                 </div>
               </div>
@@ -420,7 +430,7 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {ungrouped.map((cls) => (
-                    <ClassCard key={cls.id} cls={cls} />
+                    <ClassCard key={cls.id} cls={cls} onEdit={handleEditOpen} onEnroll={setEnrollClass} />
                   ))}
                 </div>
               </div>
@@ -471,7 +481,7 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
                     <button
                       key={p}
                       type="button"
-                      onClick={() => setEditForm(f => ({ ...f, mainProgram: f.mainProgram === p ? '' : p }))}
+                      onClick={() => setEditForm(f => ({ ...f, mainProgram: p, programs: [] }))}
                       className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all border cursor-pointer ${
                         editForm.mainProgram === p
                           ? `${PROGRAM_COLORS[p]} shadow-sm`
