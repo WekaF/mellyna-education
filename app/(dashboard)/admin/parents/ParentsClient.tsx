@@ -287,7 +287,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
 
   // Operational metrics
   const stats = useMemo(() => {
-    let total = parents.length
+    const total = parents.length
     let active = 0
     let suspended = 0
     let unpaid = 0
@@ -920,7 +920,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
                             <div className="bg-white dark:bg-[#151f32] p-5 rounded-2xl border border-slate-150 dark:border-slate-800/80 shadow-xs">
                               <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1.5">Catatan/Keterangan Akademik:</span>
                               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed italic">
-                                "{selectedStudent.notes.split(' | ')[0]}"
+                                &quot;{selectedStudent.notes.split(' | ')[0]}&quot;
                               </p>
                             </div>
                           )}
@@ -1011,7 +1011,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
                                           {new Date(att.markedAt).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                         </p>
                                         {att.notes && (
-                                          <p className="text-[10px] text-slate-500 mt-0.5 italic">Catatan: "{att.notes}"</p>
+                                          <p className="text-[10px] text-slate-500 mt-0.5 italic">Catatan: &quot;{att.notes}&quot;</p>
                                         )}
                                       </div>
                                     </div>
