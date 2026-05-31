@@ -208,9 +208,9 @@ export default function DashboardClient({
               </Pie>
               <Legend formatter={(v) => <span style={{ fontSize: 12 }}>{v}</span>} />
               <Tooltip
-                formatter={(value: number, _name: string, props: any) => [
-                  `${value} tagihan · ${formatRupiah(props.payload.amount)}`,
-                  props.payload.status,
+                formatter={(value: number, _name: string, entry: { payload?: { amount?: number; status?: string } }) => [
+                  `${value} tagihan · ${formatRupiah(entry.payload?.amount ?? 0)}`,
+                  entry.payload?.status ?? '',
                 ]}
                 contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
               />
@@ -237,8 +237,8 @@ export default function DashboardClient({
                 contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
               />
               <Bar dataKey="count" radius={[0, 6, 6, 0]}>
-                {programDistribution.map((_, i) => (
-                  <Cell key={i} fill={PROGRAM_COLORS[i % PROGRAM_COLORS.length]} />
+                {programDistribution.map((entry, i) => (
+                  <Cell key={entry.program} fill={PROGRAM_COLORS[i % PROGRAM_COLORS.length]} />
                 ))}
               </Bar>
             </BarChart>
