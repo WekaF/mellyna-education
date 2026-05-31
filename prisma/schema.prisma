@@ -26,6 +26,7 @@ model User {
   children               Student[]          @relation("ParentStudents")
   milestoneUpdates       StudentMilestone[] @relation("MilestoneUpdater")
   milestoneReports     MilestoneReport[] @relation("MilestoneReportGenerator")
+  passwordResetTokens  PasswordResetToken[]
 }
 
 model Student {
@@ -243,6 +244,15 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expires   DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model DailyPiket {
