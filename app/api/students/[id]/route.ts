@@ -9,7 +9,7 @@ const updateStudentSchema = z.object({
   grade: z.string().optional(),
   birthDate: z.string().optional(),
   notes: z.string().optional(),
-  parentId: z.string().optional(),
+  parentId: z.string().min(1).optional(),
 })
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -46,6 +46,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const { birthDate, ...rest } = parsed.data
+  if (rest.parentId) {
+    const parent = await prisma.user.findUnique({ where: { id: rest.parentId } })
+    if (!parent) return NextResponse.json({ error: 'Parent not found' }, { status: 400 })
+  }
   const student = await prisma.student.update({
     where: { id },
     data: { ...rest, birthDate: birthDate ? new Date(birthDate) : undefined },
