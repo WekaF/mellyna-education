@@ -17,7 +17,7 @@ export default async function AdminDashboardPage() {
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1)
 
   const eightWeeksAgo = new Date(now)
-  eightWeeksAgo.setDate(now.getDate() - 55)
+  eightWeeksAgo.setDate(now.getDate() - 56)
   eightWeeksAgo.setHours(0, 0, 0, 0)
 
   const [
