@@ -180,7 +180,7 @@ export default function DashboardClient({
               <XAxis dataKey="month" tick={{ fontSize: 12 }} />
               <YAxis tickFormatter={shortCurrency} tick={{ fontSize: 11 }} width={40} />
               <Tooltip
-                formatter={(value: number) => [formatRupiah(value), 'Pendapatan']}
+                formatter={(value) => [formatRupiah(Number(value)), 'Pendapatan']}
                 contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
               />
               <Bar dataKey="revenue" fill="#6366f1" radius={[6, 6, 0, 0]} />
@@ -208,9 +208,9 @@ export default function DashboardClient({
               </Pie>
               <Legend formatter={(v) => <span style={{ fontSize: 12 }}>{v}</span>} />
               <Tooltip
-                formatter={(value: number, _name: string, entry: { payload?: { amount?: number; status?: string } }) => [
-                  `${value} tagihan · ${formatRupiah(entry.payload?.amount ?? 0)}`,
-                  entry.payload?.status ?? '',
+                formatter={(value, _name, entry) => [
+                  `${value} tagihan · ${formatRupiah((entry.payload as { amount?: number })?.amount ?? 0)}`,
+                  (entry.payload as { status?: string })?.status ?? '',
                 ]}
                 contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
               />
@@ -233,7 +233,7 @@ export default function DashboardClient({
               <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
               <YAxis type="category" dataKey="program" tick={{ fontSize: 12 }} width={80} />
               <Tooltip
-                formatter={(value: number) => [`${value} siswa`, 'Jumlah']}
+                formatter={(value) => [`${value} siswa`, 'Jumlah']}
                 contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
               />
               <Bar dataKey="count" radius={[0, 6, 6, 0]}>
@@ -259,7 +259,7 @@ export default function DashboardClient({
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} width={40} />
               <Tooltip
-                formatter={(value: number) => [`${value}%`, 'Kehadiran']}
+                formatter={(value) => [`${value}%`, 'Kehadiran']}
                 contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
               />
               <Area
