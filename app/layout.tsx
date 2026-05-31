@@ -17,7 +17,7 @@ const nunito = Nunito({
 })
 
 export const viewport: Viewport = {
-  themeColor: '#6366f1',
+  themeColor: '#1A56DB',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
@@ -33,13 +33,14 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'Mellyna',
-    startupImage: '/icons/icon-512.png',
+    startupImage: '/icons/mellyna-icon-512.png',
   },
   icons: {
     apple: '/icons/apple-touch-icon.png',
     icon: [
-      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/icons/mellyna-icon-192.svg', type: 'image/svg+xml' },
+      { url: '/icons/mellyna-icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/mellyna-icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
   },
 }
