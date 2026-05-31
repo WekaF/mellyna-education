@@ -26,6 +26,7 @@ import {
   ChevronDown,
   Trophy,
   BookMarked,
+  Scroll,
 } from 'lucide-react'
 import { ThemeToggleButton } from '../common/ThemeToggleButton'
 
@@ -102,6 +103,7 @@ export default function Sidebar({ user }: SidebarProps) {
             subItems: [
               { name: 'Milestone', href: '/admin/milestones', icon: BookMarked },
               { name: 'Progress Siswa', href: '/admin/milestones/progress', icon: TrendingUp },
+              { name: 'Raport', href: '/admin/milestones/reports', icon: Scroll },
             ],
           },
           { name: 'Pengumuman', href: '/admin/announcements', icon: Megaphone },
@@ -116,6 +118,7 @@ export default function Sidebar({ user }: SidebarProps) {
           { name: 'Dashboard', href: '/parent', icon: LayoutDashboard },
           { name: 'Perkembangan', href: '/parent/progress', icon: TrendingUp },
           { name: 'Milestone Belajar', href: '/parent/milestones', icon: Trophy },
+          { name: 'Raport Milestone', href: '/parent/milestone-reports', icon: Scroll },
           { name: 'Riwayat Belajar', href: '/parent/history', icon: BookOpen },
           { name: 'Jadwal', href: '/parent/schedule', icon: Calendar },
           { name: 'Tagihan', href: '/parent/billing', icon: CreditCard },
