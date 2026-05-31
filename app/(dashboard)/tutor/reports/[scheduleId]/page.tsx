@@ -310,6 +310,7 @@ export default function TutorReportsPage() {
                               <div className="space-y-1">
                                 <video
                                   src={m.url}
+                                  controls
                                   preload="metadata"
                                   className="h-20 w-36 rounded-xl border border-slate-200 bg-slate-100 object-cover"
                                   title={m.filename}
