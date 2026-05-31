@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
 import Link from 'next/link'
-import { BookOpen, Menu, X } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 
 const navLinks = [
   { label: 'Program', href: '#program' },
@@ -29,20 +30,33 @@ export default function Navbar() {
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? 'bg-white/90 backdrop-blur-md shadow-lg border-b border-slate-200/60'
+          ? 'bg-white/90 backdrop-blur-md shadow-lg border-b-2 border-me-yellow'
           : 'bg-transparent'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md group-hover:shadow-indigo-400/40 transition-shadow">
-              <BookOpen className="h-4 w-4 text-white" />
-            </div>
-            <span className={`font-black text-base tracking-tight transition-colors duration-300 ${scrolled ? 'text-slate-900' : 'text-white'}`}>
-              Mellyna <span className={scrolled ? 'text-indigo-600' : 'text-indigo-300'}>Education</span>
-            </span>
+          {/* Brand Logo */}
+          <Link href="/" className="flex items-center group">
+            {scrolled ? (
+              <Image
+                src="/icons/mellyna-logo-horizontal-compact.svg"
+                alt="Mellyna Education"
+                width={160}
+                height={40}
+                className="h-10 w-auto"
+                priority
+              />
+            ) : (
+              <Image
+                src="/icons/mellyna-logo-dark.svg"
+                alt="Mellyna Education"
+                width={160}
+                height={40}
+                className="h-10 w-auto"
+                priority
+              />
+            )}
           </Link>
 
           {/* Desktop nav */}
@@ -51,8 +65,8 @@ export default function Navbar() {
               <a
                 key={link.label}
                 href={link.href}
-                className={`text-sm font-semibold transition-colors duration-200 hover:text-indigo-500 ${
-                  scrolled ? 'text-slate-600' : 'text-white/80'
+                className={`text-sm font-semibold transition-colors duration-200 hover:text-me-primary ${
+                  scrolled ? 'text-me-text' : 'text-white/80'
                 }`}
               >
                 {link.label}
@@ -66,7 +80,7 @@ export default function Navbar() {
               href="/login"
               className={`px-4 py-2 text-sm font-bold rounded-xl transition-all duration-200 ${
                 scrolled
-                  ? 'text-slate-700 hover:bg-slate-100'
+                  ? 'text-me-text hover:bg-me-surface'
                   : 'text-white hover:bg-white/10'
               }`}
             >
@@ -74,7 +88,7 @@ export default function Navbar() {
             </Link>
             <Link
               href="/login"
-              className="px-5 py-2 text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all duration-200"
+              className="px-5 py-2 text-sm font-bold text-white bg-me-primary rounded-xl shadow-brand hover:bg-me-primary-light hover:-translate-y-0.5 transition-all duration-200"
             >
               Portal Orang Tua
             </Link>
@@ -84,7 +98,7 @@ export default function Navbar() {
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className={`md:hidden p-2 rounded-lg transition-colors ${
-              scrolled ? 'text-slate-700 hover:bg-slate-100' : 'text-white hover:bg-white/10'
+              scrolled ? 'text-me-text hover:bg-me-surface' : 'text-white hover:bg-white/10'
             }`}
             aria-label="Toggle menu"
           >
@@ -101,7 +115,7 @@ export default function Navbar() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.25, ease: 'easeInOut' }}
-            className="md:hidden overflow-hidden bg-white border-b border-slate-100 shadow-lg"
+            className="md:hidden overflow-hidden bg-white border-b-2 border-me-yellow shadow-brand"
           >
             <div className="px-4 py-4 space-y-1">
               {navLinks.map((link) => (
@@ -109,15 +123,15 @@ export default function Navbar() {
                   key={link.label}
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className="block px-3 py-2.5 text-sm font-semibold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                  className="block px-3 py-2.5 text-sm font-semibold text-me-text hover:text-me-primary hover:bg-me-surface rounded-xl transition-colors"
                 >
                   {link.label}
                 </a>
               ))}
-              <div className="pt-3 border-t border-slate-100 mt-2">
+              <div className="pt-3 border-t border-me-border mt-2">
                 <Link
                   href="/login"
-                  className="block w-full text-center px-5 py-3 text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl"
+                  className="block w-full text-center px-5 py-3 text-sm font-bold text-white bg-me-primary rounded-xl shadow-brand"
                   onClick={() => setMobileOpen(false)}
                 >
                   Masuk ke Portal
