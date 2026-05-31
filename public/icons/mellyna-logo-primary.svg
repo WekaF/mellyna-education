@@ -1,0 +1,52 @@
+<svg width="620" height="290" viewBox="0 0 620 290" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&amp;family=Nunito:wght@700;900&amp;display=swap');
+    </style>
+  </defs>
+  <!-- Background white -->
+  <rect width="620" height="290" rx="24" fill="#ffffff"/>
+
+  <!-- OWL ICON BADGE -->
+  <rect x="22" y="24" width="130" height="130" rx="30" fill="#1A56DB"/>
+  <g transform="translate(44, 32)">
+    <ellipse cx="38" cy="42" rx="30" ry="34" fill="#2B6EF5"/>
+    <ellipse cx="38" cy="50" rx="19" ry="24" fill="#EEF4FF"/>
+    <path d="M10,30 Q0,44 4,62 Q12,55 17,48 Z" fill="#1648C0"/>
+    <path d="M66,30 Q76,44 72,62 Q64,55 59,48 Z" fill="#1648C0"/>
+    <path d="M20,15 Q24,5 29,12 Q25,18 22,21 Z" fill="#1648C0"/>
+    <path d="M56,15 Q52,5 47,12 Q51,18 54,21 Z" fill="#1648C0"/>
+    <circle cx="26" cy="30" r="13" fill="#FFE566"/>
+    <circle cx="50" cy="30" r="13" fill="#FFE566"/>
+    <circle cx="27" cy="31" r="8" fill="#1A1A2E"/>
+    <circle cx="51" cy="31" r="8" fill="#1A1A2E"/>
+    <circle cx="30" cy="27" r="3" fill="#ffffff"/>
+    <circle cx="54" cy="27" r="3" fill="#ffffff"/>
+    <path d="M33,40 L38,48 L43,40 Q38,37 33,40 Z" fill="#FF8C00"/>
+    <path d="M16,66 Q26,62 38,66 L38,84 Q26,88 16,84 Z" fill="#FFF3CD"/>
+    <path d="M38,66 Q48,62 60,66 L60,84 Q48,88 38,84 Z" fill="#FFE08A"/>
+    <rect x="36.5" y="66" width="3" height="18" rx="1.5" fill="#FF8C00"/>
+    <line x1="24" y1="75" x2="33" y2="74" stroke="#FF8C00" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="24" y1="81" x2="33" y2="80" stroke="#FF8C00" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="43" y1="74" x2="52" y2="75" stroke="#FF8C00" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="43" y1="80" x2="52" y2="81" stroke="#FF8C00" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M24,80 L20,90 M28,81 L28,91 M32,80 L35,90" stroke="#FF8C00" stroke-width="2" stroke-linecap="round"/>
+    <path d="M44,80 L40,90 M48,81 L48,91 M52,80 L55,90" stroke="#FF8C00" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <polygon points="136,30 139,39 148,39 141,45 144,54 136,48 128,54 131,45 124,39 133,39" fill="#FFE566"/>
+
+  <!-- WORDMARK -->
+  <text x="178" y="116"
+    font-family="'Fredoka One', 'Arial Rounded MT Bold', Arial, sans-serif"
+    font-weight="400" font-size="72" fill="#1A56DB" letter-spacing="-1">mellyna</text>
+  <rect x="178" y="125" width="418" height="9" rx="4.5" fill="#FFE566"/>
+  <text x="183" y="168"
+    font-family="'Nunito', Arial, sans-serif"
+    font-weight="900" font-size="20" fill="#FF8C00" letter-spacing="11">EDUCATION</text>
+  <text x="183" y="208"
+    font-family="'Nunito', Arial, sans-serif"
+    font-weight="700" font-size="13" fill="#7BAEE8" letter-spacing="1.5">Tempat Belajar yang Menyenangkan</text>
+  <text x="183" y="236"
+    font-family="'Nunito', Arial, sans-serif"
+    font-weight="400" font-size="11" fill="#C4D8F8" letter-spacing="0.5">mellyna-education.my.id</text>
+</svg>
