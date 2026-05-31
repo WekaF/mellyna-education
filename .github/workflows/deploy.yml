@@ -75,5 +75,5 @@ jobs:
             WA_RESP=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "http://localhost:3001/api/sendText" \
               -H "Content-Type: application/json" \
               -H "X-Api-Key: $WAHA_KEY" \
-              -d "{\"chatId\":\"${{ secrets.NOTIFY_WA_NUMBER }}@c.us\",\"text\":\"✅ *Deploy Sukses!*\n\nApp: mellyna-education\nCommit: ${{ github.sha }}\nBy: ${{ github.actor }}\n\nApp: https://mellyna-education.my.id\",\"session\":\"mellyna\"}" 2>&1 || true)
+              -d "{\"chatId\":\"${{ secrets.NOTIFY_WA_NUMBER }}@c.us\",\"text\":\"✅ *Deploy Sukses!*\n\nApp: mellyna-education\nCommit: ${{ github.sha }}\nBy: ${{ github.actor }}\n\nApp: https://mellyna-education.my.id\",\"session\":\"default\"}" 2>&1 || true)
             echo "WA response: $WA_RESP"
