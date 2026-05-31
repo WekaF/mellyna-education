@@ -110,6 +110,7 @@ export default function ReportsClient({ initialReports }: ReportsClientProps) {
                           <div className="space-y-1">
                             <video
                               src={m.url}
+                              controls
                               preload="metadata"
                               className="h-24 w-40 rounded-xl border border-slate-200 bg-slate-100 object-cover"
                               title={m.filename}
