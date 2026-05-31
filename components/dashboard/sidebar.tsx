@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import {
@@ -199,14 +200,18 @@ export default function Sidebar({ user }: SidebarProps) {
 
       {/* Brand Header / Company Switcher style */}
       <div className="relative z-10 flex items-center gap-3 pb-6 border-b border-slate-200 dark:border-slate-800/60 mb-6">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-2xl shadow-lg shadow-blue-500/20 text-white font-bold transform transition-transform hover:rotate-6">
-          M
-        </div>
+        <Image
+          src="/icons/mellyna-icon-192.svg"
+          alt="Mellyna"
+          width={44}
+          height={44}
+          className="h-11 w-11 rounded-xl"
+        />
         <div>
-          <h1 className="font-extrabold text-[15px] leading-tight tracking-wide text-slate-800 dark:text-white uppercase">
+          <h1 className="font-heading font-bold text-[15px] leading-tight tracking-wide text-me-primary-dark dark:text-white uppercase">
             Mellyna Ed.
           </h1>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold tracking-wider uppercase mt-0.5">Academic System</p>
+          <p className="text-[10px] text-me-muted dark:text-slate-400 font-semibold tracking-wider uppercase mt-0.5">Academic System</p>
         </div>
       </div>
 
@@ -247,11 +252,11 @@ export default function Sidebar({ user }: SidebarProps) {
                     onClick={() => toggleMenu(link.name)}
                     className={`group flex w-full items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide uppercase transition-all duration-200 cursor-pointer text-left border-l-4 ${
                       groupActive
-                        ? 'bg-blue-50/40 dark:bg-blue-600/5 border-blue-500 text-blue-600 dark:text-blue-400 font-bold'
+                        ? 'bg-[#EEF4FF]/40 dark:bg-[#1A56DB]/5 border-[#1A56DB] text-me-primary dark:text-[#5B8AF5] font-bold'
                         : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-slate-800/30'
                     }`}
                   >
-                    <Icon className={`h-4.5 w-4.5 transition-colors ${groupActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`} />
+                    <Icon className={`h-4.5 w-4.5 transition-colors ${groupActive ? 'text-me-primary dark:text-[#5B8AF5]' : 'text-slate-400 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`} />
                     <span>{link.name}</span>
                     <ChevronDown className={`ml-auto h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                   </button>
@@ -271,11 +276,11 @@ export default function Sidebar({ user }: SidebarProps) {
                           onClick={() => setIsOpen(false)}
                           className={`group flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-semibold tracking-wide uppercase transition-all duration-200 cursor-pointer ${
                             subActive
-                              ? 'bg-blue-50 dark:bg-blue-600/15 text-blue-600 dark:text-white font-bold shadow-xs'
+                              ? 'bg-me-surface dark:bg-[#1A56DB]/15 text-me-primary dark:text-white font-bold shadow-xs'
                               : 'text-slate-550 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/40 dark:hover:bg-slate-800/15'
                           }`}
                         >
-                          <SubIcon className={`h-3.5 w-3.5 transition-colors ${subActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white'}`} />
+                          <SubIcon className={`h-3.5 w-3.5 transition-colors ${subActive ? 'text-me-primary dark:text-[#5B8AF5]' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white'}`} />
                           <span>{subItem.name}</span>
                         </Link>
                       )
@@ -295,11 +300,11 @@ export default function Sidebar({ user }: SidebarProps) {
                   onClick={() => setIsOpen(false)}
                   className={`group flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide uppercase transition-all duration-200 cursor-pointer ${
                     active
-                      ? 'bg-blue-50 dark:bg-blue-600/20 border-l-4 border-blue-500 text-blue-600 dark:text-white font-bold shadow-xs'
+                      ? 'bg-me-surface dark:bg-[#1A56DB]/20 border-l-4 border-[#1A56DB] text-me-primary dark:text-white font-bold shadow-xs'
                       : 'text-slate-500 dark:text-slate-400 border-l-4 border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-slate-800/30'
                   }`}
                 >
-                  <Icon className={`h-4.5 w-4.5 transition-colors ${active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`} />
+                  <Icon className={`h-4.5 w-4.5 transition-colors ${active ? 'text-me-primary dark:text-[#5B8AF5]' : 'text-slate-400 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`} />
                   <span>{link.name}</span>
                 </Link>
               )
@@ -332,10 +337,14 @@ export default function Sidebar({ user }: SidebarProps) {
       {/* Mobile Top Header (only visible on mobile screens) */}
       <div className="flex items-center justify-between bg-white dark:bg-[#111a2e] border-b border-slate-200 dark:border-slate-800 px-6 py-4 text-slate-800 dark:text-white md:hidden sticky top-0 z-40 transition-colors duration-300 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-lg shadow-md text-white font-bold">
-            M
-          </div>
-          <span className="font-bold tracking-tight text-sm uppercase">Mellyna Education</span>
+          <Image
+            src="/icons/mellyna-icon-192.svg"
+            alt="Mellyna"
+            width={32}
+            height={32}
+            className="h-8 w-8 rounded-lg"
+          />
+          <span className="font-heading font-bold tracking-tight text-sm uppercase text-me-primary-dark dark:text-white">Mellyna Education</span>
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggleButton />
