@@ -50,7 +50,7 @@ interface ClassModel {
   timeSlot: string | null
   tutorId: string
   tutor: { id: string; name: string }
-  additionalTutors: { tutor: { id: string; name: string } }[]
+  additionalTutors?: { tutor: { id: string; name: string } }[]
   enrollments: { id: string; studentId: string; student: { id: string; name: string; grade: string | null } }[]
 }
 
