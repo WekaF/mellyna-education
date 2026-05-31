@@ -104,6 +104,12 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params
-  await prisma.schedule.delete({ where: { id } })
+
+  await prisma.$transaction([
+    prisma.attendance.deleteMany({ where: { scheduleId: id } }),
+    prisma.learningReport.deleteMany({ where: { scheduleId: id } }),
+    prisma.schedule.delete({ where: { id } }),
+  ])
+
   return NextResponse.json({ success: true })
 }
