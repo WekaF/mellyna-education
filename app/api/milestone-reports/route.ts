@@ -186,37 +186,41 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  // Optional WhatsApp delivery
+  // Optional WhatsApp delivery — wrapped so notification failure doesn't fail the request
   if (doNotify && student.parent.phone) {
-    const pdfBuffer = generateRaportPdf({
-      studentName: student.name,
-      periodLabel,
-      generatedAt: report.createdAt,
-      notes: notes ?? null,
-      snapshot,
-      session: sessionSummary,
-    })
-    await notifyParentMilestoneReport({
-      parentPhone: student.parent.phone,
-      parentName: student.parent.name,
-      studentName: student.name,
-      periodLabel,
-      snapshotSummary: snapshot.programs.map((p) => ({
-        label: p.label,
-        percent: p.percent,
-        completedCount: p.completedCount,
-        totalCount: p.totalCount,
-      })),
-      avgScore: sessionSummary.avgScore,
-      totalSessions: sessionSummary.totalSessions,
-      notes: notes ?? null,
-      pdfBuffer,
-      pdfFilename: `raport-${student.name.replace(/\s+/g, '-')}-${periodLabel.replace(/\s+/g, '-')}.pdf`,
-    })
-    await prisma.milestoneReport.update({
-      where: { id: report.id },
-      data: { notifiedAt: new Date() },
-    })
+    try {
+      const pdfBuffer = generateRaportPdf({
+        studentName: student.name,
+        periodLabel,
+        generatedAt: report.createdAt,
+        notes: notes ?? null,
+        snapshot,
+        session: sessionSummary,
+      })
+      await notifyParentMilestoneReport({
+        parentPhone: student.parent.phone,
+        parentName: student.parent.name,
+        studentName: student.name,
+        periodLabel,
+        snapshotSummary: snapshot.programs.map((p) => ({
+          label: p.label,
+          percent: p.percent,
+          completedCount: p.completedCount,
+          totalCount: p.totalCount,
+        })),
+        avgScore: sessionSummary.avgScore,
+        totalSessions: sessionSummary.totalSessions,
+        notes: notes ?? null,
+        pdfBuffer,
+        pdfFilename: `raport-${student.name.replace(/\s+/g, '-')}-${periodLabel.replace(/\s+/g, '-')}.pdf`,
+      })
+      await prisma.milestoneReport.update({
+        where: { id: report.id },
+        data: { notifiedAt: new Date() },
+      })
+    } catch (e) {
+      console.error('[milestone-report] WhatsApp notification failed:', e)
+    }
   }
 
   return NextResponse.json(report, { status: 201 })
