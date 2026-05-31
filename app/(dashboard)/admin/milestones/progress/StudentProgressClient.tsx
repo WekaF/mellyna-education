@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Program, MilestoneStatus } from '@prisma/client'
-import { ChevronDown, Award } from 'lucide-react'
+import { Award, Search, X } from 'lucide-react'
 
 type Student = { id: string; name: string; grade: string | null }
 type Milestone = { id: string; name: string; description: string | null; program: Program; order: number }
@@ -29,10 +29,23 @@ export default function StudentProgressClient({
   milestones: Milestone[]
 }) {
   const [selectedStudentId, setSelectedStudentId] = useState<string>('')
+  const [searchQuery, setSearchQuery] = useState<string>('')
+  const [showDropdown, setShowDropdown] = useState(false)
   const [activeProgram, setActiveProgram] = useState<Program>('SEMPOA')
   const [progressData, setProgressData] = useState<MilestoneWithProgress[]>([])
   const [loading, setLoading] = useState(false)
   const [updating, setUpdating] = useState<string | null>(null)
+  const searchRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const fetchProgress = async (studentId: string) => {
     setLoading(true)
@@ -52,6 +65,24 @@ export default function StudentProgressClient({
     else setProgressData([])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStudentId])
+
+  const filteredStudents = students.filter((s) =>
+    s.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const selectedStudent = students.find((s) => s.id === selectedStudentId)
+
+  const selectStudent = (s: Student) => {
+    setSelectedStudentId(s.id)
+    setSearchQuery('')
+    setShowDropdown(false)
+  }
+
+  const clearStudent = () => {
+    setSelectedStudentId('')
+    setSearchQuery('')
+    setShowDropdown(false)
+  }
 
   const getStudentMilestone = (milestoneId: string): StudentMilestoneRecord | undefined =>
     progressData.find((m) => m.id === milestoneId)?.studentMilestones[0]
@@ -95,20 +126,55 @@ export default function StudentProgressClient({
       {/* Student Selector */}
       <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xs p-6">
         <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Pilih Siswa</label>
-        <div className="relative mt-2">
-          <select
-            value={selectedStudentId}
-            onChange={(e) => setSelectedStudentId(e.target.value)}
-            className="w-full appearance-none rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 pr-10 text-sm font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="">-- Pilih siswa --</option>
-            {students.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}{s.grade ? ` (${s.grade})` : ''}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+        <div className="relative mt-2" ref={searchRef}>
+          {selectedStudent && !showDropdown ? (
+            <div className="flex items-center gap-3 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/20 px-4 py-3">
+              <span className="flex-1 text-sm font-semibold text-slate-800 dark:text-white">
+                {selectedStudent.name}{selectedStudent.grade ? ` (${selectedStudent.grade})` : ''}
+              </span>
+              <button
+                onClick={clearStudent}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true) }}
+                  onFocus={() => setShowDropdown(true)}
+                  placeholder="Cari nama siswa..."
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 pl-10 pr-4 py-3 text-sm font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:font-normal placeholder:text-slate-400"
+                />
+              </div>
+              {showDropdown && (
+                <div className="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg overflow-hidden">
+                  {filteredStudents.length === 0 ? (
+                    <p className="px-4 py-3 text-sm text-slate-400">Siswa tidak ditemukan</p>
+                  ) : (
+                    <ul className="max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700">
+                      {filteredStudents.map((s) => (
+                        <li key={s.id}>
+                          <button
+                            onMouseDown={(e) => { e.preventDefault(); selectStudent(s) }}
+                            className="w-full px-4 py-2.5 text-left text-sm font-semibold text-slate-800 dark:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-colors"
+                          >
+                            {s.name}
+                            {s.grade && <span className="ml-1.5 text-xs font-normal text-slate-400">({s.grade})</span>}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
