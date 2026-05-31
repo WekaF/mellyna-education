@@ -23,7 +23,9 @@ import {
   Tag,
   Grid3x3,
   UsersRound,
-  ChevronDown
+  ChevronDown,
+  Trophy,
+  BookMarked,
 } from 'lucide-react'
 import { ThemeToggleButton } from '../common/ThemeToggleButton'
 
@@ -94,6 +96,14 @@ export default function Sidebar({ user }: SidebarProps) {
             ],
           },
           { name: 'Laporan', href: '/admin/reports', icon: FileText },
+          {
+            name: 'Kurikulum',
+            icon: Trophy,
+            subItems: [
+              { name: 'Milestone', href: '/admin/milestones', icon: BookMarked },
+              { name: 'Progress Siswa', href: '/admin/milestones/progress', icon: TrendingUp },
+            ],
+          },
           { name: 'Pengumuman', href: '/admin/announcements', icon: Megaphone },
           { name: 'Pengaturan', href: '/admin/settings', icon: Settings },
         ]
@@ -105,6 +115,7 @@ export default function Sidebar({ user }: SidebarProps) {
         return [
           { name: 'Dashboard', href: '/parent', icon: LayoutDashboard },
           { name: 'Perkembangan', href: '/parent/progress', icon: TrendingUp },
+          { name: 'Milestone Belajar', href: '/parent/milestones', icon: Trophy },
           { name: 'Riwayat Belajar', href: '/parent/history', icon: BookOpen },
           { name: 'Jadwal', href: '/parent/schedule', icon: Calendar },
           { name: 'Tagihan', href: '/parent/billing', icon: CreditCard },
