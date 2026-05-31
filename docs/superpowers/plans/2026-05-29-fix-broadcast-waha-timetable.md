@@ -249,7 +249,7 @@ Berikut adalah jadwal belajar rutin untuk ${p.student.name} besok:
 🏫 Kelas: ${c.name}
 👨‍🏫 Tutor: ${c.tutor.name}
 🕐 Waktu: ${dateStr}, ${timeStr}
-📍 Lokasi: Ruang Belajar Mellyna
+📍 Lokasi: Sempoa Kreatif Pakong
 
 Sistem secara otomatis menjadwalkan ${p.student.name} untuk hadir. Jika berhalangan (sakit/izin), silakan hubungi kami dengan membalas pesan ini atau ajukan di portal akademik.
 
