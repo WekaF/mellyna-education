@@ -235,16 +235,23 @@ export default async function ParentHistoryPage({
                                             />
                                           </a>
                                         ) : (
-                                          <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer">
-                                            <div className="h-16 w-16 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
-                                              <video
-                                                src={m.url}
-                                                preload="metadata"
-                                                className="h-full w-full object-cover cursor-pointer"
-                                                title={m.filename}
-                                              />
-                                            </div>
-                                          </a>
+                                          <div key={m.id} className="flex flex-col gap-1">
+                                            <video
+                                              src={m.url}
+                                              controls
+                                              preload="metadata"
+                                              className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 w-full max-w-xs"
+                                              title={m.filename}
+                                            />
+                                            <a
+                                              href={m.url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                                            >
+                                              🔗 Buka link video
+                                            </a>
+                                          </div>
                                         )
                                       )}
                                     </div>
