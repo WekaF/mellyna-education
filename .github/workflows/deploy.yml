@@ -69,3 +69,8 @@ jobs:
             docker compose -f docker-compose.prod.yml up -d --no-deps --force-recreate app
             docker image prune -f
             echo "✅ Mellyna Education deployed successfully"
+            WAHA_KEY=$(grep -oP '(?<=WAHA_API_KEY=).+' /opt/mellyna-education/.env | tr -d '\r')
+            curl -s -X POST "http://localhost:3001/api/sendText" \
+              -H "Content-Type: application/json" \
+              -H "X-Api-Key: $WAHA_KEY" \
+              -d "{\"chatId\":\"${{ secrets.NOTIFY_WA_NUMBER }}@c.us\",\"text\":\"✅ *Deploy Sukses!*\n\nApp: mellyna-education\nCommit: ${{ github.sha }}\nBy: ${{ github.actor }}\n\nApp: https://mellyna-education.my.id\",\"session\":\"mellyna\"}" || true
