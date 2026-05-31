@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Program, MilestoneStatus } from '@prisma/client'
-import { CheckCircle2, Circle, Clock, ChevronDown, Award } from 'lucide-react'
+import { ChevronDown, Award } from 'lucide-react'
 
 type Student = { id: string; name: string; grade: string | null }
 type Milestone = { id: string; name: string; description: string | null; program: Program; order: number }
@@ -19,12 +19,6 @@ type MilestoneWithProgress = Milestone & { studentMilestones: StudentMilestoneRe
 const PROGRAMS: Program[] = ['SEMPOA', 'AHE', 'EFK', 'EYL', 'EFE', 'CALISTUNG', 'ENGLISH']
 const PROGRAM_LABELS: Record<Program, string> = {
   SEMPOA: 'Sempoa', AHE: 'AHE', EFK: 'EFK', EYL: 'EYL', EFE: 'EFE', CALISTUNG: 'Calistung', ENGLISH: 'English',
-}
-
-const STATUS_CONFIG: Record<MilestoneStatus, { label: string; icon: typeof CheckCircle2; class: string }> = {
-  NOT_STARTED: { label: 'Belum Mulai', icon: Circle, class: 'text-slate-400' },
-  IN_PROGRESS: { label: 'Sedang Berjalan', icon: Clock, class: 'text-amber-500' },
-  COMPLETED: { label: 'Selesai', icon: CheckCircle2, class: 'text-emerald-500' },
 }
 
 export default function StudentProgressClient({
@@ -87,9 +81,6 @@ export default function StudentProgressClient({
   const progressPercent = programMilestones.length > 0
     ? Math.round((completedCount / programMilestones.length) * 100)
     : 0
-
-  // STATUS_CONFIG is available for future use (e.g. displaying icons inline)
-  void STATUS_CONFIG
 
   return (
     <div className="space-y-8">
