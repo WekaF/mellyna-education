@@ -637,7 +637,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
           💼 Total Sesi: <strong className="text-slate-700 dark:text-slate-200">{classes.filter(c => c.dayOfWeek !== null).length}</strong>
         </span>
         <span className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900/30 px-3 py-1.5 rounded-xl border dark:border-slate-800">
-          🎓 Total Siswa Unik: <strong className="text-slate-700 dark:text-slate-200">{new Set(classes.flatMap(c => c.enrollments.map(e => e.student.name))).size}</strong>
+          🎓 Total Siswa Unik: <strong className="text-slate-700 dark:text-slate-200">{new Set(classes.filter(c => c.dayOfWeek !== null).flatMap(c => c.enrollments.map(e => e.student.name))).size}</strong>
         </span>
       </div>
 
