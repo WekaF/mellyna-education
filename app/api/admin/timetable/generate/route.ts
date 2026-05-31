@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
           startTime: start,
           endTime: end,
           topic: `Sesi Belajar ${c.programs.map((p: { program: string }) => p.program).join(' + ')} - Rutin`,
-          location: 'Ruang Belajar Mellyna',
+          location: 'Sempoa Kreatif Pakong',
           status: ScheduleStatus.PUBLISHED,
           publishedAt: new Date(),
           participants: {
@@ -172,7 +172,7 @@ Berikut adalah jadwal belajar rutin untuk ${p.student.name} besok:
 🏫 Kelas: ${c.name}
 👨‍🏫 Tutor: ${tutorNames}
 🕐 Waktu: ${dateStr}, ${timeStr}
-📍 Lokasi: Ruang Belajar Mellyna
+📍 Lokasi: Sempoa Kreatif Pakong
 
 Sistem secara otomatis menjadwalkan ${p.student.name} untuk hadir. Jika berhalangan (sakit/izin), silakan hubungi kami dengan membalas pesan ini atau ajukan di portal akademik.
 
@@ -193,6 +193,7 @@ Mellyna Education`
 Jadwal mengajar rutin Anda telah diterbitkan secara otomatis dari Timetable:
 🏫 Kelas: ${c.name}
 🕐 Waktu: ${dateStr}, ${timeStr}
+📍 Lokasi: Sempoa Kreatif Pakong
 👥 Peserta (${schedule.participants.length} siswa): ${studentNames}
 
 Silakan konfirmasi kehadiran siswa setelah sesi selesai melalui portal tutor.
