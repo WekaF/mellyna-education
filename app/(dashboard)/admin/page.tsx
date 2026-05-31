@@ -2,104 +2,223 @@ import { prisma } from '@/lib/db'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { formatRupiah } from '@/lib/utils'
-import { Users, BookOpen, Calendar, CreditCard } from 'lucide-react'
+import DashboardClient from './DashboardClient'
 
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions)
   if (!session) redirect('/login')
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
 
-  const [totalStudents, totalClasses, schedulesToday, pendingInvoices, pendingTotal] = await Promise.all([
-    prisma.student.count(),
+  const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1)
+
+  const eightWeeksAgo = new Date(now)
+  eightWeeksAgo.setDate(now.getDate() - 55)
+  eightWeeksAgo.setHours(0, 0, 0, 0)
+
+  const [
+    totalStudents,
+    totalClasses,
+    schedulesToday,
+    overdueCount,
+    revenueThisMonth,
+    paidLastSixMonths,
+    invoiceStatusGroups,
+    allEnrollments,
+    recentAttendances,
+    attendancesThisMonth,
+    overdueInvoices,
+    pendingInvoices,
+    todaySchedules,
+  ] = await Promise.all([
+    prisma.student.count({ where: { isActive: true } }),
     prisma.class.count(),
     prisma.schedule.count({
-      where: { date: { gte: today, lt: tomorrow }, status: { in: ['PUBLISHED', 'COMPLETED'] } },
+      where: {
+        date: { gte: today, lt: tomorrow },
+        status: { in: ['PUBLISHED', 'COMPLETED'] },
+      },
+    }),
+    prisma.invoice.count({ where: { status: 'OVERDUE' } }),
+    prisma.invoice.aggregate({
+      where: { status: 'PAID', createdAt: { gte: firstOfMonth } },
+      _sum: { amount: true },
+    }),
+    prisma.invoice.findMany({
+      where: { status: 'PAID', createdAt: { gte: sixMonthsAgo } },
+      select: { amount: true, createdAt: true },
+    }),
+    prisma.invoice.groupBy({
+      by: ['status'],
+      _count: { id: true },
+      _sum: { amount: true },
+    }),
+    prisma.enrollment.findMany({
+      include: { class: { select: { mainProgram: true } } },
+    }),
+    prisma.attendance.findMany({
+      where: { schedule: { date: { gte: eightWeeksAgo } } },
+      select: { status: true, schedule: { select: { date: true } } },
+    }),
+    prisma.attendance.findMany({
+      where: { schedule: { date: { gte: firstOfMonth } } },
+      select: { status: true },
+    }),
+    prisma.invoice.findMany({
+      where: { status: 'OVERDUE' },
+      include: { student: { select: { name: true } } },
+      orderBy: { dueDate: 'asc' },
+      take: 4,
     }),
     prisma.invoice.findMany({
       where: { status: 'PENDING' },
       include: { student: { select: { name: true } } },
       orderBy: { dueDate: 'asc' },
-      take: 5,
+      take: 4,
     }),
-    prisma.invoice.aggregate({
-      where: { status: 'PENDING' },
-      _sum: { amount: true },
-      _count: true,
+    prisma.schedule.findMany({
+      where: {
+        date: { gte: today, lt: tomorrow },
+        status: { in: ['PUBLISHED', 'COMPLETED'] },
+      },
+      select: {
+        id: true,
+        startTime: true,
+        endTime: true,
+        topic: true,
+        status: true,
+        class: {
+          select: {
+            name: true,
+            tutor: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: { startTime: 'asc' },
+      take: 10,
     }),
   ])
 
-  const stats = [
-    { label: 'Total Siswa', value: totalStudents, icon: Users, color: 'from-indigo-500 to-indigo-600', bg: 'bg-indigo-50', text: 'text-indigo-600' },
-    { label: 'Total Kelas', value: totalClasses, icon: BookOpen, color: 'from-emerald-500 to-emerald-600', bg: 'bg-emerald-50', text: 'text-emerald-600' },
-    { label: 'Jadwal Hari Ini', value: schedulesToday, icon: Calendar, color: 'from-amber-500 to-amber-600', bg: 'bg-amber-50', text: 'text-amber-600' },
-    { label: 'Tagihan Pending', value: pendingTotal._count, icon: CreditCard, color: 'from-rose-500 to-rose-600', bg: 'bg-rose-50', text: 'text-rose-600' },
+  // Revenue by month (last 6 months)
+  const revenueByMonth = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
+    const monthRevenue = paidLastSixMonths
+      .filter((inv) => {
+        const invDate = new Date(inv.createdAt)
+        return invDate.getFullYear() === d.getFullYear() && invDate.getMonth() === d.getMonth()
+      })
+      .reduce((sum, inv) => sum + inv.amount, 0)
+    return {
+      month: d.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' }),
+      revenue: monthRevenue,
+    }
+  })
+
+  // Invoice status distribution
+  const STATUS_LABELS: Record<string, string> = {
+    PAID: 'Lunas',
+    PENDING: 'Pending',
+    OVERDUE: 'Terlambat',
+    CANCELLED: 'Dibatalkan',
+  }
+  const invoiceDistribution = invoiceStatusGroups.map((g) => ({
+    status: STATUS_LABELS[g.status] ?? g.status,
+    count: g._count.id,
+    amount: g._sum.amount ?? 0,
+  }))
+
+  // Program distribution (enrollments per program)
+  const programMap: Record<string, number> = {}
+  for (const e of allEnrollments) {
+    const prog = e.class.mainProgram ?? 'Lainnya'
+    programMap[prog] = (programMap[prog] ?? 0) + 1
+  }
+  const programDistribution = Object.entries(programMap)
+    .map(([program, count]) => ({ program, count }))
+    .sort((a, b) => b.count - a.count)
+
+  // Weekly attendance trend (last 8 weeks)
+  const attendanceTrend = Array.from({ length: 8 }, (_, i) => {
+    const wEnd = new Date(now)
+    wEnd.setDate(now.getDate() - i * 7)
+    wEnd.setHours(23, 59, 59, 999)
+    const wStart = new Date(wEnd)
+    wStart.setDate(wEnd.getDate() - 6)
+    wStart.setHours(0, 0, 0, 0)
+    const weekAttendances = recentAttendances.filter((a) => {
+      const d = new Date(a.schedule.date)
+      return d >= wStart && d <= wEnd
+    })
+    const rate =
+      weekAttendances.length > 0
+        ? Math.round(
+            (weekAttendances.filter((a) => a.status === 'PRESENT').length / weekAttendances.length) * 100,
+          )
+        : 0
+    return {
+      label: wStart.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+      rate,
+    }
+  }).reverse()
+
+  // Attendance rate this month
+  const attendanceRateThisMonth =
+    attendancesThisMonth.length > 0
+      ? Math.round(
+          (attendancesThisMonth.filter((a) => a.status === 'PRESENT').length /
+            attendancesThisMonth.length) *
+            100,
+        )
+      : null
+
+  // Invoices needing attention: overdue first, then pending
+  const invoicesNeedingAttention = [
+    ...overdueInvoices.map((inv) => ({
+      id: inv.id,
+      studentName: inv.student.name,
+      description: inv.description,
+      amount: inv.amount,
+      dueDate: inv.dueDate.toISOString(),
+      isOverdue: true,
+    })),
+    ...pendingInvoices.map((inv) => ({
+      id: inv.id,
+      studentName: inv.student.name,
+      description: inv.description,
+      amount: inv.amount,
+      dueDate: inv.dueDate.toISOString(),
+      isOverdue: false,
+    })),
   ]
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="rounded-3xl bg-gradient-to-r from-indigo-600 to-indigo-800 p-5 sm:p-8 text-white shadow-xl shadow-indigo-600/10">
-        <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight">Dashboard Admin 👋</h1>
-        <p className="mt-2 text-sm sm:text-base text-indigo-100">Selamat datang! Berikut ringkasan operasional Mellyna Education hari ini.</p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon
-          return (
-            <div key={stat.label} className="rounded-2xl bg-white p-6 shadow-xs border border-slate-100 flex items-center gap-4">
-              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${stat.bg}`}>
-                <Icon className={`h-6 w-6 ${stat.text}`} />
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{stat.label}</p>
-                <p className="mt-0.5 text-3xl font-extrabold text-slate-800">{stat.value}</p>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Pending Invoices */}
-      <div className="rounded-2xl bg-white border border-slate-100 shadow-xs overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 className="font-bold text-slate-800">💳 Tagihan Belum Lunas</h2>
-          <a href="/admin/billing" className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">Lihat Semua →</a>
-        </div>
-        {pendingInvoices.length === 0 ? (
-          <div className="p-10 text-center text-slate-400">
-            <p className="text-3xl">🎉</p>
-            <p className="mt-2 font-medium text-sm">Semua tagihan sudah lunas!</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {pendingInvoices.map((inv) => (
-              <div key={inv.id} className="flex items-start justify-between px-4 sm:px-6 py-4 gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-sm text-slate-800 truncate">{inv.student.name}</p>
-                  <p className="text-xs text-slate-400 truncate">{inv.description}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="font-bold text-sm text-slate-800">{formatRupiah(inv.amount)}</p>
-                  <p className="text-xs text-rose-500">Jatuh tempo: {new Date(inv.dueDate).toLocaleDateString('id-ID')}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        {pendingTotal._sum.amount && pendingTotal._sum.amount > 0 && (
-          <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 flex justify-between text-sm">
-            <span className="text-slate-500 font-medium">Total Pending:</span>
-            <span className="font-bold text-rose-600">{formatRupiah(pendingTotal._sum.amount!)}</span>
-          </div>
-        )}
-      </div>
-    </div>
+    <DashboardClient
+      stats={{
+        totalStudents,
+        totalClasses,
+        schedulesToday,
+        overdueCount,
+        revenueThisMonth: revenueThisMonth._sum.amount ?? 0,
+        attendanceRateThisMonth,
+      }}
+      revenueByMonth={revenueByMonth}
+      invoiceDistribution={invoiceDistribution}
+      programDistribution={programDistribution}
+      attendanceTrend={attendanceTrend}
+      invoicesNeedingAttention={invoicesNeedingAttention}
+      todaySchedules={todaySchedules.map((s) => ({
+        id: s.id,
+        className: s.class.name,
+        tutorName: s.class.tutor?.name ?? 'N/A',
+        startTime: s.startTime,
+        endTime: s.endTime,
+        topic: s.topic,
+        status: s.status,
+      }))}
+    />
   )
 }
