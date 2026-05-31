@@ -303,3 +303,74 @@ body {
 .animate-slide-in {
   animation: slideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* ── Mellyna Brand Component Utilities ── */
+
+.me-card {
+  background: #ffffff;
+  border: 1px solid var(--me-border);
+  border-top: 4px solid var(--me-primary);
+  border-radius: var(--me-radius-lg);
+  padding: 20px 24px;
+  box-shadow: var(--me-shadow-md);
+  transition: box-shadow var(--me-transition);
+}
+
+.me-card:hover {
+  box-shadow: var(--me-shadow-lg);
+}
+
+.dark .me-card {
+  background: rgba(30, 41, 59, 0.45);
+  border-color: rgba(26, 86, 219, 0.2);
+}
+
+.me-card-label {
+  font-size: 12px;
+  color: var(--me-text-muted);
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.me-card-value {
+  font-size: 36px;
+  font-weight: 900;
+  color: var(--me-text-primary);
+  margin: 4px 0;
+  font-family: var(--me-font-heading);
+}
+
+.dark .me-card-label { color: #6A8CC0; }
+.dark .me-card-value { color: #ffffff; }
+
+/* Payment status badges */
+.me-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: var(--me-radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.me-badge-lunas {
+  background: var(--me-success-bg);
+  color: var(--me-success-text);
+}
+
+.me-badge-pending {
+  background: var(--me-warning-bg);
+  color: var(--me-warning-text);
+}
+
+.me-badge-belum {
+  background: var(--me-danger-bg);
+  color: var(--me-danger-text);
+}
+
+.dark .me-badge-lunas  { background: rgba(79,209,165,0.15); color: #4FD1A5; }
+.dark .me-badge-pending { background: rgba(255,140,0,0.15);  color: #FFB347; }
+.dark .me-badge-belum  { background: rgba(255,107,107,0.15); color: #FF6B6B; }
