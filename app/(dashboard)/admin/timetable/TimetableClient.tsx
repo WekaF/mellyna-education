@@ -260,7 +260,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
       grouped[prog] = filtered.filter(c => c.mainProgram === prog)
     }
     const other = filtered.filter(
-      c => !c.mainProgram || !MAIN_PROGRAMS_ORDER.includes(c.mainProgram as any)
+      c => !c.mainProgram || !MAIN_PROGRAMS_ORDER.includes(c.mainProgram as typeof MAIN_PROGRAMS_ORDER[number])
     )
     if (other.length > 0) grouped['LAINNYA'] = other
     return grouped
