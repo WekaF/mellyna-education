@@ -9,6 +9,7 @@ const updateStudentSchema = z.object({
   grade: z.string().optional(),
   birthDate: z.string().optional(),
   notes: z.string().optional(),
+  parentId: z.string().optional(),
 })
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
