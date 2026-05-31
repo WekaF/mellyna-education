@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict kc2QrxyYtgdSP7ljKxU1wecei4kAlqe1s4ixQTCy9dVXmt6d36sA30otKyl4Vle
+\restrict C1HFhbvgUTUbJ9UW5EzNtIYeuVX4Qf97tmE4gWua96wQemh84akhuqyXerY7aFc
 
 -- Dumped from database version 14.22 (Homebrew)
 -- Dumped by pg_dump version 14.22 (Homebrew)
@@ -21,6 +21,8 @@ SET row_security = off;
 ALTER TABLE ONLY public."Student" DROP CONSTRAINT "Student_parentId_fkey";
 ALTER TABLE ONLY public."Session" DROP CONSTRAINT "Session_userId_fkey";
 ALTER TABLE ONLY public."Schedule" DROP CONSTRAINT "Schedule_classId_fkey";
+ALTER TABLE ONLY public."ScheduleParticipant" DROP CONSTRAINT "ScheduleParticipant_studentId_fkey";
+ALTER TABLE ONLY public."ScheduleParticipant" DROP CONSTRAINT "ScheduleParticipant_scheduleId_fkey";
 ALTER TABLE ONLY public."Payment" DROP CONSTRAINT "Payment_invoiceId_fkey";
 ALTER TABLE ONLY public."Media" DROP CONSTRAINT "Media_reportId_fkey";
 ALTER TABLE ONLY public."LearningReport" DROP CONSTRAINT "LearningReport_tutorId_fkey";
@@ -30,6 +32,9 @@ ALTER TABLE ONLY public."Invoice" DROP CONSTRAINT "Invoice_studentId_fkey";
 ALTER TABLE ONLY public."Enrollment" DROP CONSTRAINT "Enrollment_studentId_fkey";
 ALTER TABLE ONLY public."Enrollment" DROP CONSTRAINT "Enrollment_classId_fkey";
 ALTER TABLE ONLY public."Class" DROP CONSTRAINT "Class_tutorId_fkey";
+ALTER TABLE ONLY public."ClassTutor" DROP CONSTRAINT "ClassTutor_tutorId_fkey";
+ALTER TABLE ONLY public."ClassTutor" DROP CONSTRAINT "ClassTutor_classId_fkey";
+ALTER TABLE ONLY public."ClassProgram" DROP CONSTRAINT "ClassProgram_classId_fkey";
 ALTER TABLE ONLY public."Attendance" DROP CONSTRAINT "Attendance_studentId_fkey";
 ALTER TABLE ONLY public."Attendance" DROP CONSTRAINT "Attendance_scheduleId_fkey";
 ALTER TABLE ONLY public."Account" DROP CONSTRAINT "Account_userId_fkey";
@@ -37,8 +42,12 @@ DROP INDEX public."VerificationToken_token_key";
 DROP INDEX public."VerificationToken_identifier_token_key";
 DROP INDEX public."User_email_key";
 DROP INDEX public."Session_sessionToken_key";
+DROP INDEX public."Schedule_recurrenceGroupId_idx";
+DROP INDEX public."ScheduleParticipant_scheduleId_studentId_key";
 DROP INDEX public."LearningReport_studentId_scheduleId_key";
 DROP INDEX public."Enrollment_studentId_classId_key";
+DROP INDEX public."ClassTutor_classId_tutorId_key";
+DROP INDEX public."ClassProgram_classId_program_key";
 DROP INDEX public."Attendance_studentId_scheduleId_key";
 DROP INDEX public."Account_provider_providerAccountId_key";
 ALTER TABLE ONLY public._prisma_migrations DROP CONSTRAINT _prisma_migrations_pkey;
@@ -46,12 +55,16 @@ ALTER TABLE ONLY public."User" DROP CONSTRAINT "User_pkey";
 ALTER TABLE ONLY public."Student" DROP CONSTRAINT "Student_pkey";
 ALTER TABLE ONLY public."Session" DROP CONSTRAINT "Session_pkey";
 ALTER TABLE ONLY public."Schedule" DROP CONSTRAINT "Schedule_pkey";
+ALTER TABLE ONLY public."ScheduleParticipant" DROP CONSTRAINT "ScheduleParticipant_pkey";
 ALTER TABLE ONLY public."Payment" DROP CONSTRAINT "Payment_pkey";
 ALTER TABLE ONLY public."Media" DROP CONSTRAINT "Media_pkey";
 ALTER TABLE ONLY public."LearningReport" DROP CONSTRAINT "LearningReport_pkey";
 ALTER TABLE ONLY public."Invoice" DROP CONSTRAINT "Invoice_pkey";
 ALTER TABLE ONLY public."Enrollment" DROP CONSTRAINT "Enrollment_pkey";
+ALTER TABLE ONLY public."DailyPiket" DROP CONSTRAINT "DailyPiket_pkey";
 ALTER TABLE ONLY public."Class" DROP CONSTRAINT "Class_pkey";
+ALTER TABLE ONLY public."ClassTutor" DROP CONSTRAINT "ClassTutor_pkey";
+ALTER TABLE ONLY public."ClassProgram" DROP CONSTRAINT "ClassProgram_pkey";
 ALTER TABLE ONLY public."Attendance" DROP CONSTRAINT "Attendance_pkey";
 ALTER TABLE ONLY public."Announcement" DROP CONSTRAINT "Announcement_pkey";
 ALTER TABLE ONLY public."Account" DROP CONSTRAINT "Account_pkey";
@@ -60,21 +73,27 @@ DROP TABLE public."VerificationToken";
 DROP TABLE public."User";
 DROP TABLE public."Student";
 DROP TABLE public."Session";
+DROP TABLE public."ScheduleParticipant";
 DROP TABLE public."Schedule";
 DROP TABLE public."Payment";
 DROP TABLE public."Media";
 DROP TABLE public."LearningReport";
 DROP TABLE public."Invoice";
 DROP TABLE public."Enrollment";
+DROP TABLE public."DailyPiket";
+DROP TABLE public."ClassTutor";
+DROP TABLE public."ClassProgram";
 DROP TABLE public."Class";
 DROP TABLE public."Attendance";
 DROP TABLE public."Announcement";
 DROP TABLE public."Account";
 DROP TYPE public."ScheduleStatus";
 DROP TYPE public."Role";
+DROP TYPE public."Program";
 DROP TYPE public."PaymentStatus";
 DROP TYPE public."MediaType";
 DROP TYPE public."InvoiceStatus";
+DROP TYPE public."DayOfWeek";
 DROP TYPE public."AttendanceStatus";
 --
 -- Name: AttendanceStatus; Type: TYPE; Schema: public; Owner: -
@@ -85,6 +104,21 @@ CREATE TYPE public."AttendanceStatus" AS ENUM (
     'ABSENT',
     'SICK',
     'PERMISSION'
+);
+
+
+--
+-- Name: DayOfWeek; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public."DayOfWeek" AS ENUM (
+    'MONDAY',
+    'TUESDAY',
+    'WEDNESDAY',
+    'THURSDAY',
+    'FRIDAY',
+    'SATURDAY',
+    'SUNDAY'
 );
 
 
@@ -119,6 +153,21 @@ CREATE TYPE public."PaymentStatus" AS ENUM (
     'SUCCESS',
     'FAILED',
     'EXPIRED'
+);
+
+
+--
+-- Name: Program; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public."Program" AS ENUM (
+    'SEMPOA',
+    'AHE',
+    'EFK',
+    'EYL',
+    'EFE',
+    'CALISTUNG',
+    'ENGLISH'
 );
 
 
@@ -205,10 +254,45 @@ CREATE TABLE public."Attendance" (
 CREATE TABLE public."Class" (
     id text NOT NULL,
     name text NOT NULL,
-    subject text NOT NULL,
     description text,
     "tutorId" text NOT NULL,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL,
+    "dayOfWeek" public."DayOfWeek",
+    "timeSlot" text
+);
+
+
+--
+-- Name: ClassProgram; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."ClassProgram" (
+    id text NOT NULL,
+    "classId" text NOT NULL,
+    program public."Program" NOT NULL
+);
+
+
+--
+-- Name: ClassTutor; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."ClassTutor" (
+    id text NOT NULL,
+    "classId" text NOT NULL,
+    "tutorId" text NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: DailyPiket; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."DailyPiket" (
+    day text NOT NULL,
+    staff text NOT NULL,
     "updatedAt" timestamp(3) without time zone NOT NULL
 );
 
@@ -255,7 +339,8 @@ CREATE TABLE public."LearningReport" (
     content text NOT NULL,
     score integer,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updatedAt" timestamp(3) without time zone NOT NULL
+    "updatedAt" timestamp(3) without time zone NOT NULL,
+    "parentNotifiedAt" timestamp(3) without time zone
 );
 
 
@@ -307,7 +392,22 @@ CREATE TABLE public."Schedule" (
     status public."ScheduleStatus" DEFAULT 'DRAFT'::public."ScheduleStatus" NOT NULL,
     "publishedAt" timestamp(3) without time zone,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updatedAt" timestamp(3) without time zone NOT NULL
+    "updatedAt" timestamp(3) without time zone NOT NULL,
+    "isRecurring" boolean DEFAULT false NOT NULL,
+    "recurrenceGroupId" text,
+    "recurrenceWeeks" integer
+);
+
+
+--
+-- Name: ScheduleParticipant; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."ScheduleParticipant" (
+    id text NOT NULL,
+    "scheduleId" text NOT NULL,
+    "studentId" text NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 
@@ -335,7 +435,8 @@ CREATE TABLE public."Student" (
     notes text,
     "parentId" text NOT NULL,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updatedAt" timestamp(3) without time zone NOT NULL
+    "updatedAt" timestamp(3) without time zone NOT NULL,
+    "isActive" boolean DEFAULT true NOT NULL
 );
 
 
@@ -352,7 +453,8 @@ CREATE TABLE public."User" (
     phone text,
     role public."Role" DEFAULT 'PARENT'::public."Role" NOT NULL,
     "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updatedAt" timestamp(3) without time zone NOT NULL
+    "updatedAt" timestamp(3) without time zone NOT NULL,
+    suspended boolean DEFAULT false NOT NULL
 );
 
 
@@ -411,8 +513,39 @@ COPY public."Attendance" (id, "studentId", "scheduleId", status, notes, "markedA
 -- Data for Name: Class; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public."Class" (id, name, subject, description, "tutorId", "createdAt", "updatedAt") FROM stdin;
-seed-class-1	Matematika Dasar	Matematika	Kelas matematika untuk SD kelas 4-6	cmpp1qz5s0001pyqg9h9c2zq2	2026-05-28 05:22:41.667	2026-05-28 05:22:41.667
+COPY public."Class" (id, name, description, "tutorId", "createdAt", "updatedAt", "dayOfWeek", "timeSlot") FROM stdin;
+seed-class-1	Matematika Dasar	Kelas matematika untuk SD kelas 4-6	cmpp1qz5s0001pyqg9h9c2zq2	2026-05-28 05:22:41.667	2026-05-28 05:22:41.667	\N	\N
+\.
+
+
+--
+-- Data for Name: ClassProgram; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public."ClassProgram" (id, "classId", program) FROM stdin;
+\.
+
+
+--
+-- Data for Name: ClassTutor; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public."ClassTutor" (id, "classId", "tutorId", "createdAt") FROM stdin;
+\.
+
+
+--
+-- Data for Name: DailyPiket; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public."DailyPiket" (day, staff, "updatedAt") FROM stdin;
+Senin	ANI, LISA, DANI	2026-05-31 07:28:43.059
+Selasa	LISA, ELA	2026-05-31 07:28:43.146
+Rabu	ELA, VIN, DANI	2026-05-31 07:28:43.147
+Kamis	—	2026-05-31 07:28:43.149
+Jum'at	ANI, LISA, VIN	2026-05-31 07:28:43.151
+Sabtu	DANI, ELA	2026-05-31 07:28:43.153
+Minggu	ANI, LISA, VIN	2026-05-31 07:28:43.154
 \.
 
 
@@ -437,7 +570,7 @@ COPY public."Invoice" (id, "studentId", amount, description, "dueDate", status, 
 -- Data for Name: LearningReport; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public."LearningReport" (id, "studentId", "scheduleId", "tutorId", content, score, "createdAt", "updatedAt") FROM stdin;
+COPY public."LearningReport" (id, "studentId", "scheduleId", "tutorId", content, score, "createdAt", "updatedAt", "parentNotifiedAt") FROM stdin;
 \.
 
 
@@ -461,7 +594,15 @@ COPY public."Payment" (id, "invoiceId", amount, method, status, "snapToken", "sn
 -- Data for Name: Schedule; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public."Schedule" (id, "classId", date, "startTime", "endTime", topic, location, status, "publishedAt", "createdAt", "updatedAt") FROM stdin;
+COPY public."Schedule" (id, "classId", date, "startTime", "endTime", topic, location, status, "publishedAt", "createdAt", "updatedAt", "isRecurring", "recurrenceGroupId", "recurrenceWeeks") FROM stdin;
+\.
+
+
+--
+-- Data for Name: ScheduleParticipant; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public."ScheduleParticipant" (id, "scheduleId", "studentId", "createdAt") FROM stdin;
 \.
 
 
@@ -477,8 +618,8 @@ COPY public."Session" (id, "sessionToken", "userId", expires) FROM stdin;
 -- Data for Name: Student; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public."Student" (id, name, "birthDate", grade, notes, "parentId", "createdAt", "updatedAt") FROM stdin;
-seed-student-1	Andi Pratama	\N	Kelas 5 SD	\N	cmpp1qzio0002pyqgnyungzw8	2026-05-28 05:22:41.626	2026-05-28 05:22:41.626
+COPY public."Student" (id, name, "birthDate", grade, notes, "parentId", "createdAt", "updatedAt", "isActive") FROM stdin;
+seed-student-1	Andi Pratama	\N	Kelas 5 SD	\N	cmpp1qzio0002pyqgnyungzw8	2026-05-28 05:22:41.626	2026-05-28 05:22:41.626	t
 \.
 
 
@@ -486,10 +627,10 @@ seed-student-1	Andi Pratama	\N	Kelas 5 SD	\N	cmpp1qzio0002pyqgnyungzw8	2026-05-2
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public."User" (id, name, email, "emailVerified", password, phone, role, "createdAt", "updatedAt") FROM stdin;
-cmpp1qygk0000pyqg3r6uxlsl	Super Admin	admin@mellyna.id	\N	$2b$12$RVJek13ZvZjtp7eTlPwJb.mavLEyvpExjH1Z/PTIlNgz9xGgxaa/e	6281234567890	SUPER_ADMIN	2026-05-28 05:22:40.238	2026-05-28 05:22:40.238
-cmpp1qz5s0001pyqg9h9c2zq2	Pak Budi	tutor@mellyna.id	\N	$2b$12$1fxZie8bAg9GhYiGND.0lOdpmxXTJQVat/HVK34VOvDDf.n3N.z3O	6281234567891	TUTOR	2026-05-28 05:22:41.152	2026-05-28 05:22:41.152
-cmpp1qzio0002pyqgnyungzw8	Bu Sari	parent@mellyna.id	\N	$2b$12$J4ar4I9q5j6rfeTNVqizDOAodeOLlQ/Y72BSDK95/2TVjO7QQKvme	6281234567892	PARENT	2026-05-28 05:22:41.611	2026-05-28 05:22:41.611
+COPY public."User" (id, name, email, "emailVerified", password, phone, role, "createdAt", "updatedAt", suspended) FROM stdin;
+cmpp1qygk0000pyqg3r6uxlsl	Super Admin	admin@mellyna.id	\N	$2b$12$RVJek13ZvZjtp7eTlPwJb.mavLEyvpExjH1Z/PTIlNgz9xGgxaa/e	6281234567890	SUPER_ADMIN	2026-05-28 05:22:40.238	2026-05-28 05:22:40.238	f
+cmpp1qz5s0001pyqg9h9c2zq2	Pak Budi	tutor@mellyna.id	\N	$2b$12$1fxZie8bAg9GhYiGND.0lOdpmxXTJQVat/HVK34VOvDDf.n3N.z3O	6281234567891	TUTOR	2026-05-28 05:22:41.152	2026-05-28 05:22:41.152	f
+cmpp1qzio0002pyqgnyungzw8	Bu Sari	parent@mellyna.id	\N	$2b$12$J4ar4I9q5j6rfeTNVqizDOAodeOLlQ/Y72BSDK95/2TVjO7QQKvme	6281234567892	PARENT	2026-05-28 05:22:41.611	2026-05-28 05:22:41.611	f
 \.
 
 
@@ -507,6 +648,17 @@ COPY public."VerificationToken" (identifier, token, expires) FROM stdin;
 
 COPY public._prisma_migrations (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count) FROM stdin;
 30d5fcb3-6f06-4664-a066-4f979d3da6b6	e5afbf9ee0745c1b1a5a3f6083329db9de65bcf1213d33a5abdc6a91e8e05ea2	2026-05-28 12:22:21.677154+07	20260528052220_init	\N	\N	2026-05-28 12:22:20.33643+07	1
+bceab3a6-ca44-4fcc-9df8-fc4fd90880fe	f5e91520247173886aa8666501182bba47de169c86985601f6a23f4948e1845f	2026-05-31 14:28:29.397284+07	20260528154036_add_schedule_participants	\N	\N	2026-05-31 14:28:29.340915+07	1
+0d362398-ee07-4cdf-9b63-e3427a0e3aaa	bcf24c773280a8e676a60c675d2526dca6debd5f69f6f2e5ff59b1f117ac6dbb	2026-05-31 14:28:29.399411+07	20260529015338_add_student_active_status	\N	\N	2026-05-31 14:28:29.397694+07	1
+82fd688e-4ffb-4780-a066-3cdd91ae1d13	fb091432e93057e0d835ecfba3fc3ac1e1cfd19db0a11864b3542dc9ebcc9bb2	2026-05-31 14:28:29.401176+07	20260529015511_add_user_suspended	\N	\N	2026-05-31 14:28:29.399861+07	1
+414292dc-aaa8-419e-8b7d-ffe4f1752b48	f02f443093609c1891f515ee57da1d1bd52564c355a63dd49f4779ac08ea4572	2026-05-31 14:28:29.404263+07	20260529031537_add_class_schedule_fields	\N	\N	2026-05-31 14:28:29.401533+07	1
+b9a7c55c-9b04-4384-aa2f-79b9fa96ae52	3892f06378c4f4eee5bb2810c09ce4316d2a85002f4bb740ef95305bbf224ce7	2026-05-31 14:28:29.407492+07	20260529031800_add_schedule_recurrence	\N	\N	2026-05-31 14:28:29.404634+07	1
+54b62b78-ada2-4ef4-ac8e-5321949dbfdb	af9b4a8083f77cf00e1098b77d4e11d3c03278ab88cfefd2d9f99e5f4414e197	2026-05-31 14:28:29.412304+07	20260529034110_add_daily_piket	\N	\N	2026-05-31 14:28:29.407829+07	1
+7b84fc10-522e-4dc1-b69f-9aac9a9f85a1	82e69a62a0d3086c974e587bb97d777c0ee01aa70ae27384a402f08ccbddaaf5	2026-05-31 14:28:29.419457+07	20260529065138_add_class_programs	\N	\N	2026-05-31 14:28:29.412666+07	1
+09c97212-5f5b-427c-9d16-bc6aaa5a258b	0134d981bbbc177a58540bde1e163b44437cf6f3076b5c0fb378949b83ec668c	2026-05-31 14:28:29.423273+07	20260529065200_remove_class_subject	\N	\N	2026-05-31 14:28:29.419856+07	1
+e49f2f94-8697-4223-b2d8-9b9e408e2de5	66f401d93b9c2837024e6df70703fcaa09aa612d16a559851ee10d46ab5956d2	2026-05-31 14:28:29.424695+07	20260530021939_add_parent_notified_at_to_learning_report	\N	\N	2026-05-31 14:28:29.423575+07	1
+0ec78cef-d4a2-4f94-9398-4cf2195f1b15	f456d36f281d9be46f329e4b158b179cbb55388a74751130c64589e2ae18bd70	2026-05-31 14:28:29.42931+07	20260530073219_add_class_tutor	\N	\N	2026-05-31 14:28:29.425009+07	1
+00b5bc77-a0d8-4fa5-87a6-f19213f3fac1	fae3fa9f39e783bf178be3487094a923e934e0739aa9de0ea3afb992912a65a8	2026-05-31 14:28:29.430656+07	20260531135705_normalize_timeslot_jam_to_hhmm	\N	\N	2026-05-31 14:28:29.429627+07	1
 \.
 
 
@@ -535,11 +687,35 @@ ALTER TABLE ONLY public."Attendance"
 
 
 --
+-- Name: ClassProgram ClassProgram_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ClassProgram"
+    ADD CONSTRAINT "ClassProgram_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: ClassTutor ClassTutor_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ClassTutor"
+    ADD CONSTRAINT "ClassTutor_pkey" PRIMARY KEY (id);
+
+
+--
 -- Name: Class Class_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Class"
     ADD CONSTRAINT "Class_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: DailyPiket DailyPiket_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."DailyPiket"
+    ADD CONSTRAINT "DailyPiket_pkey" PRIMARY KEY (day);
 
 
 --
@@ -580,6 +756,14 @@ ALTER TABLE ONLY public."Media"
 
 ALTER TABLE ONLY public."Payment"
     ADD CONSTRAINT "Payment_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: ScheduleParticipant ScheduleParticipant_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ScheduleParticipant"
+    ADD CONSTRAINT "ScheduleParticipant_pkey" PRIMARY KEY (id);
 
 
 --
@@ -637,6 +821,20 @@ CREATE UNIQUE INDEX "Attendance_studentId_scheduleId_key" ON public."Attendance"
 
 
 --
+-- Name: ClassProgram_classId_program_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "ClassProgram_classId_program_key" ON public."ClassProgram" USING btree ("classId", program);
+
+
+--
+-- Name: ClassTutor_classId_tutorId_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "ClassTutor_classId_tutorId_key" ON public."ClassTutor" USING btree ("classId", "tutorId");
+
+
+--
 -- Name: Enrollment_studentId_classId_key; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -648,6 +846,20 @@ CREATE UNIQUE INDEX "Enrollment_studentId_classId_key" ON public."Enrollment" US
 --
 
 CREATE UNIQUE INDEX "LearningReport_studentId_scheduleId_key" ON public."LearningReport" USING btree ("studentId", "scheduleId");
+
+
+--
+-- Name: ScheduleParticipant_scheduleId_studentId_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "ScheduleParticipant_scheduleId_studentId_key" ON public."ScheduleParticipant" USING btree ("scheduleId", "studentId");
+
+
+--
+-- Name: Schedule_recurrenceGroupId_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "Schedule_recurrenceGroupId_idx" ON public."Schedule" USING btree ("recurrenceGroupId");
 
 
 --
@@ -700,6 +912,30 @@ ALTER TABLE ONLY public."Attendance"
 
 ALTER TABLE ONLY public."Attendance"
     ADD CONSTRAINT "Attendance_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES public."Student"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: ClassProgram ClassProgram_classId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ClassProgram"
+    ADD CONSTRAINT "ClassProgram_classId_fkey" FOREIGN KEY ("classId") REFERENCES public."Class"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ClassTutor ClassTutor_classId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ClassTutor"
+    ADD CONSTRAINT "ClassTutor_classId_fkey" FOREIGN KEY ("classId") REFERENCES public."Class"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ClassTutor ClassTutor_tutorId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ClassTutor"
+    ADD CONSTRAINT "ClassTutor_tutorId_fkey" FOREIGN KEY ("tutorId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -775,6 +1011,22 @@ ALTER TABLE ONLY public."Payment"
 
 
 --
+-- Name: ScheduleParticipant ScheduleParticipant_scheduleId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ScheduleParticipant"
+    ADD CONSTRAINT "ScheduleParticipant_scheduleId_fkey" FOREIGN KEY ("scheduleId") REFERENCES public."Schedule"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ScheduleParticipant ScheduleParticipant_studentId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."ScheduleParticipant"
+    ADD CONSTRAINT "ScheduleParticipant_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES public."Student"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: Schedule Schedule_classId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -802,5 +1054,5 @@ ALTER TABLE ONLY public."Student"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict kc2QrxyYtgdSP7ljKxU1wecei4kAlqe1s4ixQTCy9dVXmt6d36sA30otKyl4Vle
+\unrestrict C1HFhbvgUTUbJ9UW5EzNtIYeuVX4Qf97tmE4gWua96wQemh84akhuqyXerY7aFc
 
