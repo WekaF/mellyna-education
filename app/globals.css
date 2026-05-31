@@ -21,9 +21,7 @@ html {
   --foreground: #f8fafc; /* Dark Mode foreground */
   --card-bg: #1e293b;
   --card-border: #334155;
-}
 
-.dark {
   --me-bg:           #060E2E;
   --me-surface:      #0C1A5C;
   --me-border:       #1A3080;
