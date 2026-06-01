@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db'
 import Link from 'next/link'
 import { formatRupiah } from '@/lib/utils'
 import ParentScheduleList from '@/components/dashboard/ParentScheduleList'
+import { ProgramEnrollmentBadge } from '@/components/admin/ProgramEnrollmentBadge'
 
 export default async function ParentDashboardPage() {
   const session = await getServerSession(authOptions)
@@ -18,6 +19,7 @@ export default async function ParentDashboardPage() {
       enrollments: { include: { class: { select: { name: true } } } },
       _count: { select: { reports: true, attendances: true } },
       invoices: { where: { status: 'PENDING' } },
+      programEnrollments: { where: { status: 'ACTIVE' }, orderBy: { startedAt: 'desc' }, take: 1 },
     },
   })
 
@@ -78,6 +80,9 @@ export default async function ParentDashboardPage() {
                         <div>
                           <h3 className="font-bold text-slate-800 dark:text-white">{child.name}</h3>
                           <p className="text-xs text-slate-400 dark:text-slate-500">{child.grade || 'Kelas tidak diketahui'}</p>
+                          <div className="mt-1">
+                            <ProgramEnrollmentBadge program={child.programEnrollments?.[0]?.program ?? null} />
+                          </div>
                         </div>
                       </div>
                       <div>
