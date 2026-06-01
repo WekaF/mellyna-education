@@ -57,12 +57,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const existingActive = await prisma.programEnrollment.findFirst({
-      where: { studentId: parsed.data.studentId, status: 'ACTIVE' },
+    const existingProgram = await prisma.programEnrollment.findFirst({
+      where: {
+        studentId: parsed.data.studentId,
+        program: parsed.data.program,
+        status: 'ACTIVE',
+      },
     })
-    if (existingActive) {
+    if (existingProgram) {
       return NextResponse.json(
-        { error: 'Siswa sudah memiliki program aktif. Gunakan endpoint upgrade untuk ganti program.' },
+        { error: 'Siswa sudah terdaftar di program ini.' },
         { status: 409 }
       )
     }
