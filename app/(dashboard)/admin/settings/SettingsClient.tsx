@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ExternalLink, RefreshCw, Wifi, WifiOff } from 'lucide-react'
+import { ExternalLink, RefreshCw, Wifi, WifiOff, Bell, BellOff } from 'lucide-react'
 
 interface IntegrationStatus {
   waha: {
@@ -18,6 +18,7 @@ interface IntegrationStatus {
 
 interface Props {
   initialStatus: IntegrationStatus | null
+  initialAutoBroadcast: boolean
 }
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -36,9 +37,11 @@ const StatusBadge = ({ status }: { status: string }) => {
   )
 }
 
-export default function SettingsClient({ initialStatus }: Props) {
+export default function SettingsClient({ initialStatus, initialAutoBroadcast }: Props) {
   const [status, setStatus] = useState<IntegrationStatus | null>(initialStatus)
   const [loading, setLoading] = useState(false)
+  const [autoBroadcast, setAutoBroadcast] = useState(initialAutoBroadcast)
+  const [savingBroadcast, setSavingBroadcast] = useState(false)
 
   const fetchStatus = async () => {
     setLoading(true)
@@ -50,11 +53,26 @@ export default function SettingsClient({ initialStatus }: Props) {
     }
   }
 
+  const toggleAutoBroadcast = async () => {
+    const next = !autoBroadcast
+    setSavingBroadcast(true)
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'AUTO_TIMETABLE_BROADCAST', value: next ? 'true' : 'false' }),
+      })
+      if (res.ok) setAutoBroadcast(next)
+    } finally {
+      setSavingBroadcast(false)
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800">⚙️ Pengaturan & Integrasi</h1>
+          <h1 className="text-2xl font-extrabold text-slate-800">⚙️ Pengaturan &amp; Integrasi</h1>
           <p className="text-sm text-slate-500 mt-0.5">Status koneksi WAHA (WhatsApp) dan n8n Automation.</p>
         </div>
         <button
@@ -65,6 +83,42 @@ export default function SettingsClient({ initialStatus }: Props) {
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
+      </div>
+
+      {/* Auto-Broadcast Toggle */}
+      <div className="rounded-2xl bg-white border border-slate-100 shadow-xs p-6 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="font-extrabold text-slate-800 flex items-center gap-2">
+              {autoBroadcast ? <Bell className="h-4 w-4 text-emerald-600" /> : <BellOff className="h-4 w-4 text-slate-400" />}
+              Auto-Broadcast Jadwal Mingguan
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Saat aktif, cron otomatis akan membuat jadwal mingguan dan mengirim notifikasi WhatsApp ke semua orang tua &amp; tutor.
+              Saat dimatikan, jadwal tetap dibuat oleh cron tapi WA tidak dikirim.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={toggleAutoBroadcast}
+            disabled={savingBroadcast}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${
+              autoBroadcast ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-600'
+            }`}
+            role="switch"
+            aria-checked={autoBroadcast}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                autoBroadcast ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+        <div className={`rounded-xl p-3 text-xs font-semibold ${autoBroadcast ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-500 border border-slate-100'}`}>
+          Status: <strong>{autoBroadcast ? '✅ Auto-broadcast AKTIF' : '🔕 Auto-broadcast DIMATIKAN'}</strong>
+          {!autoBroadcast && ' — Cron akan tetap membuat jadwal tapi tidak mengirim WA.'}
+        </div>
       </div>
 
       {/* WAHA Section */}

@@ -1,8 +1,8 @@
 import { getSessionStatus } from '@/lib/waha'
+import { prisma } from '@/lib/db'
 import SettingsClient from './SettingsClient'
 
 export default async function AdminSettingsPage() {
-  // Mirror /api/admin/status GET logic
   const wahaStatus = await getSessionStatus()
 
   let n8nStatus = 'OFFLINE'
@@ -13,6 +13,11 @@ export default async function AdminSettingsPage() {
   } catch {
     n8nStatus = 'OFFLINE'
   }
+
+  const autoBroadcastSetting = await prisma.systemSetting.findFirst({
+    where: { key: 'AUTO_TIMETABLE_BROADCAST' },
+  })
+  const autoBroadcast = autoBroadcastSetting?.value !== 'false'
 
   const initialStatus = {
     waha: {
@@ -27,5 +32,5 @@ export default async function AdminSettingsPage() {
     },
   }
 
-  return <SettingsClient initialStatus={initialStatus} />
+  return <SettingsClient initialStatus={initialStatus} initialAutoBroadcast={autoBroadcast} />
 }
