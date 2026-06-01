@@ -18,13 +18,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const body = await req.json()
-  const parsed = enrollSchema.safeParse(body)
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
-  }
-
   try {
+    let body: unknown
+    try {
+      body = await req.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+    }
+
+    const parsed = enrollSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+    }
     const activeProgramEnrollment = await prisma.programEnrollment.findFirst({
       where: { studentId: parsed.data.studentId, status: 'ACTIVE' },
     })
@@ -55,7 +60,7 @@ export async function POST(req: NextRequest) {
       where: {
         studentId_classId: { studentId: parsed.data.studentId, classId: parsed.data.classId },
       },
-      update: {},
+      update: { programEnrollmentId: activeProgramEnrollment.id },
       create: {
         studentId: parsed.data.studentId,
         classId: parsed.data.classId,
