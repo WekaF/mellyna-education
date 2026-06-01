@@ -26,6 +26,7 @@ import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
 import { formatRupiah } from '@/lib/utils'
 import { ProgramEnrollmentBadge } from '@/components/admin/ProgramEnrollmentBadge'
+import { ProgramEnrollmentModal } from '@/components/admin/ProgramEnrollmentModal'
 
 // TS Interfaces matching Prisma relations
 interface TutorInfo {
@@ -116,9 +117,6 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
   // Suspension states to prevent double clicks
   const [togglingId, setTogglingId] = useState<string | null>(null)
 
-  // Program action loading state
-  const [programActionStudentId, setProgramActionStudentId] = useState<string | null>(null)
-
   const [showAddForm, setShowAddForm] = useState(false)
   const [addForm, setAddForm] = useState({ name: '', email: '', phone: '', password: '' })
   const [addSaving, setAddSaving] = useState(false)
@@ -139,6 +137,30 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
   const [addStudentSaving, setAddStudentSaving] = useState(false)
   const [addStudentError, setAddStudentError] = useState<string | null>(null)
 
+  // Program enrollment modal state
+  const [programModal, setProgramModal] = useState<{
+    isOpen: boolean
+    studentId: string
+    studentName: string
+    mode: 'assign' | 'upgrade'
+    currentProgramEnrollmentId?: string
+    currentProgram?: string
+  }>({ isOpen: false, studentId: '', studentName: '', mode: 'assign' })
+
+  const openProgramModal = (student: Student) => {
+    const active = (student.programEnrollments ?? []).find((pe) => pe.status === 'ACTIVE')
+    setProgramModal({
+      isOpen: true,
+      studentId: student.id,
+      studentName: student.name,
+      mode: active ? 'upgrade' : 'assign',
+      currentProgramEnrollmentId: active?.id,
+      currentProgram: active?.program,
+    })
+  }
+
+  const closeProgramModal = () => setProgramModal((prev) => ({ ...prev, isOpen: false }))
+
   // Fetch all parents data
   const fetchParents = useCallback(async () => {
     setLoading(true)
@@ -154,68 +176,6 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
       setLoading(false)
     }
   }, [])
-
-  const handleAssignProgram = async (studentId: string) => {
-    const program = prompt('Masukkan program (SEMPOA/AHE/EFK/EYL/EFE/CALISTUNG/ENGLISH):')
-    if (!program) return
-
-    const normalized = program.trim().toUpperCase()
-    const validPrograms = ['SEMPOA','AHE','EFK','EYL','EFE','CALISTUNG','ENGLISH']
-    if (!validPrograms.includes(normalized)) {
-      alert('Program tidak valid. Pilih dari: SEMPOA, AHE, EFK, EYL, EFE, CALISTUNG, ENGLISH')
-      return
-    }
-
-    setProgramActionStudentId(studentId)
-    try {
-      const res = await fetch('/api/program-enrollments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentId, program: normalized }),
-      })
-      if (res.ok) {
-        fetchParents()
-      } else {
-        const err = await res.json()
-        alert(err.error)
-      }
-    } catch {
-      alert('Gagal menghubungi server. Coba lagi.')
-    } finally {
-      setProgramActionStudentId(null)
-    }
-  }
-
-  const handleUpgradeProgram = async (programEnrollmentId: string, studentId: string) => {
-    const newProgram = prompt('Masukkan program baru (SEMPOA/AHE/EFK/EYL/EFE/CALISTUNG/ENGLISH):')
-    if (!newProgram) return
-
-    const normalized = newProgram.trim().toUpperCase()
-    const validPrograms = ['SEMPOA','AHE','EFK','EYL','EFE','CALISTUNG','ENGLISH']
-    if (!validPrograms.includes(normalized)) {
-      alert('Program tidak valid. Pilih dari: SEMPOA, AHE, EFK, EYL, EFE, CALISTUNG, ENGLISH')
-      return
-    }
-
-    setProgramActionStudentId(studentId)
-    try {
-      const res = await fetch(`/api/program-enrollments/${programEnrollmentId}/upgrade`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newProgram: normalized }),
-      })
-      if (res.ok) {
-        fetchParents()
-      } else {
-        const err = await res.json()
-        alert(err.error)
-      }
-    } catch {
-      alert('Gagal menghubungi server. Coba lagi.')
-    } finally {
-      setProgramActionStudentId(null)
-    }
-  }
 
   const handleAddParent = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
@@ -468,6 +428,38 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
                 📊 {child.name}
               </button>
             ))}
+          </div>
+        )
+      },
+    },
+    {
+      id: 'program',
+      header: 'Program',
+      cell: ({ row }) => {
+        const parent = row.original
+        if (parent.children.length === 0) {
+          return <span className="text-xs text-slate-400 dark:text-slate-500 italic">-</span>
+        }
+        return (
+          <div className="space-y-1.5">
+            {parent.children.map((child) => {
+              const active = (child.programEnrollments ?? []).find((pe) => pe.status === 'ACTIVE')
+              return (
+                <div key={child.id} className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 shrink-0 w-16 truncate">{child.name}:</span>
+                  <button
+                    onClick={() => openProgramModal(child)}
+                    className="group flex items-center gap-1 cursor-pointer"
+                    title={active ? `Upgrade program ${child.name}` : `Daftarkan program untuk ${child.name}`}
+                  >
+                    <ProgramEnrollmentBadge program={active?.program ?? null} />
+                    <span className="text-[10px] text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity font-semibold">
+                      {active ? '↑' : '+'}
+                    </span>
+                  </button>
+                </div>
+              )
+            })}
           </div>
         )
       },
@@ -1008,23 +1000,16 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
                                   return (
                                     <div className="flex items-center gap-2 flex-wrap">
                                       <ProgramEnrollmentBadge program={activeEnrollment?.program} />
-                                      {activeEnrollment ? (
-                                        <button
-                                          onClick={() => handleUpgradeProgram(activeEnrollment.id, selectedStudent.id)}
-                                          disabled={programActionStudentId === selectedStudent.id}
-                                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/20 dark:border-amber-900/30 dark:text-amber-400 transition-colors cursor-pointer disabled:opacity-50"
-                                        >
-                                          Upgrade Program
-                                        </button>
-                                      ) : (
-                                        <button
-                                          onClick={() => handleAssignProgram(selectedStudent.id)}
-                                          disabled={programActionStudentId === selectedStudent.id}
-                                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900/30 dark:text-indigo-400 transition-colors cursor-pointer disabled:opacity-50"
-                                        >
-                                          + Daftarkan Program
-                                        </button>
-                                      )}
+                                      <button
+                                        onClick={() => openProgramModal(selectedStudent)}
+                                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer ${
+                                          activeEnrollment
+                                            ? 'bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/20 dark:border-amber-900/30 dark:text-amber-400'
+                                            : 'bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900/30 dark:text-indigo-400'
+                                        }`}
+                                      >
+                                        {activeEnrollment ? 'Upgrade Program' : '+ Daftarkan Program'}
+                                      </button>
                                     </div>
                                   )
                                 })()}
@@ -1471,6 +1456,17 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
           </div>
         </div>
       )}
+      {/* Program Enrollment Modal */}
+      <ProgramEnrollmentModal
+        isOpen={programModal.isOpen}
+        onClose={closeProgramModal}
+        studentName={programModal.studentName}
+        studentId={programModal.studentId}
+        mode={programModal.mode}
+        currentProgramEnrollmentId={programModal.currentProgramEnrollmentId}
+        currentProgram={programModal.currentProgram}
+        onSuccess={fetchParents}
+      />
     </div>
   )
 }

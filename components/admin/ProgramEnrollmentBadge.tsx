@@ -1,12 +1,4 @@
-const PROGRAM_COLORS: Record<string, string> = {
-  SEMPOA:    'bg-purple-100 text-purple-800',
-  AHE:       'bg-blue-100 text-blue-800',
-  EFK:       'bg-green-100 text-green-800',
-  EYL:       'bg-teal-100 text-teal-800',
-  EFE:       'bg-cyan-100 text-cyan-800',
-  CALISTUNG: 'bg-orange-100 text-orange-800',
-  ENGLISH:   'bg-indigo-100 text-indigo-800',
-}
+import { PROGRAM_BADGE_COLORS, PROGRAM_SHORT_LABELS, type ProgramKey } from '@/lib/program-config'
 
 interface ProgramEnrollmentBadgeProps {
   program?: string | null
@@ -15,17 +7,18 @@ interface ProgramEnrollmentBadgeProps {
 export function ProgramEnrollmentBadge({ program }: ProgramEnrollmentBadgeProps) {
   if (!program) {
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">
+      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
         Belum ada program
       </span>
     )
   }
 
-  const color = PROGRAM_COLORS[program] ?? 'bg-gray-100 text-gray-800'
+  const colors = PROGRAM_BADGE_COLORS[program as ProgramKey] ?? 'bg-gray-100 text-gray-800'
+  const label = PROGRAM_SHORT_LABELS[program as ProgramKey] ?? program
 
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${color}`}>
-      {program}
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${colors}`}>
+      {label}
     </span>
   )
 }

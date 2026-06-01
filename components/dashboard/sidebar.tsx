@@ -102,6 +102,7 @@ export default function Sidebar({ user }: SidebarProps) {
             name: 'Kurikulum',
             icon: Trophy,
             subItems: [
+              { name: 'Master Program', href: '/admin/programs', icon: BookOpen },
               { name: 'Milestone', href: '/admin/milestones', icon: BookMarked },
               { name: 'Progress Siswa', href: '/admin/milestones/progress', icon: TrendingUp },
               { name: 'Raport', href: '/admin/milestones/reports', icon: Scroll },
