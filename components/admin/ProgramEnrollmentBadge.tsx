@@ -1,5 +1,3 @@
-'use client'
-
 const PROGRAM_COLORS: Record<string, string> = {
   SEMPOA:    'bg-purple-100 text-purple-800',
   AHE:       'bg-blue-100 text-blue-800',

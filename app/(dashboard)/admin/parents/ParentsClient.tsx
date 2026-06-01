@@ -91,7 +91,7 @@ interface Student {
   invoices: Invoice[]
   attendances: Attendance[]
   reports: LearningReport[]
-  programEnrollments: ProgramEnrollmentInfo[]
+  programEnrollments?: ProgramEnrollmentInfo[]
 }
 
 interface Parent {
@@ -115,6 +115,9 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
 
   // Suspension states to prevent double clicks
   const [togglingId, setTogglingId] = useState<string | null>(null)
+
+  // Program action loading state
+  const [programActionStudentId, setProgramActionStudentId] = useState<string | null>(null)
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [addForm, setAddForm] = useState({ name: '', email: '', phone: '', password: '' })
@@ -152,35 +155,61 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
     const program = prompt('Masukkan program (SEMPOA/AHE/EFK/EYL/EFE/CALISTUNG/ENGLISH):')
     if (!program) return
 
-    const res = await fetch('/api/program-enrollments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ studentId, program: program.trim().toUpperCase() }),
-    })
+    const normalized = program.trim().toUpperCase()
+    const validPrograms = ['SEMPOA','AHE','EFK','EYL','EFE','CALISTUNG','ENGLISH']
+    if (!validPrograms.includes(normalized)) {
+      alert('Program tidak valid. Pilih dari: SEMPOA, AHE, EFK, EYL, EFE, CALISTUNG, ENGLISH')
+      return
+    }
 
-    if (res.ok) {
-      fetchParents()
-    } else {
-      const err = await res.json()
-      alert(err.error)
+    setProgramActionStudentId(studentId)
+    try {
+      const res = await fetch('/api/program-enrollments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId, program: normalized }),
+      })
+      if (res.ok) {
+        fetchParents()
+      } else {
+        const err = await res.json()
+        alert(err.error)
+      }
+    } catch {
+      alert('Gagal menghubungi server. Coba lagi.')
+    } finally {
+      setProgramActionStudentId(null)
     }
   }
 
-  const handleUpgradeProgram = async (programEnrollmentId: string) => {
+  const handleUpgradeProgram = async (programEnrollmentId: string, studentId: string) => {
     const newProgram = prompt('Masukkan program baru (SEMPOA/AHE/EFK/EYL/EFE/CALISTUNG/ENGLISH):')
     if (!newProgram) return
 
-    const res = await fetch(`/api/program-enrollments/${programEnrollmentId}/upgrade`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newProgram: newProgram.trim().toUpperCase() }),
-    })
+    const normalized = newProgram.trim().toUpperCase()
+    const validPrograms = ['SEMPOA','AHE','EFK','EYL','EFE','CALISTUNG','ENGLISH']
+    if (!validPrograms.includes(normalized)) {
+      alert('Program tidak valid. Pilih dari: SEMPOA, AHE, EFK, EYL, EFE, CALISTUNG, ENGLISH')
+      return
+    }
 
-    if (res.ok) {
-      fetchParents()
-    } else {
-      const err = await res.json()
-      alert(err.error)
+    setProgramActionStudentId(studentId)
+    try {
+      const res = await fetch(`/api/program-enrollments/${programEnrollmentId}/upgrade`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newProgram: normalized }),
+      })
+      if (res.ok) {
+        fetchParents()
+      } else {
+        const err = await res.json()
+        alert(err.error)
+      }
+    } catch {
+      alert('Gagal menghubungi server. Coba lagi.')
+    } finally {
+      setProgramActionStudentId(null)
     }
   }
 
@@ -942,15 +971,17 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
                                       <ProgramEnrollmentBadge program={activeEnrollment?.program} />
                                       {activeEnrollment ? (
                                         <button
-                                          onClick={() => handleUpgradeProgram(activeEnrollment.id)}
-                                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/20 dark:border-amber-900/30 dark:text-amber-400 transition-colors cursor-pointer"
+                                          onClick={() => handleUpgradeProgram(activeEnrollment.id, selectedStudent.id)}
+                                          disabled={programActionStudentId === selectedStudent.id}
+                                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/20 dark:border-amber-900/30 dark:text-amber-400 transition-colors cursor-pointer disabled:opacity-50"
                                         >
                                           Upgrade Program
                                         </button>
                                       ) : (
                                         <button
                                           onClick={() => handleAssignProgram(selectedStudent.id)}
-                                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900/30 dark:text-indigo-400 transition-colors cursor-pointer"
+                                          disabled={programActionStudentId === selectedStudent.id}
+                                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900/30 dark:text-indigo-400 transition-colors cursor-pointer disabled:opacity-50"
                                         >
                                           + Daftarkan Program
                                         </button>
