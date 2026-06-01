@@ -154,7 +154,7 @@ model Enrollment {
   programEnrollmentId String?
   student             Student            @relation(fields: [studentId], references: [id])
   class               Class              @relation(fields: [classId], references: [id])
-  programEnrollment   ProgramEnrollment? @relation(fields: [programEnrollmentId], references: [id])
+  programEnrollment   ProgramEnrollment? @relation(fields: [programEnrollmentId], references: [id], onDelete: SetNull)
   joinedAt            DateTime           @default(now())
 
   @@unique([studentId, classId])
