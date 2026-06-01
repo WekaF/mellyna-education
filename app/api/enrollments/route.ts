@@ -24,13 +24,48 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const enrollment = await prisma.enrollment.upsert({
-    where: {
-      studentId_classId: { studentId: parsed.data.studentId, classId: parsed.data.classId },
-    },
-    update: {},
-    create: parsed.data,
-  })
+  try {
+    const activeProgramEnrollment = await prisma.programEnrollment.findFirst({
+      where: { studentId: parsed.data.studentId, status: 'ACTIVE' },
+    })
 
-  return NextResponse.json(enrollment, { status: 201 })
+    if (!activeProgramEnrollment) {
+      return NextResponse.json(
+        { error: 'Siswa belum memiliki program aktif. Daftarkan program terlebih dahulu.' },
+        { status: 422 }
+      )
+    }
+
+    const classPrograms = await prisma.classProgram.findMany({
+      where: { classId: parsed.data.classId },
+      select: { program: true },
+    })
+    const classProgramList = classPrograms.map((cp) => cp.program)
+
+    if (!classProgramList.includes(activeProgramEnrollment.program)) {
+      return NextResponse.json(
+        {
+          error: `Kelas ini tidak termasuk program ${activeProgramEnrollment.program} yang aktif untuk siswa ini.`,
+        },
+        { status: 422 }
+      )
+    }
+
+    const enrollment = await prisma.enrollment.upsert({
+      where: {
+        studentId_classId: { studentId: parsed.data.studentId, classId: parsed.data.classId },
+      },
+      update: {},
+      create: {
+        studentId: parsed.data.studentId,
+        classId: parsed.data.classId,
+        programEnrollmentId: activeProgramEnrollment.id,
+      },
+    })
+
+    return NextResponse.json(enrollment, { status: 201 })
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }
