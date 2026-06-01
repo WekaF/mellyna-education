@@ -66,26 +66,28 @@ export function generateRaportPdf(data: RaportData): ArrayBuffer {
 
   // Header bar
   doc.setFillColor(99, 102, 241)
-  doc.rect(0, 0, pageW, 34, 'F')
+  doc.rect(0, 0, pageW, 40, 'F')
 
-  // Logo — white pill on left
+  // Logo — white pill on left, aspect ratio 6.5:1 (1040×160px)
   const logoBase64 = loadLogoBase64()
   if (logoBase64) {
+    const logoH = 12        // mm height
+    const logoW = logoH * 6.5  // = 78mm, correct ratio
     doc.setFillColor(255, 255, 255)
-    doc.roundedRect(8, 5, 58, 16, 3, 3, 'F')
-    doc.addImage(`data:image/png;base64,${logoBase64}`, 'PNG', 10, 7, 54, 12)
+    doc.roundedRect(8, 8, logoW + 6, logoH + 6, 3, 3, 'F')
+    doc.addImage(`data:image/png;base64,${logoBase64}`, 'PNG', 11, 11, logoW, logoH)
   }
 
   // Title + date on right
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(13)
   doc.setFont('helvetica', 'bold')
-  doc.text('Raport Perkembangan Belajar', pageW - 10, 14, { align: 'right' })
+  doc.text('Raport Perkembangan Belajar', pageW - 10, 18, { align: 'right' })
   doc.setFontSize(8)
   doc.setFont('helvetica', 'normal')
-  doc.text(`Diterbitkan: ${fmtDate(data.generatedAt)}`, pageW - 10, 22, { align: 'right' })
+  doc.text(`Diterbitkan: ${fmtDate(data.generatedAt)}`, pageW - 10, 28, { align: 'right' })
 
-  y = 42
+  y = 48
   doc.setTextColor(30, 30, 30)
 
   // Student info box
