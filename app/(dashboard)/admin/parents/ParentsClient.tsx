@@ -167,8 +167,19 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
     try {
       const res = await fetch('/api/admin/parents')
       if (!res.ok) throw new Error('Gagal memuat data wali murid.')
-      const data = await res.json()
+      const data: Parent[] = await res.json()
       setParents(data)
+      setSelectedParent((prev) =>
+        prev ? (data.find((p) => p.id === prev.id) ?? prev) : null
+      )
+      setSelectedStudent((prev) => {
+        if (!prev) return null
+        for (const parent of data) {
+          const found = parent.children.find((c) => c.id === prev.id)
+          if (found) return found
+        }
+        return prev
+      })
     } catch (err: any) {
       setError(err.message || 'Terjadi kesalahan sistem saat memuat data.')
     } finally {
