@@ -15,17 +15,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params
 
-  const enrollment = await prisma.programEnrollment.findUnique({
-    where: { id },
-    include: {
-      student: { select: { name: true, parent: { select: { name: true } } } },
-      enrollments: { include: { class: { select: { name: true } } } },
-    },
-  })
+  try {
+    const enrollment = await prisma.programEnrollment.findUnique({
+      where: { id },
+      include: {
+        student: { select: { name: true, parent: { select: { name: true } } } },
+        enrollments: { include: { class: { select: { name: true } } } },
+      },
+    })
 
-  if (!enrollment) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!enrollment) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  return NextResponse.json(enrollment)
+    return NextResponse.json(enrollment)
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -44,14 +49,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const updated = await prisma.programEnrollment.update({
-    where: { id },
-    data: {
-      status: parsed.data.status,
-      notes: parsed.data.notes,
-      endedAt: new Date(),
-    },
-  })
+  try {
+    const existing = await prisma.programEnrollment.findUnique({ where: { id } })
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  return NextResponse.json(updated)
+    const updated = await prisma.programEnrollment.update({
+      where: { id },
+      data: {
+        status: parsed.data.status,
+        notes: parsed.data.notes,
+        endedAt: new Date(),
+      },
+    })
+
+    return NextResponse.json(updated)
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

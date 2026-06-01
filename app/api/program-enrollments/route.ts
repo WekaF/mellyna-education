@@ -14,18 +14,31 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const role = (session.user as any).role
+  const userId = (session.user as any).id
+
   const { searchParams } = new URL(req.url)
   const studentId = searchParams.get('studentId')
 
-  const where = studentId ? { studentId } : {}
+  let where: any = studentId ? { studentId } : {}
 
-  const enrollments = await prisma.programEnrollment.findMany({
-    where,
-    include: { student: { select: { name: true } } },
-    orderBy: { startedAt: 'desc' },
-  })
+  if (role === 'PARENT') {
+    where = { ...where, student: { parentId: userId } }
+  }
 
-  return NextResponse.json(enrollments)
+  try {
+    const enrollments = await prisma.programEnrollment.findMany({
+      where,
+      include: { student: { select: { name: true } } },
+      orderBy: { startedAt: 'desc' },
+      take: 100,
+    })
+
+    return NextResponse.json(enrollments)
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -43,19 +56,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const existingActive = await prisma.programEnrollment.findFirst({
-    where: { studentId: parsed.data.studentId, status: 'ACTIVE' },
-  })
-  if (existingActive) {
-    return NextResponse.json(
-      { error: 'Siswa sudah memiliki program aktif. Gunakan endpoint upgrade untuk ganti program.' },
-      { status: 409 }
-    )
+  try {
+    const existingActive = await prisma.programEnrollment.findFirst({
+      where: { studentId: parsed.data.studentId, status: 'ACTIVE' },
+    })
+    if (existingActive) {
+      return NextResponse.json(
+        { error: 'Siswa sudah memiliki program aktif. Gunakan endpoint upgrade untuk ganti program.' },
+        { status: 409 }
+      )
+    }
+
+    const enrollment = await prisma.programEnrollment.create({
+      data: parsed.data,
+    })
+
+    return NextResponse.json(enrollment, { status: 201 })
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-
-  const enrollment = await prisma.programEnrollment.create({
-    data: parsed.data,
-  })
-
-  return NextResponse.json(enrollment, { status: 201 })
 }

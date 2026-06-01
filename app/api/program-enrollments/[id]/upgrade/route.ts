@@ -25,25 +25,33 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const current = await prisma.programEnrollment.findUnique({ where: { id } })
-  if (!current) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (current.status !== 'ACTIVE') {
-    return NextResponse.json({ error: 'Hanya program yang ACTIVE yang bisa di-upgrade' }, { status: 400 })
+  try {
+    const current = await prisma.programEnrollment.findUnique({ where: { id } })
+    if (!current) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (current.status !== 'ACTIVE') {
+      return NextResponse.json({ error: 'Hanya program yang ACTIVE yang bisa di-upgrade' }, { status: 400 })
+    }
+    if (parsed.data.newProgram === current.program) {
+      return NextResponse.json({ error: 'Program baru harus berbeda dengan program aktif saat ini' }, { status: 400 })
+    }
+
+    const [, newEnrollment] = await prisma.$transaction([
+      prisma.programEnrollment.update({
+        where: { id },
+        data: { status: 'UPGRADED', endedAt: new Date(), notes: parsed.data.notes },
+      }),
+      prisma.programEnrollment.create({
+        data: {
+          studentId: current.studentId,
+          program: parsed.data.newProgram,
+          status: 'ACTIVE',
+        },
+      }),
+    ])
+
+    return NextResponse.json(newEnrollment, { status: 201 })
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-
-  const [, newEnrollment] = await prisma.$transaction([
-    prisma.programEnrollment.update({
-      where: { id },
-      data: { status: 'UPGRADED', endedAt: new Date(), notes: parsed.data.notes },
-    }),
-    prisma.programEnrollment.create({
-      data: {
-        studentId: current.studentId,
-        program: parsed.data.newProgram,
-        status: 'ACTIVE',
-      },
-    }),
-  ])
-
-  return NextResponse.json(newEnrollment, { status: 201 })
 }
