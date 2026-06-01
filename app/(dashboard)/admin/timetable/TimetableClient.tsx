@@ -1116,6 +1116,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                       <button
                         key={d.key}
                         type="button"
+                        aria-pressed={selected}
                         onClick={() => {
                           const days = generateForm.selectedDays
                           setGenerateForm({
