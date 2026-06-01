@@ -63,6 +63,11 @@ export async function GET(req: NextRequest) {
                 createdAt: 'desc',
               },
             },
+            programEnrollments: {
+              orderBy: {
+                startedAt: 'desc',
+              },
+            },
           },
         },
       },
