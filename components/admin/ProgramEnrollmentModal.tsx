@@ -137,7 +137,7 @@ export function ProgramEnrollmentModal({
           )}
           {mode === 'add' && activePrograms.length > 0 && (
             <div className="mt-3 text-xs bg-white/10 rounded-xl px-3 py-2 text-white/80">
-              Sudah terdaftar: <strong>{activePrograms.join(', ')}</strong>
+              Sudah terdaftar: <strong>{activePrograms.map((p) => PROGRAM_LABELS[p as ProgramKey] ?? p).join(', ')}</strong>
             </div>
           )}
         </div>

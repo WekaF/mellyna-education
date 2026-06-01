@@ -142,9 +142,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
     isOpen: boolean
     studentId: string
     studentName: string
-    mode: 'assign' | 'add' | 'upgrade'
-    currentProgramEnrollmentId?: string
-    currentProgram?: string
+    mode: 'assign' | 'add'
     activePrograms: string[]
   }>({ isOpen: false, studentId: '', studentName: '', mode: 'assign', activePrograms: [] })
 
@@ -1472,8 +1470,6 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
         studentName={programModal.studentName}
         studentId={programModal.studentId}
         mode={programModal.mode}
-        currentProgramEnrollmentId={programModal.currentProgramEnrollmentId}
-        currentProgram={programModal.currentProgram}
         activePrograms={programModal.activePrograms}
         onSuccess={fetchParents}
       />
