@@ -142,20 +142,21 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
     isOpen: boolean
     studentId: string
     studentName: string
-    mode: 'assign' | 'upgrade'
+    mode: 'assign' | 'add' | 'upgrade'
     currentProgramEnrollmentId?: string
     currentProgram?: string
-  }>({ isOpen: false, studentId: '', studentName: '', mode: 'assign' })
+    activePrograms: string[]
+  }>({ isOpen: false, studentId: '', studentName: '', mode: 'assign', activePrograms: [] })
 
   const openProgramModal = (student: Student) => {
-    const active = (student.programEnrollments ?? []).find((pe) => pe.status === 'ACTIVE')
+    const activeEnrollments = (student.programEnrollments ?? []).filter((pe) => pe.status === 'ACTIVE')
+    const activePrograms = activeEnrollments.map((pe) => pe.program)
     setProgramModal({
       isOpen: true,
       studentId: student.id,
       studentName: student.name,
-      mode: active ? 'upgrade' : 'assign',
-      currentProgramEnrollmentId: active?.id,
-      currentProgram: active?.program,
+      mode: activeEnrollments.length === 0 ? 'assign' : 'add',
+      activePrograms,
     })
   }
 
@@ -443,20 +444,26 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
         return (
           <div className="space-y-1.5">
             {parent.children.map((child) => {
-              const active = (child.programEnrollments ?? []).find((pe) => pe.status === 'ACTIVE')
+              const actives = (child.programEnrollments ?? []).filter((pe) => pe.status === 'ACTIVE')
               return (
-                <div key={child.id} className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 shrink-0 w-16 truncate">{child.name}:</span>
-                  <button
-                    onClick={() => openProgramModal(child)}
-                    className="group flex items-center gap-1 cursor-pointer"
-                    title={active ? `Upgrade program ${child.name}` : `Daftarkan program untuk ${child.name}`}
-                  >
-                    <ProgramEnrollmentBadge program={active?.program ?? null} />
-                    <span className="text-[10px] text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity font-semibold">
-                      {active ? '↑' : '+'}
-                    </span>
-                  </button>
+                <div key={child.id} className="flex items-start gap-1.5">
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 shrink-0 w-16 truncate pt-0.5">{child.name}:</span>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {actives.length === 0 ? (
+                      <ProgramEnrollmentBadge program={null} />
+                    ) : (
+                      actives.map((pe) => (
+                        <ProgramEnrollmentBadge key={pe.id} program={pe.program} />
+                      ))
+                    )}
+                    <button
+                      onClick={() => openProgramModal(child)}
+                      className="group flex items-center cursor-pointer"
+                      title={`Tambah program untuk ${child.name}`}
+                    >
+                      <span className="text-[10px] text-indigo-500 font-bold opacity-60 group-hover:opacity-100 transition-opacity">+</span>
+                    </button>
+                  </div>
                 </div>
               )
             })}
@@ -996,19 +1003,21 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
                               <div className="space-y-1.5 sm:col-span-2">
                                 <span className="text-slate-400 dark:text-slate-500">Program Aktif:</span>
                                 {(() => {
-                                  const activeEnrollment = (selectedStudent.programEnrollments ?? []).find((pe) => pe.status === 'ACTIVE')
+                                  const activeEnrollments = (selectedStudent.programEnrollments ?? []).filter((pe) => pe.status === 'ACTIVE')
                                   return (
                                     <div className="flex items-center gap-2 flex-wrap">
-                                      <ProgramEnrollmentBadge program={activeEnrollment?.program} />
+                                      {activeEnrollments.length === 0 ? (
+                                        <ProgramEnrollmentBadge program={null} />
+                                      ) : (
+                                        activeEnrollments.map((pe) => (
+                                          <ProgramEnrollmentBadge key={pe.id} program={pe.program} />
+                                        ))
+                                      )}
                                       <button
                                         onClick={() => openProgramModal(selectedStudent)}
-                                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer ${
-                                          activeEnrollment
-                                            ? 'bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/20 dark:border-amber-900/30 dark:text-amber-400'
-                                            : 'bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900/30 dark:text-indigo-400'
-                                        }`}
+                                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900/30 dark:text-indigo-400"
                                       >
-                                        {activeEnrollment ? 'Upgrade Program' : '+ Daftarkan Program'}
+                                        {activeEnrollments.length === 0 ? '+ Daftarkan Program' : '+ Tambah Program'}
                                       </button>
                                     </div>
                                   )
@@ -1465,6 +1474,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
         mode={programModal.mode}
         currentProgramEnrollmentId={programModal.currentProgramEnrollmentId}
         currentProgram={programModal.currentProgram}
+        activePrograms={programModal.activePrograms}
         onSuccess={fetchParents}
       />
     </div>
