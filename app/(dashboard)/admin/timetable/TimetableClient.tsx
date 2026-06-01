@@ -121,14 +121,11 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
   })
   const [generating, setGenerating] = useState(false)
 
-  // Set default next Monday for generation on mount
+  // Set default to yesterday for generation on mount
   useEffect(() => {
-    const today = new Date()
-    const currentDay = today.getDay()
-    const daysUntilNextMonday = (1 - currentDay + 7) % 7 || 7
-    const nextMonday = new Date(today)
-    nextMonday.setDate(today.getDate() + daysUntilNextMonday)
-    setGenerateForm({ startDate: nextMonday.toISOString().split('T')[0] })
+    const yesterday = new Date()
+    yesterday.setDate(yesterday.getDate() - 1)
+    setGenerateForm({ startDate: yesterday.toISOString().split('T')[0] })
   }, [])
 
   // Re-fetch all data (used after mutations)
@@ -1092,7 +1089,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Tanggal Mulai Minggu (Senin) *</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Pilih Tanggal dalam Minggu Target *</label>
                 <input
                   required
                   type="date"
@@ -1100,7 +1097,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                   onChange={(e) => setGenerateForm({ ...generateForm, startDate: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-800 dark:text-white text-sm focus:outline-none focus:border-indigo-500"
                 />
-                <p className="text-[10px] text-slate-400 mt-1">Sesi akan dijadwalkan dari Senin s.d. Minggu di minggu tersebut.</p>
+                <p className="text-[10px] text-slate-400 mt-1">Pilih hari mana saja dalam minggu yang dituju. Sistem akan otomatis menghitung Senin s.d. Minggu di minggu tersebut.</p>
               </div>
 
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex gap-2 justify-end">
