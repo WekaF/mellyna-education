@@ -90,6 +90,16 @@ async function handleCron(req: NextRequest) {
     let createdCount = 0
     const generated = []
 
+    // Check auto-broadcast setting (default: enabled)
+    const broadcastSetting = await prisma.systemSetting.findFirst({
+      where: { key: 'AUTO_TIMETABLE_BROADCAST' },
+    })
+    const autoBroadcastEnabled = broadcastSetting?.value !== 'false'
+
+    if (!autoBroadcastEnabled) {
+      console.log('[Cron Timetable Scheduler] Auto-broadcast disabled by admin. Schedules will be created but WA will not be sent.')
+    }
+
     for (const c of classes) {
       const offset = DAY_OFFSETS[c.dayOfWeek!]
       const scheduleDate = new Date(nextMonday)
@@ -153,18 +163,19 @@ async function handleCron(req: NextRequest) {
       })
       const timeStr = `${start} - ${end}`
 
-      Promise.resolve().then(async () => {
-        const tutorNames = [
-          c.tutor,
-          ...c.additionalTutors.map((at: { tutor: { name: string; phone: string | null } }) => at.tutor),
-        ].map(t => t.name).join(', ')
+      if (autoBroadcastEnabled) {
+        Promise.resolve().then(async () => {
+          const tutorNames = [
+            c.tutor,
+            ...c.additionalTutors.map((at: { tutor: { name: string; phone: string | null } }) => at.tutor),
+          ].map(t => t.name).join(', ')
 
-        // Broadcast to parents
-        for (const p of schedule.participants) {
-          const parent = p.student.parent
-          if (!parent.phone) continue
+          // Broadcast to parents
+          for (const p of schedule.participants) {
+            const parent = p.student.parent
+            if (!parent.phone) continue
 
-          const message = `Halo Bunda/Ayah ${parent.name},
+            const message = `Halo Bunda/Ayah ${parent.name},
 
 Berikut adalah jadwal belajar rutin untuk ${p.student.name} besok:
 🏫 Kelas: ${c.name}
@@ -177,20 +188,20 @@ Sistem secara otomatis menjadwalkan ${p.student.name} untuk hadir. Jika berhalan
 Terima kasih,
 Mellyna Education`
 
-          await sendWhatsApp(parent.phone, message)
-          await sleep(randomDelay(3000, 7000))
-        }
+            await sendWhatsApp(parent.phone, message)
+            await sleep(randomDelay(3000, 7000))
+          }
 
-        // Broadcast to all tutors (primary + additional)
-        const allTutors = [
-          c.tutor,
-          ...c.additionalTutors.map((at: { tutor: { name: string; phone: string | null } }) => at.tutor),
-        ]
-        const studentNames = schedule.participants.map((p: { student: { name: string } }) => p.student.name).join(', ')
+          // Broadcast to all tutors (primary + additional)
+          const allTutors = [
+            c.tutor,
+            ...c.additionalTutors.map((at: { tutor: { name: string; phone: string | null } }) => at.tutor),
+          ]
+          const studentNames = schedule.participants.map((p: { student: { name: string } }) => p.student.name).join(', ')
 
-        for (const tutorUser of allTutors) {
-          if (!tutorUser.phone) continue
-          const tutorMessage = `Halo ${tutorUser.name},
+          for (const tutorUser of allTutors) {
+            if (!tutorUser.phone) continue
+            const tutorMessage = `Halo ${tutorUser.name},
 
 Jadwal mengajar rutin Anda telah diterbitkan secara otomatis dari Timetable:
 🏫 Kelas: ${c.name}
@@ -202,18 +213,22 @@ Silakan konfirmasi kehadiran siswa setelah sesi selesai melalui portal tutor.
 
 Mellyna Education`
 
-          await sendWhatsApp(tutorUser.phone, tutorMessage)
-          await sleep(randomDelay(3000, 7000))
-        }
-      }).catch(err => {
-        console.error('[Cron Timetable Auto-Broadcast] error:', err)
-      })
+            await sendWhatsApp(tutorUser.phone, tutorMessage)
+            await sleep(randomDelay(3000, 7000))
+          }
+        }).catch(err => {
+          console.error('[Cron Timetable Auto-Broadcast] error:', err)
+        })
+      }
     }
 
     return NextResponse.json({
       success: true,
-      message: `Auto-Scheduler: Berhasil membuat dan merilis ${createdCount} jadwal untuk minggu depan (mulai ${nextMondayStr})!`,
+      message: `Auto-Scheduler: Berhasil membuat dan merilis ${createdCount} jadwal untuk minggu depan (mulai ${nextMondayStr})!${
+        !autoBroadcastEnabled ? ' ⚠️ Auto-broadcast dimatikan — WA tidak dikirim.' : ''
+      }`,
       count: createdCount,
+      autoBroadcastEnabled,
     })
   } catch (error: any) {
     console.error('[Cron Timetable Scheduler] Failed:', error)
