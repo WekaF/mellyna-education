@@ -25,6 +25,7 @@ import {
 import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
 import { formatRupiah } from '@/lib/utils'
+import { ProgramEnrollmentBadge } from '@/components/admin/ProgramEnrollmentBadge'
 
 // TS Interfaces matching Prisma relations
 interface TutorInfo {
@@ -72,6 +73,13 @@ interface LearningReport {
   }
 }
 
+interface ProgramEnrollmentInfo {
+  id: string
+  program: string
+  status: string
+  startedAt: string
+}
+
 interface Student {
   id: string
   name: string
@@ -83,6 +91,7 @@ interface Student {
   invoices: Invoice[]
   attendances: Attendance[]
   reports: LearningReport[]
+  programEnrollments: ProgramEnrollmentInfo[]
 }
 
 interface Parent {
@@ -138,6 +147,42 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
       setLoading(false)
     }
   }, [])
+
+  const handleAssignProgram = async (studentId: string) => {
+    const program = prompt('Masukkan program (SEMPOA/AHE/EFK/EYL/EFE/CALISTUNG/ENGLISH):')
+    if (!program) return
+
+    const res = await fetch('/api/program-enrollments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentId, program: program.trim().toUpperCase() }),
+    })
+
+    if (res.ok) {
+      fetchParents()
+    } else {
+      const err = await res.json()
+      alert(err.error)
+    }
+  }
+
+  const handleUpgradeProgram = async (programEnrollmentId: string) => {
+    const newProgram = prompt('Masukkan program baru (SEMPOA/AHE/EFK/EYL/EFE/CALISTUNG/ENGLISH):')
+    if (!newProgram) return
+
+    const res = await fetch(`/api/program-enrollments/${programEnrollmentId}/upgrade`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newProgram: newProgram.trim().toUpperCase() }),
+    })
+
+    if (res.ok) {
+      fetchParents()
+    } else {
+      const err = await res.json()
+      alert(err.error)
+    }
+  }
 
   const handleAddParent = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
@@ -887,6 +932,32 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
                                     ? selectedStudent.grade.split(' | ')[1]
                                     : 'Tingkat 1'}
                                 </p>
+                              </div>
+                              <div className="space-y-1.5 sm:col-span-2">
+                                <span className="text-slate-400 dark:text-slate-500">Program Aktif:</span>
+                                {(() => {
+                                  const activeEnrollment = (selectedStudent.programEnrollments ?? []).find((pe) => pe.status === 'ACTIVE')
+                                  return (
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <ProgramEnrollmentBadge program={activeEnrollment?.program} />
+                                      {activeEnrollment ? (
+                                        <button
+                                          onClick={() => handleUpgradeProgram(activeEnrollment.id)}
+                                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/20 dark:border-amber-900/30 dark:text-amber-400 transition-colors cursor-pointer"
+                                        >
+                                          Upgrade Program
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={() => handleAssignProgram(selectedStudent.id)}
+                                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900/30 dark:text-indigo-400 transition-colors cursor-pointer"
+                                        >
+                                          + Daftarkan Program
+                                        </button>
+                                      )}
+                                    </div>
+                                  )
+                                })()}
                               </div>
                             </div>
 

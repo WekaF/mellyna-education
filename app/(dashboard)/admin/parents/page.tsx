@@ -29,6 +29,9 @@ export default async function AdminParentsPage() {
             },
             orderBy: { createdAt: 'desc' },
           },
+          programEnrollments: {
+            orderBy: { startedAt: 'desc' },
+          },
         },
       },
     },
@@ -83,6 +86,12 @@ export default async function AdminParentsPage() {
           date: rep.schedule.date.toISOString(),
           topic: rep.schedule.topic,
         },
+      })),
+      programEnrollments: child.programEnrollments.map((pe) => ({
+        id: pe.id,
+        program: pe.program,
+        status: pe.status,
+        startedAt: pe.startedAt.toISOString(),
       })),
     })),
   }))
