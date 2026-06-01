@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, ArrowUpCircle, BookOpen, CheckCircle2, PlusCircle } from 'lucide-react'
+import { X, ArrowUpCircle, BookOpen, CheckCircle2, PlusCircle, Settings2 } from 'lucide-react'
 import {
   PROGRAMS,
   PROGRAM_LABELS,
@@ -9,6 +9,11 @@ import {
   PROGRAM_ICONS,
   type ProgramKey,
 } from '@/lib/program-config'
+
+interface ActiveEnrollment {
+  id: string
+  program: string
+}
 
 interface ProgramEnrollmentModalProps {
   isOpen: boolean
@@ -18,7 +23,7 @@ interface ProgramEnrollmentModalProps {
   mode: 'assign' | 'add' | 'upgrade'
   currentProgramEnrollmentId?: string
   currentProgram?: string
-  activePrograms?: string[]
+  activeEnrollments?: ActiveEnrollment[]
   onSuccess: () => void
 }
 
@@ -30,7 +35,7 @@ export function ProgramEnrollmentModal({
   mode,
   currentProgramEnrollmentId,
   currentProgram,
-  activePrograms = [],
+  activeEnrollments = [],
   onSuccess,
 }: ProgramEnrollmentModalProps) {
   const [selectedProgram, setSelectedProgram] = useState<ProgramKey | null>(null)
@@ -41,7 +46,7 @@ export function ProgramEnrollmentModal({
   const availablePrograms = mode === 'upgrade'
     ? PROGRAMS.filter((p) => p !== currentProgram)
     : mode === 'add'
-    ? PROGRAMS.filter((p) => !activePrograms.includes(p))
+    ? PROGRAMS.filter((p) => !activeEnrollments.some((e) => e.program === p))
     : PROGRAMS
 
   const handleSubmit = async () => {
@@ -79,6 +84,28 @@ export function ProgramEnrollmentModal({
     }
   }
 
+  const handleRemove = async (enrollmentId: string) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/program-enrollments/${enrollmentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'DROPPED' }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Terjadi kesalahan.')
+      }
+      handleClose()
+      onSuccess()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Terjadi kesalahan.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleClose = () => {
     setSelectedProgram(null)
     setNotes('')
@@ -89,7 +116,7 @@ export function ProgramEnrollmentModal({
   if (!isOpen) return null
 
   const isUpgrade = mode === 'upgrade'
-  const headerTitle = mode === 'upgrade' ? 'Upgrade Program' : mode === 'add' ? 'Tambah Program' : 'Daftarkan Program'
+  const headerTitle = mode === 'upgrade' ? 'Upgrade Program' : mode === 'add' ? 'Kelola Program' : 'Daftarkan Program'
   const headerGradient = isUpgrade ? 'from-amber-500 to-orange-600' : 'from-indigo-600 to-violet-700'
   const buttonLabel = loading
     ? 'Menyimpan...'
@@ -112,7 +139,7 @@ export function ProgramEnrollmentModal({
                 {mode === 'upgrade'
                   ? <ArrowUpCircle className="h-5 w-5" />
                   : mode === 'add'
-                  ? <PlusCircle className="h-5 w-5" />
+                  ? <Settings2 className="h-5 w-5" />
                   : <BookOpen className="h-5 w-5" />
                 }
               </div>
@@ -135,11 +162,6 @@ export function ProgramEnrollmentModal({
               <span className="text-white/70">→ pilih program baru di bawah</span>
             </div>
           )}
-          {mode === 'add' && activePrograms.length > 0 && (
-            <div className="mt-3 text-xs bg-white/10 rounded-xl px-3 py-2 text-white/80">
-              Sudah terdaftar: <strong>{activePrograms.map((p) => PROGRAM_LABELS[p as ProgramKey] ?? p).join(', ')}</strong>
-            </div>
-          )}
         </div>
 
         {/* Body */}
@@ -150,6 +172,40 @@ export function ProgramEnrollmentModal({
             </div>
           )}
 
+          {/* Active programs with remove button — only in 'add' mode */}
+          {mode === 'add' && activeEnrollments.length > 0 && (
+            <div>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Program Aktif
+              </label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {activeEnrollments.map((enr) => (
+                  <div
+                    key={enr.id}
+                    className="flex items-center gap-1.5 pl-2 pr-1 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50"
+                  >
+                    <div className={`w-5 h-5 rounded-md bg-gradient-to-br ${PROGRAM_GRADIENTS[enr.program as ProgramKey]} flex items-center justify-center text-xs shrink-0`}>
+                      {PROGRAM_ICONS[enr.program as ProgramKey]}
+                    </div>
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                      {PROGRAM_LABELS[enr.program as ProgramKey] ?? enr.program}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(enr.id)}
+                      disabled={loading}
+                      className="p-0.5 rounded-md text-rose-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer disabled:opacity-50"
+                      title={`Hapus program ${enr.program}`}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Program picker */}
           {availablePrograms.length === 0 ? (
             <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-4 text-center text-sm text-slate-500 dark:text-slate-400">
               Semua program sudah terdaftar untuk siswa ini.
@@ -157,7 +213,7 @@ export function ProgramEnrollmentModal({
           ) : (
             <div>
               <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Pilih Program
+                {mode === 'add' ? 'Tambah Program' : 'Pilih Program'}
               </label>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 {availablePrograms.map((program) => {
@@ -214,15 +270,17 @@ export function ProgramEnrollmentModal({
             onClick={handleClose}
             className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
-            Batal
+            Tutup
           </button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading || !selectedProgram || availablePrograms.length === 0}
-            className={`px-5 py-2 rounded-xl text-sm font-bold text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${buttonColor}`}
-          >
-            {buttonLabel}
-          </button>
+          {availablePrograms.length > 0 && (
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !selectedProgram}
+              className={`px-5 py-2 rounded-xl text-sm font-bold text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${buttonColor}`}
+            >
+              {buttonLabel}
+            </button>
+          )}
         </div>
       </div>
     </div>

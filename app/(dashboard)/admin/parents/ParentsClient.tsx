@@ -143,18 +143,17 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
     studentId: string
     studentName: string
     mode: 'assign' | 'add'
-    activePrograms: string[]
-  }>({ isOpen: false, studentId: '', studentName: '', mode: 'assign', activePrograms: [] })
+    activeEnrollments: { id: string; program: string }[]
+  }>({ isOpen: false, studentId: '', studentName: '', mode: 'assign', activeEnrollments: [] })
 
   const openProgramModal = (student: Student) => {
-    const activeEnrollments = (student.programEnrollments ?? []).filter((pe) => pe.status === 'ACTIVE')
-    const activePrograms = activeEnrollments.map((pe) => pe.program)
+    const active = (student.programEnrollments ?? []).filter((pe) => pe.status === 'ACTIVE')
     setProgramModal({
       isOpen: true,
       studentId: student.id,
       studentName: student.name,
-      mode: activeEnrollments.length === 0 ? 'assign' : 'add',
-      activePrograms,
+      mode: active.length === 0 ? 'assign' : 'add',
+      activeEnrollments: active.map((pe) => ({ id: pe.id, program: pe.program })),
     })
   }
 
@@ -1481,7 +1480,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
         studentName={programModal.studentName}
         studentId={programModal.studentId}
         mode={programModal.mode}
-        activePrograms={programModal.activePrograms}
+        activeEnrollments={programModal.activeEnrollments}
         onSuccess={fetchParents}
       />
     </div>
