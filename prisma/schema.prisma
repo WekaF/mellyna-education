@@ -65,6 +65,13 @@ enum InvoiceStatus {
   CANCELLED
 }
 
+enum ProgramEnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  UPGRADED
+  DROPPED
+}
+
 enum PaymentStatus {
   PENDING
   SUCCESS
@@ -105,7 +112,8 @@ model Student {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  enrollments Enrollment[]
+  enrollments        Enrollment[]
+  programEnrollments ProgramEnrollment[]
   attendances Attendance[]
   reports     LearningReport[]
   invoices             Invoice[]
@@ -140,14 +148,33 @@ model ClassProgram {
 }
 
 model Enrollment {
-  id        String   @id @default(cuid())
-  studentId String
-  classId   String
-  student   Student  @relation(fields: [studentId], references: [id])
-  class     Class    @relation(fields: [classId], references: [id])
-  joinedAt  DateTime @default(now())
+  id                  String             @id @default(cuid())
+  studentId           String
+  classId             String
+  programEnrollmentId String?
+  student             Student            @relation(fields: [studentId], references: [id])
+  class               Class              @relation(fields: [classId], references: [id])
+  programEnrollment   ProgramEnrollment? @relation(fields: [programEnrollmentId], references: [id])
+  joinedAt            DateTime           @default(now())
 
   @@unique([studentId, classId])
+}
+
+model ProgramEnrollment {
+  id          String                  @id @default(cuid())
+  studentId   String
+  program     Program
+  status      ProgramEnrollmentStatus @default(ACTIVE)
+  startedAt   DateTime                @default(now())
+  endedAt     DateTime?
+  notes       String?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  student     Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  enrollments Enrollment[]
+
+  @@index([studentId, status])
 }
 
 model ClassTutor {
