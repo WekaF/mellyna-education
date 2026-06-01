@@ -7,7 +7,6 @@ import {
   PROGRAM_LABELS,
   PROGRAM_GRADIENTS,
   PROGRAM_ICONS,
-  PROGRAM_BADGE_COLORS,
   type ProgramKey,
 } from '@/lib/program-config'
 
@@ -69,8 +68,8 @@ export function ProgramEnrollmentModal({
       }
       handleClose()
       onSuccess()
-    } catch (e: any) {
-      setError(e.message)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Terjadi kesalahan.')
     } finally {
       setLoading(false)
     }
