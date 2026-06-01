@@ -61,7 +61,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   })
   const timeStr = `${scheduleWithDetails.startTime} - ${scheduleWithDetails.endTime}`
   const topicStr = scheduleWithDetails.topic ? `\n📚 Topik: ${scheduleWithDetails.topic}` : ''
-  const locationStr = scheduleWithDetails.location ? `\n📍 Lokasi: ${scheduleWithDetails.location}` : ''
+  const locationStr = `\n📍 Lokasi: ${scheduleWithDetails.location || 'Sempoa Kreatif Pakong'}`
 
   // Dispatch WA messages asynchronously so it doesn't block the API response
   Promise.resolve().then(async () => {

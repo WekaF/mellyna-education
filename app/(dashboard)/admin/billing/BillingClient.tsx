@@ -16,10 +16,10 @@ interface Invoice {
 }
 
 const statusConfig = {
-  PENDING: { label: 'Belum Lunas', color: 'bg-amber-100 text-amber-700' },
-  PAID: { label: 'Lunas', color: 'bg-emerald-100 text-emerald-700' },
-  OVERDUE: { label: 'Terlambat', color: 'bg-rose-100 text-rose-700' },
-  CANCELLED: { label: 'Dibatalkan', color: 'bg-slate-100 text-slate-600' },
+  PENDING:   { label: 'Belum Lunas', color: 'me-badge me-badge-pending' },
+  PAID:      { label: 'Lunas',       color: 'me-badge me-badge-lunas'   },
+  OVERDUE:   { label: 'Terlambat',   color: 'me-badge me-badge-belum'   },
+  CANCELLED: { label: 'Dibatalkan',  color: 'me-badge bg-me-surface text-me-muted' },
 }
 
 interface BillingClientProps {
@@ -227,7 +227,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
       cell: ({ getValue }) => {
         const cfg = statusConfig[getValue() as Invoice['status']]
         return (
-          <span className={`inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full ${cfg.color}`}>
+          <span className={`text-[11px] ${cfg.color}`}>
             {cfg.label}
           </span>
         )
@@ -268,7 +268,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
             <button
               onClick={() => handleDownloadPDF(inv.id)}
               title="Download PDF"
-              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-me-surface hover:bg-me-border text-me-primary transition-colors cursor-pointer"
             >
               PDF
             </button>
@@ -290,8 +290,8 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800">💳 Tagihan & Invoice</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Kelola tagihan bimbel dan pantau status pembayaran.</p>
+          <h1 className="text-2xl font-extrabold text-me-text">💳 Tagihan & Invoice</h1>
+          <p className="text-sm text-me-muted mt-0.5">Kelola tagihan bimbel dan pantau status pembayaran.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -304,13 +304,13 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
           </button>
           <button
             onClick={() => { setShowBulkForm(true); setBulkResult(null) }}
-            className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
+            className="flex items-center gap-2 bg-me-primary-dark hover:bg-[#0a1448] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
           >
             <Users className="h-4 w-4" /> Invoice Massal
           </button>
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
+            className="flex items-center gap-2 bg-me-primary hover:bg-me-primary-light text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
           >
             <Plus className="h-4 w-4" /> Buat Invoice
           </button>
@@ -340,16 +340,16 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
       )}
 
       {showForm && (
-        <div className="rounded-2xl bg-white border border-indigo-100 shadow-md p-6">
-          <h2 className="font-bold text-slate-800 mb-4">Buat Invoice Baru</h2>
+        <div className="rounded-2xl bg-white border border-me-border shadow-brand p-6">
+          <h2 className="font-bold text-me-text mb-4">Buat Invoice Baru</h2>
           <form onSubmit={handleSubmit} className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Siswa *</label>
+              <label className="block text-xs font-semibold text-me-muted mb-1">Siswa *</label>
               <select
                 required
                 value={form.studentId}
                 onChange={(e) => setForm({ ...form, studentId: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 bg-white"
+                className="w-full px-3 py-2 rounded-xl border border-me-border text-sm focus:outline-none focus:border-me-primary bg-white"
               >
                 <option value="">Pilih Siswa</option>
                 {studentList.map((s) => (
@@ -360,42 +360,42 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Nominal (Rp) *</label>
+              <label className="block text-xs font-semibold text-me-muted mb-1">Nominal (Rp) *</label>
               <input
                 required
                 type="number"
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-xl border border-me-border text-sm focus:outline-none focus:border-me-primary"
                 placeholder="500000"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Keterangan *</label>
+              <label className="block text-xs font-semibold text-me-muted mb-1">Keterangan *</label>
               <input
                 required
                 type="text"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-xl border border-me-border text-sm focus:outline-none focus:border-me-primary"
                 placeholder="mis. Biaya Bimbel Bulan Juni"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Jatuh Tempo *</label>
+              <label className="block text-xs font-semibold text-me-muted mb-1">Jatuh Tempo *</label>
               <input
                 required
                 type="date"
                 value={form.dueDate}
                 onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-xl border border-me-border text-sm focus:outline-none focus:border-me-primary"
               />
             </div>
             <div className="sm:col-span-2 flex gap-3">
               <button
                 type="submit"
                 disabled={saving}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer disabled:opacity-50"
+                className="bg-me-primary hover:bg-me-primary-light text-white text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer disabled:opacity-50"
               >
                 {saving ? 'Menyimpan...' : 'Buat Invoice'}
               </button>
@@ -412,9 +412,9 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
       )}
 
       {showBulkForm && (
-        <div className="rounded-2xl bg-white border border-violet-100 shadow-md p-6">
+        <div className="rounded-2xl bg-white border border-me-border shadow-brand p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-slate-800">📦 Invoice Massal — Per Kelas</h2>
+            <h2 className="font-bold text-me-text">📦 Invoice Massal — Per Kelas</h2>
             <button onClick={() => setShowBulkForm(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
           </div>
           {bulkResult && (
@@ -425,7 +425,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
           <form onSubmit={handleBulkSubmit} className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">Kelas *</label>
-              <select required value={bulkForm.classId} onChange={(e) => setBulkForm({ ...bulkForm, classId: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-violet-500 bg-white">
+              <select required value={bulkForm.classId} onChange={(e) => setBulkForm({ ...bulkForm, classId: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-me-primary bg-white">
                 <option value="">Pilih Kelas</option>
                 {classList.map((c) => (
                   <option key={c.id} value={c.id}>{c.name} (Tutor: {c.tutor.name})</option>
@@ -434,18 +434,18 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">Nominal (Rp) *</label>
-              <input required type="number" value={bulkForm.amount} onChange={(e) => setBulkForm({ ...bulkForm, amount: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-violet-500" placeholder="500000" />
+              <input required type="number" value={bulkForm.amount} onChange={(e) => setBulkForm({ ...bulkForm, amount: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-me-primary" placeholder="500000" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">Keterangan *</label>
-              <input required type="text" value={bulkForm.description} onChange={(e) => setBulkForm({ ...bulkForm, description: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-violet-500" placeholder="mis. Biaya Bimbel Bulan Juni" />
+              <input required type="text" value={bulkForm.description} onChange={(e) => setBulkForm({ ...bulkForm, description: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-me-primary" placeholder="mis. Biaya Bimbel Bulan Juni" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">Jatuh Tempo *</label>
-              <input required type="date" value={bulkForm.dueDate} onChange={(e) => setBulkForm({ ...bulkForm, dueDate: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-violet-500" />
+              <input required type="date" value={bulkForm.dueDate} onChange={(e) => setBulkForm({ ...bulkForm, dueDate: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-me-primary" />
             </div>
             <div className="sm:col-span-2 flex gap-3">
-              <button type="submit" disabled={bulkSaving} className="bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer disabled:opacity-50">
+              <button type="submit" disabled={bulkSaving} className="bg-me-primary-dark hover:bg-[#0a1448] text-white text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer disabled:opacity-50">
                 {bulkSaving ? 'Membuat...' : '📦 Buat Invoice Massal'}
               </button>
               <button type="button" onClick={() => setShowBulkForm(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer">Batal</button>
@@ -465,7 +465,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
           tabIndex={-1}
         >
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
-            <h2 className="font-bold text-slate-800 mb-1">Tandai Lunas Manual</h2>
+            <h2 className="font-bold text-me-text mb-1">Tandai Lunas Manual</h2>
             <p className="text-sm text-slate-500 mb-4">
               {manualPayModal.studentName} — {formatRupiah(manualPayModal.amount)}
             </p>
@@ -475,7 +475,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
                 <select
                   value={manualMethod}
                   onChange={(e) => setManualMethod(e.target.value as typeof manualMethod)}
-                  className="w-full px-3 py-2 rounded-xl border border-emerald-500 text-sm focus:outline-none focus:border-emerald-500 bg-white"
+                  className="w-full px-3 py-2 rounded-xl border border-me-border text-sm focus:outline-none focus:border-me-primary bg-white"
                 >
                   <option value="CASH">Tunai (Bayar Langsung)</option>
                   <option value="BRI_TRANSFER">Transfer BRI (Manual)</option>
@@ -489,7 +489,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
                   value={manualNotes}
                   onChange={(e) => setManualNotes(e.target.value)}
                   placeholder="mis. Bayar tunai ke Bu Mellyna tgl 1 Juni"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full px-3 py-2 rounded-xl border border-me-border text-sm focus:outline-none focus:border-me-primary"
                 />
               </div>
               <div className="flex gap-3 pt-2">
@@ -512,7 +512,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
         </div>
       )}
 
-      <div className="rounded-2xl bg-white border border-slate-100 shadow-xs overflow-hidden">
+      <div className="rounded-2xl bg-white border border-me-border shadow-brand overflow-hidden">
         <DataTable
           columns={columns}
           data={invoices}

@@ -56,7 +56,13 @@ export async function POST(req: NextRequest) {
 
     console.log(`[Timetable Generator] Starting schedule generation from weekly timetable for week starting ${startDate}`)
 
-    // 1. Load all classes with active timetable settings
+    // 1. Pre-flight WAHA check
+    const wahaStatus = await getSessionStatus()
+    if (wahaStatus !== 'WORKING') {
+      console.warn(`[Timetable Generator] WAHA session not WORKING (${wahaStatus}). Schedules will be created but WA will not be sent.`)
+    }
+
+    // 2. Load all classes with active timetable settings
     const classes = await prisma.class.findMany({
       where: { dayOfWeek: { not: null }, timeSlot: { not: null } },
       include: {
@@ -80,18 +86,18 @@ export async function POST(req: NextRequest) {
     })
 
     let createdCount = 0
+    let skippedCount = 0
     const generatedSchedules = []
 
     for (const c of classes) {
       const offset = DAY_OFFSETS[c.dayOfWeek!]
       const scheduleDate = new Date(baseMonday)
       scheduleDate.setDate(scheduleDate.getDate() + offset)
-      // Set to midnight UTC or clean date representation
       scheduleDate.setHours(0, 0, 0, 0)
 
       const { start, end } = getTimeRange(c.timeSlot!)
 
-      // 2. Check if a schedule already exists for this class on this date to prevent duplication
+      // 3. Check if a schedule already exists for this class on this date to prevent duplication
       const existing = await prisma.schedule.findFirst({
         where: {
           classId: c.id,
@@ -104,10 +110,11 @@ export async function POST(req: NextRequest) {
 
       if (existing) {
         console.log(`[Timetable Generator] Schedule for Class "${c.name}" on ${scheduleDate.toISOString().split('T')[0]} already exists. Skipping.`)
+        skippedCount++
         continue
       }
 
-      // 3. Create the schedule in PUBLISHED status
+      // 4. Create the schedule in PUBLISHED status
       const schedule = await prisma.schedule.create({
         data: {
           classId: c.id,
@@ -115,7 +122,7 @@ export async function POST(req: NextRequest) {
           startTime: start,
           endTime: end,
           topic: `Sesi Belajar ${c.programs.map((p: { program: string }) => p.program).join(' + ')} - Rutin`,
-          location: 'Ruang Belajar Mellyna',
+          location: 'Sempoa Kreatif Pakong',
           status: ScheduleStatus.PUBLISHED,
           publishedAt: new Date(),
           participants: {
@@ -138,87 +145,86 @@ export async function POST(req: NextRequest) {
       createdCount++
       generatedSchedules.push(schedule)
 
-      // 4. Dispatch WA Broadcast to Parents and Tutor asynchronously
-      const dateStr = scheduleDate.toLocaleDateString('id-ID', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      })
-      const timeStr = `${start} - ${end}`
+      // 5. Dispatch WA Broadcast only if WAHA is WORKING
+      if (wahaStatus === 'WORKING') {
+        const dateStr = scheduleDate.toLocaleDateString('id-ID', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })
+        const timeStr = `${start} - ${end}`
 
-      Promise.resolve().then(async () => {
-        const sessionStatus = await getSessionStatus()
-        if (sessionStatus !== 'WORKING') {
-          console.error(`[Timetable Auto-Broadcast] WAHA session not WORKING (status: ${sessionStatus}). Skipping broadcast for class ${c.name}.`)
-          return
-        }
+        Promise.resolve().then(async () => {
+          const allTutors = [
+            c.tutor,
+            ...c.additionalTutors.map((at: { tutor: { name: string; phone: string | null } }) => at.tutor),
+          ]
+          const tutorNames = allTutors.map(t => t.name).join(', ')
 
-        // Broadcast to parents
-        const topicStr = schedule.topic ? `\n📚 Materi: ${schedule.topic}` : ''
-        const locationStr = schedule.location ? `\n📍 Lokasi: ${schedule.location}` : ''
+          for (const p of schedule.participants) {
+            const parent = p.student.parent
+            if (!parent.phone) continue
 
-        const tutorNames = [
-          c.tutor,
-          ...c.additionalTutors.map((at: { tutor: { name: string; phone: string | null } }) => at.tutor),
-        ].map(t => t.name).join(', ')
+            const message = `Halo Bunda/Ayah ${parent.name},
 
-        for (const p of schedule.participants) {
-          const parent = p.student.parent
-          if (!parent.phone) continue
-
-          const message = `Halo Bunda/Ayah ${parent.name},
-
-Berikut adalah jadwal belajar untuk ${p.student.name}:
+Berikut adalah jadwal belajar rutin untuk ${p.student.name} besok:
 🏫 Kelas: ${c.name}
 👨‍🏫 Tutor: ${tutorNames}
-🕐 Waktu: ${dateStr}, ${timeStr}${topicStr}${locationStr}
+🕐 Waktu: ${dateStr}, ${timeStr}
+📍 Lokasi: Sempoa Kreatif Pakong
 
 Sistem secara otomatis menjadwalkan ${p.student.name} untuk hadir. Jika berhalangan (sakit/izin), silakan hubungi kami dengan membalas pesan ini atau ajukan di portal akademik.
 
 Terima kasih,
 Mellyna Education`
 
-          console.log(`[Timetable Auto-Broadcast] Sending WhatsApp to parent ${parent.name} (${parent.phone})`)
-          await sendWhatsApp(parent.phone, message)
-          await sleep(randomDelay(3000, 7000))
-        }
+            console.log(`[Timetable Auto-Broadcast] Sending WhatsApp to parent ${parent.name} (${parent.phone})`)
+            await sendWhatsApp(parent.phone, message)
+            await sleep(randomDelay(3000, 7000))
+          }
 
-        // Broadcast to all tutors (primary + additional)
-        const allTutors = [
-          c.tutor,
-          ...c.additionalTutors.map((at: { tutor: { name: string; phone: string | null } }) => at.tutor),
-        ]
-        const studentNames = schedule.participants.map((p: { student: { name: string } }) => p.student.name).join(', ')
+          const studentNames = schedule.participants.map(p => p.student.name).join(', ')
 
-        for (const tutorUser of allTutors) {
-          if (!tutorUser.phone) continue
-          const tutorMessage = `Halo ${tutorUser.name},
+          for (const tutorUser of allTutors) {
+            if (!tutorUser.phone) continue
+            const tutorMessage = `Halo ${tutorUser.name},
 
 Jadwal mengajar rutin Anda telah diterbitkan secara otomatis dari Timetable:
 🏫 Kelas: ${c.name}
 🕐 Waktu: ${dateStr}, ${timeStr}
-📚 Materi: ${schedule.topic || '-'}
-📍 Lokasi: ${schedule.location || '-'}
+📍 Lokasi: Sempoa Kreatif Pakong
 👥 Peserta (${schedule.participants.length} siswa): ${studentNames}
 
 Silakan konfirmasi kehadiran siswa setelah sesi selesai melalui portal tutor.
 
 Mellyna Education`
 
-          console.log(`[Timetable Auto-Broadcast] Sending WhatsApp to tutor ${tutorUser.name} (${tutorUser.phone})`)
-          await sendWhatsApp(tutorUser.phone, tutorMessage)
-          await sleep(randomDelay(3000, 7000))
-        }
-      }).catch(err => {
-        console.error('[Timetable Auto-Broadcast] Broadcast error:', err)
-      })
+            console.log(`[Timetable Auto-Broadcast] Sending WhatsApp to tutor ${tutorUser.name} (${tutorUser.phone})`)
+            await sendWhatsApp(tutorUser.phone, tutorMessage)
+            await sleep(randomDelay(3000, 7000))
+          }
+        }).catch(err => {
+          console.error('[Timetable Auto-Broadcast] Broadcast error:', err)
+        })
+      }
+    }
+
+    // 6. Build result message
+    let message = `${createdCount} jadwal berhasil dibuat.`
+    if (skippedCount > 0) message += ` ${skippedCount} dilewati (jadwal sudah ada).`
+    if (wahaStatus !== 'WORKING') {
+      message += ` ⚠️ Notifikasi WA tidak terkirim — WAHA ${wahaStatus}.`
+    } else if (createdCount > 0) {
+      message += ' Notifikasi WA sedang dikirim.'
     }
 
     return NextResponse.json({
       success: true,
-      message: `${createdCount} jadwal sesi belajar berhasil dibuat dan disiarkan otomatis!`,
-      count: createdCount,
+      message,
+      created: createdCount,
+      skipped: skippedCount,
+      wahaStatus,
     })
   } catch (error: any) {
     console.error('[Timetable Generator] Generation failed:', error)

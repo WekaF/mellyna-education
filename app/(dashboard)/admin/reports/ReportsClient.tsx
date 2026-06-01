@@ -99,18 +99,33 @@ export default function ReportsClient({ initialReports }: ReportsClientProps) {
                   </p>
                   <div className="flex flex-wrap gap-3">
                     {report.media.map((m) => (
-                      <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer">
+                      <div key={m.id} className="flex flex-col gap-1">
                         {m.type === 'PHOTO' ? (
-                          <div className="h-24 w-24 rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
-                            <img src={m.url} alt={m.filename} className="h-full w-full object-cover hover:opacity-80 transition-opacity" />
-                          </div>
+                          <a href={m.url} target="_blank" rel="noopener noreferrer">
+                            <div className="h-24 w-24 rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
+                              <img src={m.url} alt={m.filename} className="h-full w-full object-cover hover:opacity-80 transition-opacity" />
+                            </div>
+                          </a>
                         ) : (
-                          <div className="h-24 w-24 rounded-xl border border-slate-200 bg-slate-800 flex flex-col items-center justify-center gap-1 hover:opacity-80 transition-opacity">
-                            <span className="text-2xl">🎥</span>
-                            <span className="text-[9px] text-slate-300 font-medium">Video</span>
+                          <div className="space-y-1">
+                            <video
+                              src={m.url}
+                              controls
+                              preload="metadata"
+                              className="h-24 w-40 rounded-xl border border-slate-200 bg-slate-100 object-cover"
+                              title={m.filename}
+                            />
+                            <a
+                              href={m.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-[10px] text-indigo-600 hover:text-indigo-800 hover:underline font-medium"
+                            >
+                              🔗 Lihat Video
+                            </a>
                           </div>
                         )}
-                      </a>
+                      </div>
                     ))}
                   </div>
                 </div>

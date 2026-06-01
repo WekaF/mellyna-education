@@ -1,4 +1,6 @@
 import { jsPDF } from 'jspdf'
+import fs from 'fs'
+import path from 'path'
 
 export interface InvoiceData {
   id: string
@@ -19,18 +21,19 @@ export interface InvoiceData {
   }
 }
 
-// ── Design tokens ──────────────────────────────────────────────
+// ── Mellyna brand tokens ────────────────────────────────────────
 const C = {
-  teal:      [13, 148, 136]   as [number, number, number],
-  tealDark:  [19, 78, 74]     as [number, number, number],
-  tealLight: [240, 253, 250]  as [number, number, number],
-  tealMid:   [153, 246, 228]  as [number, number, number],
-  navy:      [15, 23, 42]     as [number, number, number],
-  slate:     [30, 41, 59]     as [number, number, number],
-  gray:      [100, 116, 139]  as [number, number, number],
-  light:     [248, 250, 252]  as [number, number, number],
-  border:    [226, 232, 240]  as [number, number, number],
-  white:     [255, 255, 255]  as [number, number, number],
+  primary:      [26, 86, 219]   as [number, number, number],  // #1A56DB
+  primaryDark:  [12, 26, 92]    as [number, number, number],  // #0C1A5C
+  primaryLight: [238, 244, 255] as [number, number, number],  // #EEF4FF
+  primaryMid:   [214, 228, 255] as [number, number, number],  // #D6E4FF
+  yellow:       [255, 229, 102] as [number, number, number],  // #FFE566
+  navy:         [12, 26, 92]    as [number, number, number],  // #0C1A5C
+  slate:        [45, 58, 107]   as [number, number, number],  // #2D3A6B
+  gray:         [106, 127, 184] as [number, number, number],  // #6A7FB8
+  light:        [247, 250, 255] as [number, number, number],  // #F7FAFF
+  border:       [214, 228, 255] as [number, number, number],  // #D6E4FF
+  white:        [255, 255, 255] as [number, number, number],
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -41,10 +44,10 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 const STATUS_COLORS: Record<string, { bg: [number,number,number]; text: [number,number,number]; bar: [number,number,number] }> = {
-  PAID:      { bg: [209,250,229], text: [6,95,70],   bar: [16,185,129] },
-  PENDING:   { bg: [254,243,199], text: [146,64,14],  bar: [245,158,11] },
-  OVERDUE:   { bg: [254,226,226], text: [153,27,27],  bar: [239,68,68]  },
-  CANCELLED: { bg: [241,245,249], text: [71,85,105],  bar: [148,163,184]},
+  PAID:      { bg: [230,251,245], text: [10,107,82],   bar: [79,209,165]  },  // me-green
+  PENDING:   { bg: [255,244,224], text: [122,61,0],    bar: [255,140,0]   },  // me-orange
+  OVERDUE:   { bg: [255,240,240], text: [139,0,0],     bar: [255,107,107] },  // me-coral
+  CANCELLED: { bg: [238,244,255], text: [106,127,184], bar: [214,228,255] },
 }
 
 function formatRp(n: number): string {
@@ -82,6 +85,15 @@ function setDrawColor(doc: jsPDF, color: [number, number, number]) {
   doc.setDrawColor(color[0], color[1], color[2])
 }
 
+function loadLogoBase64(filename: string): string | null {
+  try {
+    const logoPath = path.join(process.cwd(), 'public', 'icons', filename)
+    return fs.readFileSync(logoPath).toString('base64')
+  } catch {
+    return null
+  }
+}
+
 export function generateInvoicePdf(invoice: InvoiceData): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     try {
@@ -96,28 +108,39 @@ export function generateInvoicePdf(invoice: InvoiceData): Promise<Buffer> {
       const sc = STATUS_COLORS[invoice.status] ?? STATUS_COLORS['PENDING']
       const invNo = invoiceNumber(invoice)
 
+      // Pre-load logos
+      const logoDark    = loadLogoBase64('mellyna-logo-dark.png')
+      const logoCompact = loadLogoBase64('mellyna-logo-horizontal-compact.png')
+
       // ── White background ─────────────────────────────────────
       setFill(doc, C.white)
       doc.rect(0, 0, W, H, 'F')
 
       // ── Left accent bar (full height) ─────────────────────────
-      setFill(doc, C.teal)
+      setFill(doc, C.primary)
       doc.rect(0, 0, ACC, H, 'F')
 
-      // ── Teal header band ──────────────────────────────────────
-      setFill(doc, C.teal)
+      // ── Primary header band ───────────────────────────────────
+      setFill(doc, C.primary)
       doc.rect(ACC, 0, W - ACC, 88, 'F')
 
-      // Company name (white on teal)
-      setTextColor(doc, C.white)
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(22)
-      doc.text('MELLYNA EDUCATION', P, 40)
+      // Yellow underline stripe on header bottom
+      setFill(doc, C.yellow)
+      doc.rect(ACC, 82, W - ACC, 6, 'F')
 
-      setTextColor(doc, C.tealMid)
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(9)
-      doc.text('Bimbingan Belajar & Kursus Sempoa  •  Yogyakarta', P, 60)
+      // Company logo (or text fallback)
+      if (logoDark) {
+        doc.addImage(`data:image/png;base64,${logoDark}`, 'PNG', P, 12, 170, 58)
+      } else {
+        setTextColor(doc, C.white)
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(22)
+        doc.text('MELLYNA EDUCATION', P, 40)
+        setTextColor(doc, C.primaryMid)
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(9)
+        doc.text('Bimbingan Belajar & Kursus Sempoa  •  Yogyakarta', P, 60)
+      }
 
       // INVOICE label (right side of header)
       setTextColor(doc, C.white)
@@ -125,7 +148,7 @@ export function generateInvoicePdf(invoice: InvoiceData): Promise<Buffer> {
       doc.setFontSize(30)
       doc.text('INVOICE', R, 38, { align: 'right' })
 
-      setTextColor(doc, C.tealMid)
+      setTextColor(doc, C.primaryMid)
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(9)
       doc.text(`No. ${invNo}`, R, 58, { align: 'right' })
@@ -166,6 +189,9 @@ export function generateInvoicePdf(invoice: InvoiceData): Promise<Buffer> {
       const boxW = R - boxX
       setFill(doc, C.light)
       doc.rect(boxX, metaY, boxW, 90, 'F')
+      // top accent on detail box
+      setFill(doc, C.primary)
+      doc.rect(boxX, metaY, boxW, 3, 'F')
 
       setTextColor(doc, C.gray)
       doc.setFont('helvetica', 'bold')
@@ -185,7 +211,7 @@ export function generateInvoicePdf(invoice: InvoiceData): Promise<Buffer> {
         doc.setFont('helvetica', 'normal')
         doc.setFontSize(8)
         doc.text(label, boxX + 12, ry)
-        setTextColor(doc, C.slate)
+        setTextColor(doc, C.primary)
         doc.setFont('helvetica', 'bold')
         doc.text(value, boxX + boxW - 12, ry, { align: 'right' })
       })
@@ -193,19 +219,26 @@ export function generateInvoicePdf(invoice: InvoiceData): Promise<Buffer> {
       // ── Status badge ──────────────────────────────────────────
       const badgeY = 214
       setFill(doc, sc.bg)
+      // rounded rect via regular rect (jsPDF no native border-radius)
       doc.rect(P, badgeY, 160, 30, 'F')
+      // left accent on badge
+      setFill(doc, sc.bar)
+      doc.rect(P, badgeY, 4, 30, 'F')
       setTextColor(doc, sc.text)
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(12)
       const statusLabel = STATUS_LABELS[invoice.status] ?? invoice.status
-      doc.text(statusLabel, P + 80, badgeY + 20, { align: 'center' })
+      doc.text(statusLabel, P + 90, badgeY + 20, { align: 'center' })
 
       // ── Items table ───────────────────────────────────────────
       const tableY = 264
 
-      // Table header (dark)
-      setFill(doc, C.slate)
+      // Table header (primaryDark)
+      setFill(doc, C.primaryDark)
       doc.rect(P, tableY, R - P, 26, 'F')
+      // yellow left accent on table header
+      setFill(doc, C.yellow)
+      doc.rect(P, tableY, 4, 26, 'F')
       setTextColor(doc, C.white)
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(9)
@@ -215,14 +248,16 @@ export function generateInvoicePdf(invoice: InvoiceData): Promise<Buffer> {
       // Data row (light)
       setFill(doc, C.light)
       doc.rect(P, tableY + 26, R - P, 40, 'F')
+      // left border on data row
+      setFill(doc, C.border)
+      doc.rect(P, tableY + 26, 1, 40, 'F')
       setTextColor(doc, C.navy)
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(9)
-      // description with wrapping
       const maxDescW = R - P - 140
       const descLines = doc.splitTextToSize(invoice.description, maxDescW)
       doc.text(descLines, P + 12, tableY + 43)
-      setTextColor(doc, C.slate)
+      setTextColor(doc, C.primary)
       doc.setFont('helvetica', 'bold')
       doc.text(formatRp(invoice.amount), R - 8, tableY + 43, { align: 'right' })
 
@@ -235,13 +270,16 @@ export function generateInvoicePdf(invoice: InvoiceData): Promise<Buffer> {
       const totalY = tableY + 80
       const totalBoxW = 230
       const totalBoxX = R - totalBoxW
-      setFill(doc, C.tealLight)
+      setFill(doc, C.primaryLight)
       doc.rect(totalBoxX, totalY, totalBoxW, 46, 'F')
-      setTextColor(doc, C.tealDark)
+      // top border on total box
+      setFill(doc, C.primary)
+      doc.rect(totalBoxX, totalY, totalBoxW, 3, 'F')
+      setTextColor(doc, C.primaryDark)
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(9)
       doc.text('TOTAL PEMBAYARAN', totalBoxX + 14, totalY + 18)
-      setTextColor(doc, C.teal)
+      setTextColor(doc, C.primary)
       doc.setFontSize(16)
       doc.text(formatRp(invoice.amount), totalBoxX + totalBoxW - 14, totalY + 38, { align: 'right' })
 
@@ -264,15 +302,22 @@ export function generateInvoicePdf(invoice: InvoiceData): Promise<Buffer> {
 
       // ── Footer ────────────────────────────────────────────────
       const footerY = H - 52
-      setFill(doc, C.tealLight)
+      setFill(doc, C.primaryLight)
       doc.rect(ACC, footerY, W - ACC, 52, 'F')
-      setFill(doc, C.teal)
+      setFill(doc, C.primary)
       doc.rect(0, footerY, ACC, 52, 'F')
+      // yellow top line on footer
+      setFill(doc, C.yellow)
+      doc.rect(ACC, footerY, W - ACC, 3, 'F')
 
-      setTextColor(doc, C.teal)
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(10)
-      doc.text('MELLYNA EDUCATION', P, footerY + 22)
+      if (logoCompact) {
+        doc.addImage(`data:image/png;base64,${logoCompact}`, 'PNG', P, footerY + 8, 130, 36)
+      } else {
+        setTextColor(doc, C.primary)
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(10)
+        doc.text('MELLYNA EDUCATION', P, footerY + 22)
+      }
 
       setTextColor(doc, C.gray)
       doc.setFont('helvetica', 'normal')
@@ -280,7 +325,7 @@ export function generateInvoicePdf(invoice: InvoiceData): Promise<Buffer> {
       doc.text(
         `info@mellynaeducation.id  •  Yogyakarta, Indonesia  •  Diterbitkan otomatis ${formatDate(new Date())}`,
         P,
-        footerY + 38,
+        footerY + 42,
       )
 
       // ── Output as Buffer ──────────────────────────────────────

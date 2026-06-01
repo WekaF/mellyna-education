@@ -134,6 +134,10 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [selectedParent, setSelectedParent] = useState<Parent | null>(null)
   const [activeAnalyticTab, setActiveAnalyticTab] = useState<'overview' | 'attendance' | 'academic' | 'finance'>('overview')
+  const [addStudentForParent, setAddStudentForParent] = useState<Parent | null>(null)
+  const [addStudentForm, setAddStudentForm] = useState({ name: '', grade: '' })
+  const [addStudentSaving, setAddStudentSaving] = useState(false)
+  const [addStudentError, setAddStudentError] = useState<string | null>(null)
 
   // Fetch all parents data
   const fetchParents = useCallback(async () => {
@@ -241,6 +245,29 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
     setEditForm({ name: parent.name, email: parent.email, phone: parent.phone || '', password: '' })
     setEditError(null)
   }, [])
+
+  const handleAddStudent = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!addStudentForParent) return
+    setAddStudentSaving(true)
+    setAddStudentError(null)
+    try {
+      const res = await fetch('/api/students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...addStudentForm, parentId: addStudentForParent.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Gagal menambahkan siswa.')
+      setAddStudentForParent(null)
+      setAddStudentForm({ name: '', grade: '' })
+      await fetchParents()
+    } catch (err: any) {
+      setAddStudentError(err.message)
+    } finally {
+      setAddStudentSaving(false)
+    }
+  }, [addStudentForm, addStudentForParent, fetchParents])
 
   const handleEditSave = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
@@ -361,7 +388,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
 
   // Operational metrics
   const stats = useMemo(() => {
-    let total = parents.length
+    const total = parents.length
     let active = 0
     let suspended = 0
     let unpaid = 0
@@ -535,20 +562,32 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
       enableSorting: false,
       cell: ({ row }) => {
         const parent = row.original
-        if (parent.children.length === 0) return null
         return (
-          <div className="flex items-center justify-end">
+          <div className="flex items-center justify-end gap-2">
             <button
               onClick={() => {
-                setSelectedParent(parent)
-                setSelectedStudent(parent.children[0]) // Open drawer with first child
-                setActiveAnalyticTab('overview')
+                setAddStudentForParent(parent)
+                setAddStudentForm({ name: '', grade: '' })
+                setAddStudentError(null)
               }}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/30 dark:text-indigo-400 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/30 dark:text-emerald-400 transition-colors cursor-pointer"
             >
-              <BarChart2 className="h-3.5 w-3.5" />
-              <span>Analitik</span>
+              <UserPlus className="h-3.5 w-3.5" />
+              <span>+Siswa</span>
             </button>
+            {parent.children.length > 0 && (
+              <button
+                onClick={() => {
+                  setSelectedParent(parent)
+                  setSelectedStudent(parent.children[0])
+                  setActiveAnalyticTab('overview')
+                }}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/30 dark:text-indigo-400 transition-colors cursor-pointer"
+              >
+                <BarChart2 className="h-3.5 w-3.5" />
+                <span>Analitik</span>
+              </button>
+            )}
           </div>
         )
       },
@@ -1022,7 +1061,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
                             <div className="bg-white dark:bg-[#151f32] p-5 rounded-2xl border border-slate-150 dark:border-slate-800/80 shadow-xs">
                               <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1.5">Catatan/Keterangan Akademik:</span>
                               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed italic">
-                                "{selectedStudent.notes.split(' | ')[0]}"
+                                &quot;{selectedStudent.notes.split(' | ')[0]}&quot;
                               </p>
                             </div>
                           )}
@@ -1113,7 +1152,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
                                           {new Date(att.markedAt).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                         </p>
                                         {att.notes && (
-                                          <p className="text-[10px] text-slate-500 mt-0.5 italic">Catatan: "{att.notes}"</p>
+                                          <p className="text-[10px] text-slate-500 mt-0.5 italic">Catatan: &quot;{att.notes}&quot;</p>
                                         )}
                                       </div>
                                     </div>
@@ -1373,6 +1412,59 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
                   className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold text-xs transition-all cursor-pointer"
                 >
                   {editSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Add Student Modal */}
+      {addStudentForParent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs" onClick={() => setAddStudentForParent(null)}>
+          <div className="bg-white dark:bg-[#121a2c] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800/80 p-6 w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-bold text-slate-800 dark:text-white mb-1">Tambah Siswa</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+              Wali Murid: <strong className="text-slate-700 dark:text-slate-300">{addStudentForParent.name}</strong>
+            </p>
+            {addStudentError && (
+              <div className="mb-4 rounded-xl bg-rose-50 dark:bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20">
+                {addStudentError}
+              </div>
+            )}
+            <form onSubmit={handleAddStudent} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Nama Siswa *</label>
+                <input
+                  required
+                  value={addStudentForm.name}
+                  onChange={(e) => setAddStudentForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500"
+                  placeholder="Nama lengkap siswa"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Kelas / Tingkatan</label>
+                <input
+                  value={addStudentForm.grade}
+                  onChange={(e) => setAddStudentForm((f) => ({ ...f, grade: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500"
+                  placeholder="mis. Kelas 5 SD"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setAddStudentForParent(null)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-850 transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={addStudentSaving}
+                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold text-xs transition-all cursor-pointer"
+                >
+                  {addStudentSaving ? 'Menyimpan...' : 'Simpan'}
                 </button>
               </div>
             </form>

@@ -1,10 +1,13 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Plus, Users, Pencil, Info } from 'lucide-react'
+import { Plus, Users, Pencil, Info, Trash2 } from 'lucide-react'
 
 const PROGRAMS = ['SEMPOA', 'AHE', 'EFK', 'EYL', 'EFE', 'CALISTUNG', 'ENGLISH'] as const
 type ProgramValue = typeof PROGRAMS[number]
+
+const MAIN_PROGRAMS: ProgramValue[] = ['SEMPOA', 'CALISTUNG', 'ENGLISH']
+const SUB_PROGRAMS: ProgramValue[] = ['AHE', 'EFK', 'EYL', 'EFE']
 
 const PROGRAM_COLORS: Record<ProgramValue, string> = {
   SEMPOA:    'bg-purple-100 text-purple-700 border border-purple-200',
@@ -21,6 +24,7 @@ interface ClassProgram { program: ProgramValue }
 interface Class {
   id: string
   name: string
+  mainProgram: ProgramValue | null
   programs: ClassProgram[]
   description: string | null
   tutor: { name: string; email: string }
@@ -39,16 +43,18 @@ function ProgramBadge({ program }: { program: ProgramValue }) {
 function ProgramToggle({
   selected,
   onChange,
+  programs: programList = PROGRAMS,
 }: {
   selected: ProgramValue[]
   onChange: (p: ProgramValue[]) => void
+  programs?: readonly ProgramValue[]
 }) {
   const toggle = (p: ProgramValue) => {
     onChange(selected.includes(p) ? selected.filter(x => x !== p) : [...selected, p])
   }
   return (
     <div className="flex flex-wrap gap-1.5">
-      {PROGRAMS.map(p => (
+      {programList.map(p => (
         <button
           key={p}
           type="button"
@@ -66,7 +72,62 @@ function ProgramToggle({
   )
 }
 
-const makeEmptyForm = () => ({ name: '', programs: [] as ProgramValue[], description: '', tutorId: '' })
+const makeEmptyForm = () => ({ name: '', mainProgram: '' as ProgramValue | '', programs: [] as ProgramValue[], description: '', tutorId: '' })
+
+interface ClassCardProps {
+  cls: Class
+  onEdit: (cls: Class) => void
+  onEnroll: (cls: Class) => void
+  onDelete: (cls: Class) => void
+}
+
+function ClassCard({ cls, onEdit, onEnroll, onDelete }: ClassCardProps) {
+  return (
+    <div className="rounded-2xl bg-white border border-slate-100 shadow-xs p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="font-bold text-slate-800">{cls.name}</h3>
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {cls.programs.map(({ program }) => (
+              <ProgramBadge key={program} program={program} />
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onEdit(cls)}
+            className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => onDelete(cls)}
+            className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+      <p className="text-xs text-slate-500">{cls.description || 'Tidak ada deskripsi.'}</p>
+
+      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <Users className="h-3.5 w-3.5" />
+          <span>{cls._count.enrollments} Siswa</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onEnroll(cls)}
+            className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
+          >
+            Kelola Siswa
+          </button>
+          <span className="text-xs text-slate-600 font-medium">Tutor: {cls.tutor.name}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 interface TutorOption {
   id: string
@@ -120,14 +181,17 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (form.programs.length === 0) { setError('Pilih minimal 1 program.'); return }
+    if (!form.mainProgram) { setError('Pilih program utama.'); return }
     setSaving(true)
     setError(null)
     try {
+      const allPrograms = form.mainProgram
+        ? [form.mainProgram as ProgramValue, ...form.programs.filter(p => p !== form.mainProgram)]
+        : form.programs
       const res = await fetch('/api/classes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, programs: allPrograms }),
       })
       if (!res.ok) throw new Error('Gagal menyimpan kelas.')
       await fetchClasses()
@@ -143,13 +207,17 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editClass) return
-    if (editForm.programs.length === 0) { setError('Pilih minimal 1 program.'); return }
+    if (!editForm.mainProgram) { setError('Pilih program utama.'); return }
     setEditSaving(true)
     setError(null)
     try {
-      const payload: { name: string; programs: ProgramValue[]; description: string; tutorId?: string } = {
+      const allPrograms = editForm.mainProgram
+        ? [editForm.mainProgram as ProgramValue, ...editForm.programs.filter(p => p !== editForm.mainProgram)]
+        : editForm.programs
+      const payload: Record<string, unknown> = {
         name: editForm.name,
-        programs: editForm.programs,
+        mainProgram: editForm.mainProgram,
+        programs: allPrograms,
         description: editForm.description,
         ...(editForm.tutorId ? { tutorId: editForm.tutorId } : {}),
       }
@@ -211,6 +279,30 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
     }
   }
 
+  const handleDelete = useCallback(async (cls: Class) => {
+    if (!confirm(`Hapus kelas "${cls.name}"? Semua data enrollment akan ikut terhapus.`)) return
+    setError(null)
+    try {
+      const res = await fetch(`/api/classes/${cls.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Gagal menghapus kelas.')
+      await fetchClasses()
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }, [fetchClasses])
+
+  const handleEditOpen = useCallback((cls: Class) => {
+    setEditClass(cls)
+    setEditForm({
+      name: cls.name,
+      mainProgram: cls.mainProgram ?? '',
+      programs: cls.programs.map(p => p.program).filter(p => SUB_PROGRAMS.includes(p)),
+      description: cls.description || '',
+      tutorId: '',
+    })
+    setShowEditForm(true)
+  }, [])
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -230,8 +322,8 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
       <div className="flex gap-3 rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-xs text-amber-800">
         <Info className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
         <div>
-          <span className="font-bold">Catatan Program: </span>
-          Setiap kelas bisa terdiri dari beberapa program. Contoh: kelas dengan program <span className="font-bold">AHE + SEMPOA + EFK</span> berarti siswa di kelas ini mengikuti 3 program sekaligus — bukan satu mata pelajaran gabungan.
+          <span className="font-bold">Program Utama vs Program Tambahan: </span>
+          <strong>Program Utama</strong> adalah jenis kelas (SEMPOA, CALISTUNG, ENGLISH). <strong>Program Tambahan</strong> adalah sub-level dalam program utama (contoh: AHE, EYL dalam SEMPOA).
         </div>
       </div>
 
@@ -270,9 +362,38 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
                 </select>
               </div>
             </div>
+            {/* Program Utama */}
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Program * <span className="font-normal text-slate-400">(pilih semua yang relevan)</span></label>
-              <ProgramToggle selected={form.programs} onChange={(p) => setForm({ ...form, programs: p })} />
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Program Utama <span className="text-red-400">*</span>
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {MAIN_PROGRAMS.map(p => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, mainProgram: p, programs: [] }))}
+                    className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all border cursor-pointer ${
+                      form.mainProgram === p
+                        ? `${PROGRAM_COLORS[p]} shadow-sm`
+                        : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Program Tambahan */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Program Tambahan <span className="font-normal text-slate-400">(opsional — sub-level program)</span>
+              </label>
+              <ProgramToggle
+                selected={form.programs}
+                onChange={(p) => setForm(f => ({ ...f, programs: p }))}
+                programs={SUB_PROGRAMS}
+              />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">Deskripsi</label>
@@ -295,61 +416,47 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
 
       {loading ? (
         <div className="p-10 text-center"><div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-r-transparent" /></div>
+      ) : classes.length === 0 ? (
+        <div className="rounded-2xl bg-white border border-slate-100 p-10 text-center text-slate-400">
+          <p className="text-3xl">📚</p>
+          <p className="mt-2 font-medium text-sm">Belum ada kelas yang dibuat.</p>
+        </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {classes.length === 0 ? (
-            <div className="col-span-full rounded-2xl bg-white border border-slate-100 p-10 text-center text-slate-400">
-              <p className="text-3xl">📚</p>
-              <p className="mt-2 font-medium text-sm">Belum ada kelas yang dibuat.</p>
-            </div>
-          ) : (
-            classes.map((cls) => (
-              <div key={cls.id} className="rounded-2xl bg-white border border-slate-100 shadow-xs p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-bold text-slate-800">{cls.name}</h3>
-                    <div className="flex flex-wrap gap-1 mt-1.5">
-                      {cls.programs.map(({ program }) => (
-                        <ProgramBadge key={program} program={program} />
-                      ))}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setEditClass(cls)
-                      setEditForm({
-                        name: cls.name,
-                        programs: cls.programs.map(p => p.program),
-                        description: cls.description || '',
-                        tutorId: '',
-                      })
-                      setShowEditForm(true)
-                    }}
-                    className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
+        <div className="space-y-8">
+          {MAIN_PROGRAMS.map(prog => {
+            const group = classes.filter(c => c.mainProgram === prog)
+            if (group.length === 0) return null
+            return (
+              <div key={prog}>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className={`text-xs font-bold px-3 py-1 rounded-full ${PROGRAM_COLORS[prog]}`}>{prog}</span>
+                  <span className="text-xs text-slate-400">{group.length} kelas</span>
                 </div>
-                <p className="text-xs text-slate-500">{cls.description || 'Tidak ada deskripsi.'}</p>
-
-                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <Users className="h-3.5 w-3.5" />
-                    <span>{cls._count.enrollments} Siswa</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setEnrollClass(cls)}
-                      className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
-                    >
-                      Kelola Siswa
-                    </button>
-                    <span className="text-xs text-slate-600 font-medium">Tutor: {cls.tutor.name}</span>
-                  </div>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {group.map((cls) => (
+                    <ClassCard key={cls.id} cls={cls} onEdit={handleEditOpen} onEnroll={setEnrollClass} onDelete={handleDelete} />
+                  ))}
                 </div>
               </div>
-            ))
-          )}
+            )
+          })}
+          {(() => {
+            const ungrouped = classes.filter(c => !c.mainProgram || !MAIN_PROGRAMS.includes(c.mainProgram as ProgramValue))
+            if (ungrouped.length === 0) return null
+            return (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-600">Lainnya</span>
+                  <span className="text-xs text-slate-400">{ungrouped.length} kelas</span>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {ungrouped.map((cls) => (
+                    <ClassCard key={cls.id} cls={cls} onEdit={handleEditOpen} onEnroll={setEnrollClass} onDelete={handleDelete} />
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
         </div>
       )}
 
@@ -385,9 +492,38 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
                   </select>
                 </div>
               </div>
+              {/* Program Utama */}
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Program * <span className="font-normal text-slate-400">(pilih semua yang relevan)</span></label>
-                <ProgramToggle selected={editForm.programs} onChange={(p) => setEditForm({ ...editForm, programs: p })} />
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Program Utama <span className="text-red-400">*</span>
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {MAIN_PROGRAMS.map(p => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setEditForm(f => ({ ...f, mainProgram: p, programs: [] }))}
+                      className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all border cursor-pointer ${
+                        editForm.mainProgram === p
+                          ? `${PROGRAM_COLORS[p]} shadow-sm`
+                          : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Program Tambahan */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Program Tambahan <span className="font-normal text-slate-400">(opsional — sub-level program)</span>
+                </label>
+                <ProgramToggle
+                  selected={editForm.programs}
+                  onChange={(p) => setEditForm(f => ({ ...f, programs: p }))}
+                  programs={SUB_PROGRAMS}
+                />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Deskripsi</label>

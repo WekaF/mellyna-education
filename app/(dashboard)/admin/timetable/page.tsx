@@ -68,7 +68,7 @@ export default async function TimetablePage() {
 
   return (
     <TimetableClient
-      initialClasses={classesData as any}
+      initialClasses={JSON.parse(JSON.stringify(classesData))}
       initialTutors={activeTutors}
       initialStudents={activeStudents}
       initialPiketList={piketList}

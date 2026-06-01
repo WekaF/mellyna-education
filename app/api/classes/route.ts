@@ -23,6 +23,7 @@ const classListInclude = {
 
 const createClassSchema = z.object({
   name: z.string().min(1),
+  mainProgram: z.nativeEnum(Program),
   programs: z.array(z.nativeEnum(Program)).min(1),
   description: z.string().optional(),
   tutorId: z.string().min(1),

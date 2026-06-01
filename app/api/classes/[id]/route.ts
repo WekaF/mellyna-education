@@ -20,6 +20,7 @@ const classDetailInclude = {
 
 const updateClassSchema = z.object({
   name: z.string().min(1).optional(),
+  mainProgram: z.nativeEnum(Program).optional(),
   programs: z.array(z.nativeEnum(Program)).min(1).optional(),
   description: z.string().optional(),
   tutorId: z.string().optional(),

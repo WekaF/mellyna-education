@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../public/brand/mellyna-brand-tokens.css";
 
 html {
   scroll-behavior: smooth;
@@ -20,19 +21,52 @@ html {
   --foreground: #f8fafc; /* Dark Mode foreground */
   --card-bg: #1e293b;
   --card-border: #334155;
+
+  --me-bg:           #060E2E;
+  --me-surface:      #0C1A5C;
+  --me-border:       #1A3080;
+  --me-border-light: #142460;
+  --me-text-primary: #FFFFFF;
+  --me-text-body:    #C4D4F0;
+  --me-text-muted:   #6A8CC0;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Outfit', sans-serif;
-  --font-outfit: 'Outfit', sans-serif;
+
+  /* Brand colors → Tailwind utilities: bg-me-primary, text-me-yellow, etc. */
+  --color-me-primary:       #1A56DB;
+  --color-me-primary-dark:  #0C1A5C;
+  --color-me-primary-light: #2B6EF5;
+  --color-me-yellow:        #FFE566;
+  --color-me-orange:        #FF8C00;
+  --color-me-coral:         #FF6B6B;
+  --color-me-green:         #4FD1A5;
+  --color-me-bg:            #F7FAFF;
+  --color-me-surface:       #EEF4FF;
+  --color-me-border:        #D6E4FF;
+  --color-me-text:          #0C1A5C;
+  --color-me-muted:         #6A7FB8;
+
+  /* Fonts → font-sans, font-heading, font-body Tailwind utilities */
+  --font-sans:    var(--font-outfit, 'Outfit', sans-serif);
+  --font-heading: var(--font-heading-var, 'Fredoka One', 'Arial Rounded MT Bold', sans-serif);
+  --font-body:    var(--font-body-var, 'Nunito', 'Segoe UI', sans-serif);
+
+  /* Border radius → rounded-brand, rounded-brand-lg */
+  --radius-brand:    16px;
+  --radius-brand-lg: 24px;
+
+  /* Shadows → shadow-brand, shadow-brand-lg */
+  --shadow-brand:    0 4px 16px rgba(26,86,219,0.12);
+  --shadow-brand-lg: 0 8px 32px rgba(26,86,219,0.16);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-outfit, 'Outfit', sans-serif);
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
@@ -269,3 +303,74 @@ body {
 .animate-slide-in {
   animation: slideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* ── Mellyna Brand Component Utilities ── */
+
+.me-card {
+  background: #ffffff;
+  border: 1px solid var(--me-border);
+  border-top: 4px solid var(--me-primary);
+  border-radius: var(--me-radius-lg);
+  padding: 20px 24px;
+  box-shadow: var(--me-shadow-md);
+  transition: box-shadow var(--me-transition);
+}
+
+.me-card:hover {
+  box-shadow: var(--me-shadow-lg);
+}
+
+.dark .me-card {
+  background: rgba(30, 41, 59, 0.45);
+  border-color: rgba(26, 86, 219, 0.2);
+}
+
+.me-card-label {
+  font-size: 12px;
+  color: var(--me-text-muted);
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.me-card-value {
+  font-size: 36px;
+  font-weight: 900;
+  color: var(--me-text-primary);
+  margin: 4px 0;
+  font-family: var(--me-font-heading);
+}
+
+.dark .me-card-label { color: #6A8CC0; }
+.dark .me-card-value { color: #ffffff; }
+
+/* Payment status badges */
+.me-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: var(--me-radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.me-badge-lunas {
+  background: var(--me-success-bg);
+  color: var(--me-success-text);
+}
+
+.me-badge-pending {
+  background: var(--me-warning-bg);
+  color: var(--me-warning-text);
+}
+
+.me-badge-belum {
+  background: var(--me-danger-bg);
+  color: var(--me-danger-text);
+}
+
+.dark .me-badge-lunas  { background: rgba(79,209,165,0.15); color: #4FD1A5; }
+.dark .me-badge-pending { background: rgba(255,140,0,0.15);  color: #FFB347; }
+.dark .me-badge-belum  { background: rgba(255,107,107,0.15); color: #FF6B6B; }

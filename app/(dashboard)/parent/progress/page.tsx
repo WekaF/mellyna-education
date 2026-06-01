@@ -77,23 +77,33 @@ export default async function ParentProgressPage({ searchParams }: { searchParam
                   <p className="text-xs font-semibold text-slate-500 mb-2">Foto/Video Sesi Belajar:</p>
                   <div className="flex flex-wrap gap-3">
                     {report.media.map((m) => (
-                      <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer" className="block">
+                      <div key={m.id} className="flex flex-col gap-1">
                         {m.type === 'PHOTO' ? (
-                          <div className="h-24 w-24 rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
-                            <img src={m.url} alt={m.filename} className="h-full w-full object-cover" />
-                          </div>
+                          <a href={m.url} target="_blank" rel="noopener noreferrer">
+                            <div className="h-24 w-24 rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
+                              <img src={m.url} alt={m.filename} className="h-full w-full object-cover" />
+                            </div>
+                          </a>
                         ) : (
-                          <div className="h-24 w-24 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
+                          <div className="space-y-1">
                             <video
                               src={m.url}
                               controls
                               preload="metadata"
-                              className="h-full w-full object-cover cursor-pointer"
+                              className="rounded-xl border border-slate-200 bg-slate-100 w-full max-w-xs"
                               title={m.filename}
                             />
+                            <a
+                              href={m.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-[10px] text-indigo-600 hover:text-indigo-800 hover:underline font-medium"
+                            >
+                              🔗 Buka link video
+                            </a>
                           </div>
                         )}
-                      </a>
+                      </div>
                     ))}
                   </div>
                 </div>

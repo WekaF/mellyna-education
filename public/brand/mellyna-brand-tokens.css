@@ -1,0 +1,115 @@
+/* ============================================================
+   MELLYNA EDUCATION — BRAND DESIGN TOKENS
+   mellyna-education.my.id
+   ============================================================
+   Usage: import this file in your project once, then use the
+   CSS custom properties (variables) everywhere.
+
+   Example:
+     @import './mellyna-brand-tokens.css';
+     .header { background: var(--me-primary); color: var(--me-white); }
+   ============================================================ */
+
+:root {
+
+  /* ── CORE BRAND COLORS ── */
+  --me-primary:        #1A56DB;   /* Navy Blue — utama, CTA, header */
+  --me-primary-dark:   #0C1A5C;   /* Deep Navy — footer, dark section */
+  --me-primary-light:  #2B6EF5;   /* Mid Blue — hover, card header */
+  --me-primary-xlight: #EEF4FF;   /* Ice Blue — background tint, card bg */
+
+  --me-yellow:         #FFE566;   /* Brand Yellow — aksen, highlight, badge */
+  --me-yellow-dark:    #F5C800;   /* Deep Yellow — hover yellow */
+  --me-orange:         #FF8C00;   /* Orange — EDUCATION subtext, cta secondary */
+  --me-coral:          #FF6B6B;   /* Coral Red — error, urgent, badge merah */
+  --me-green:          #4FD1A5;   /* Mint Green — success, konfirmasi */
+
+  /* ── NEUTRAL / TEXT ── */
+  --me-white:          #FFFFFF;
+  --me-bg:             #F7FAFF;   /* Page background */
+  --me-surface:        #EEF4FF;   /* Card surface, input bg */
+  --me-border:         #D6E4FF;   /* Border default */
+  --me-border-light:   #E8F0FF;   /* Border subtle */
+
+  --me-text-primary:   #0C1A5C;   /* Heading text */
+  --me-text-body:      #2D3A6B;   /* Body / paragraph */
+  --me-text-muted:     #6A7FB8;   /* Placeholder, label, caption */
+  --me-text-disabled:  #AAB8D0;   /* Disabled state */
+
+  /* ── SEMANTIC COLORS ── */
+  --me-success:        #4FD1A5;
+  --me-success-bg:     #E6FBF5;
+  --me-success-text:   #0A6B52;
+
+  --me-warning:        #FF8C00;
+  --me-warning-bg:     #FFF4E0;
+  --me-warning-text:   #7A3D00;
+
+  --me-danger:         #FF6B6B;
+  --me-danger-bg:      #FFF0F0;
+  --me-danger-text:    #8B0000;
+
+  --me-info:           #1A56DB;
+  --me-info-bg:        #EEF4FF;
+  --me-info-text:      #0C1A5C;
+
+  /* ── TYPOGRAPHY ── */
+  --me-font-heading:   'Fredoka One', 'Arial Rounded MT Bold', Arial, sans-serif;
+  --me-font-body:      'Nunito', 'Segoe UI', Arial, sans-serif;
+  --me-font-mono:      'Fira Code', 'Courier New', monospace;
+
+  --me-text-xs:        0.75rem;   /* 12px */
+  --me-text-sm:        0.875rem;  /* 14px */
+  --me-text-base:      1rem;      /* 16px */
+  --me-text-lg:        1.125rem;  /* 18px */
+  --me-text-xl:        1.25rem;   /* 20px */
+  --me-text-2xl:       1.5rem;    /* 24px */
+  --me-text-3xl:       1.875rem;  /* 30px */
+  --me-text-4xl:       2.25rem;   /* 36px */
+  --me-text-hero:      3rem;      /* 48px */
+
+  /* ── SPACING ── */
+  --me-space-1:   0.25rem;
+  --me-space-2:   0.5rem;
+  --me-space-3:   0.75rem;
+  --me-space-4:   1rem;
+  --me-space-5:   1.25rem;
+  --me-space-6:   1.5rem;
+  --me-space-8:   2rem;
+  --me-space-10:  2.5rem;
+  --me-space-12:  3rem;
+  --me-space-16:  4rem;
+  --me-space-20:  5rem;
+
+  /* ── BORDER RADIUS ── */
+  --me-radius-sm:   6px;
+  --me-radius-md:   12px;
+  --me-radius-lg:   16px;
+  --me-radius-xl:   24px;
+  --me-radius-2xl:  32px;
+  --me-radius-full: 9999px;
+
+  /* ── SHADOWS ── */
+  --me-shadow-sm:  0 1px 4px rgba(26,86,219,0.08);
+  --me-shadow-md:  0 4px 16px rgba(26,86,219,0.12);
+  --me-shadow-lg:  0 8px 32px rgba(26,86,219,0.16);
+  --me-shadow-card: 0 2px 12px rgba(12,26,92,0.08);
+
+  /* ── TRANSITIONS ── */
+  --me-transition: 0.2s ease;
+  --me-transition-slow: 0.35s ease;
+}
+
+/* ── DARK MODE OVERRIDES ── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --me-bg:           #060E2E;
+    --me-surface:      #0C1A5C;
+    --me-border:       #1A3080;
+    --me-border-light: #142460;
+    --me-text-primary: #FFFFFF;
+    --me-text-body:    #C4D4F0;
+    --me-text-muted:   #6A8CC0;
+    --me-white:        #0C1A5C;
+  }
+}

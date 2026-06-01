@@ -30,6 +30,7 @@ export default async function AdminClassesPage() {
   const classes = rawClasses.map((cls) => ({
     id: cls.id,
     name: cls.name,
+    mainProgram: cls.mainProgram,
     description: cls.description,
     tutor: cls.tutor,
     _count: cls._count,

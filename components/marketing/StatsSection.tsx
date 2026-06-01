@@ -4,10 +4,10 @@ import { motion } from 'framer-motion'
 import { Users, BookOpen, Award, Clock } from 'lucide-react'
 
 const stats = [
-  { value: '500+', label: 'Siswa Aktif', icon: Users, bg: 'bg-indigo-50', color: 'text-indigo-600' },
-  { value: '20+', label: 'Tutor Berpengalaman', icon: Award, bg: 'bg-emerald-50', color: 'text-emerald-600' },
+  { value: '100+', label: 'Siswa Aktif', icon: Users, bg: 'bg-indigo-50', color: 'text-indigo-600' },
+  { value: '5+', label: 'Tutor Berpengalaman', icon: Award, bg: 'bg-emerald-50', color: 'text-emerald-600' },
   { value: '6', label: 'Program Unggulan', icon: BookOpen, bg: 'bg-purple-50', color: 'text-purple-600' },
-  { value: '5+', label: 'Tahun Berdiri', icon: Clock, bg: 'bg-amber-50', color: 'text-amber-600' },
+  { value: '1+', label: 'Tahun Berdiri', icon: Clock, bg: 'bg-amber-50', color: 'text-amber-600' },
 ]
 
 export default function StatsSection() {
