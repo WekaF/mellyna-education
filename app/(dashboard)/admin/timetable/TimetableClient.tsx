@@ -112,6 +112,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
   const [showEnrollModal, setShowEnrollModal] = useState(false)
   const [enrollClass, setEnrollClass] = useState<ClassModel | null>(null)
   const [studentSearch, setStudentSearch] = useState('')
+  const [enrollError, setEnrollError] = useState<string | null>(null)
 
   // Generate Weekly Schedule Modal state
   const [showGenerateModal, setShowGenerateModal] = useState(false)
@@ -405,17 +406,19 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
   // Enrollment management
   const handleToggleEnrollment = async (student: Student) => {
     if (!enrollClass) return
+    setEnrollError(null)
     const isEnrolled = enrollClass.enrollments.find(e => e.studentId === student.id)
 
     try {
       if (isEnrolled) {
-        // Unenroll
         const res = await fetch(`/api/enrollments/${isEnrolled.id}`, {
           method: 'DELETE',
         })
-        if (!res.ok) throw new Error()
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data.error || 'Gagal menghapus pendaftaran.')
+        }
       } else {
-        // Enroll
         const res = await fetch('/api/enrollments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -424,19 +427,20 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
             classId: enrollClass.id,
           }),
         })
-        if (!res.ok) throw new Error()
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data.error || 'Gagal mendaftarkan siswa.')
+        }
       }
 
-      // Re-fetch classes to update enrollment state locally
       const classesRes = await fetch('/api/classes')
       const updatedClasses = await classesRes.json()
       setClasses(updatedClasses)
 
-      // Keep focus on same updated class
       const updatedClass = updatedClasses.find((c: ClassModel) => c.id === enrollClass.id)
       setEnrollClass(updatedClass || null)
-    } catch {
-      setError('Gagal memperbarui pendaftaran siswa.')
+    } catch (err: any) {
+      setEnrollError(err.message || 'Gagal memperbarui pendaftaran siswa.')
     }
   }
 
@@ -610,6 +614,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                                 onClick={() => {
                                   setEnrollClass(cls)
                                   setStudentSearch('')
+                                  setEnrollError(null)
                                   setShowEnrollModal(true)
                                 }}
                                 title="Kelola Siswa"
@@ -1038,6 +1043,11 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
               )}
             </div>
 
+            {enrollError && (
+              <div className="px-4 py-2.5 bg-red-50 dark:bg-red-950/20 border-t border-red-100 dark:border-red-900/40 text-red-700 dark:text-red-400 text-xs font-semibold">
+                {enrollError}
+              </div>
+            )}
             <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs">
               <span className="text-slate-500 font-bold">Terdaftar: {enrollClass.enrollments.length} Siswa</span>
               <button
