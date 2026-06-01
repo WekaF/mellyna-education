@@ -1,3 +1,5 @@
+import fs from 'fs'
+import path from 'path'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -48,6 +50,15 @@ const STATUS_LABEL: Record<string, string> = {
 const fmtDate = (d: Date | string) =>
   new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
 
+function loadLogoBase64(): string | null {
+  try {
+    const logoPath = path.join(process.cwd(), 'public/icons/mellyna-logo-horizontal-compact.png')
+    return fs.readFileSync(logoPath).toString('base64')
+  } catch {
+    return null
+  }
+}
+
 export function generateRaportPdf(data: RaportData): ArrayBuffer {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   const pageW = doc.internal.pageSize.getWidth()
@@ -55,18 +66,26 @@ export function generateRaportPdf(data: RaportData): ArrayBuffer {
 
   // Header bar
   doc.setFillColor(99, 102, 241)
-  doc.rect(0, 0, pageW, 28, 'F')
-  doc.setTextColor(255, 255, 255)
-  doc.setFontSize(16)
-  doc.setFont('helvetica', 'bold')
-  doc.text('Raport Perkembangan Belajar', pageW / 2, 11, { align: 'center' })
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
-  doc.text('Mellyna Education', pageW / 2, 18, { align: 'center' })
-  doc.setFontSize(8)
-  doc.text(`Diterbitkan: ${fmtDate(data.generatedAt)}`, pageW / 2, 24, { align: 'center' })
+  doc.rect(0, 0, pageW, 34, 'F')
 
-  y = 36
+  // Logo — white pill on left
+  const logoBase64 = loadLogoBase64()
+  if (logoBase64) {
+    doc.setFillColor(255, 255, 255)
+    doc.roundedRect(8, 5, 58, 16, 3, 3, 'F')
+    doc.addImage(`data:image/png;base64,${logoBase64}`, 'PNG', 10, 7, 54, 12)
+  }
+
+  // Title + date on right
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(13)
+  doc.setFont('helvetica', 'bold')
+  doc.text('Raport Perkembangan Belajar', pageW - 10, 14, { align: 'right' })
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`Diterbitkan: ${fmtDate(data.generatedAt)}`, pageW - 10, 22, { align: 'right' })
+
+  y = 42
   doc.setTextColor(30, 30, 30)
 
   // Student info box
