@@ -15,6 +15,17 @@ const DAY_OFFSETS: Record<DayOfWeek, number> = {
   SUNDAY: 6,
 }
 
+/** Return the Monday of the ISO week that `date` falls in. */
+function getMondayOfWeek(date: Date): Date {
+  const d = new Date(date)
+  // Work in UTC to avoid timezone shifts
+  const dayOfWeek = d.getUTCDay() // 0=Sun, 1=Mon, ..., 6=Sat
+  const daysBack = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+  d.setUTCDate(d.getUTCDate() - daysBack)
+  d.setUTCHours(0, 0, 0, 0)
+  return d
+}
+
 function getTimeRange(slot: string): { start: string; end: string } {
   if (slot.includes(':')) {
     const [h, m] = slot.split(':').map(Number)
@@ -44,17 +55,19 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { startDate } = body // e.g. "2026-06-01" (must be Monday of the target week)
+    const { startDate } = body
     if (!startDate) {
-      return NextResponse.json({ error: 'Tanggal awal (Senin) wajib diisi.' }, { status: 400 })
+      return NextResponse.json({ error: 'Tanggal wajib diisi.' }, { status: 400 })
     }
 
-    const baseMonday = new Date(startDate)
-    if (isNaN(baseMonday.getTime())) {
-      return NextResponse.json({ error: 'Format tanggal awal tidak valid.' }, { status: 400 })
+    const inputDate = new Date(startDate)
+    if (isNaN(inputDate.getTime())) {
+      return NextResponse.json({ error: 'Format tanggal tidak valid.' }, { status: 400 })
     }
+    const baseMonday = getMondayOfWeek(inputDate)
+    const weekLabel = baseMonday.toISOString().split('T')[0]
 
-    console.log(`[Timetable Generator] Starting schedule generation from weekly timetable for week starting ${startDate}`)
+    console.log(`[Timetable Generator] Input date ${startDate} → week of ${weekLabel}`)
 
     // 1. Pre-flight WAHA check
     const wahaStatus = await getSessionStatus()
@@ -92,8 +105,8 @@ export async function POST(req: NextRequest) {
     for (const c of classes) {
       const offset = DAY_OFFSETS[c.dayOfWeek!]
       const scheduleDate = new Date(baseMonday)
-      scheduleDate.setDate(scheduleDate.getDate() + offset)
-      scheduleDate.setHours(0, 0, 0, 0)
+      scheduleDate.setUTCDate(scheduleDate.getUTCDate() + offset)
+      scheduleDate.setUTCHours(0, 0, 0, 0)
 
       const { start, end } = getTimeRange(c.timeSlot!)
 
