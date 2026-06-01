@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { startDate } = body
+    const { startDate, selectedDays } = body
     if (!startDate) {
       return NextResponse.json({ error: 'Tanggal wajib diisi.' }, { status: 400 })
     }
@@ -67,7 +67,12 @@ export async function POST(req: NextRequest) {
     const baseMonday = getMondayOfWeek(inputDate)
     const weekLabel = baseMonday.toISOString().split('T')[0]
 
-    console.log(`[Timetable Generator] Input date ${startDate} → week of ${weekLabel}`)
+    const ALL_DAYS: DayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']
+    const daysFilter: DayOfWeek[] = Array.isArray(selectedDays) && selectedDays.length > 0
+      ? (selectedDays as string[]).filter(d => ALL_DAYS.includes(d as DayOfWeek)) as DayOfWeek[]
+      : ALL_DAYS
+
+    console.log(`[Timetable Generator] Input date ${startDate} → week of ${weekLabel}, days: ${daysFilter.join(', ')}`)
 
     // 1. Pre-flight WAHA check
     const wahaStatus = await getSessionStatus()
@@ -77,7 +82,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Load all classes with active timetable settings
     const classes = await prisma.class.findMany({
-      where: { dayOfWeek: { not: null }, timeSlot: { not: null } },
+      where: { dayOfWeek: { not: null, in: daysFilter }, timeSlot: { not: null } },
       include: {
         tutor: { select: { name: true, phone: true } },
         additionalTutors: {
