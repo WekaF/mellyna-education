@@ -103,6 +103,15 @@ export default function AdminPricingPage() {
     setEditBadge(null)
   }
 
+  const handleDeleteTier = (index: number) => {
+    const name = sppTiers[index].name
+    if (!confirm(`Hapus paket "${name}"? Tindakan ini tidak dapat dibatalkan.`)) return
+    const updated = sppTiers.filter((_, i) => i !== index)
+    setSppTiers(updated)
+    localStorage.setItem('mellyna_spp_tiers', JSON.stringify(updated))
+    triggerToast(`Paket ${name} berhasil dihapus.`)
+  }
+
   const handleFeatureChange = (index: number, value: string) => {
     const updated = [...editFeatures]
     updated[index] = value
@@ -293,14 +302,22 @@ export default function AdminPricingPage() {
                 </div>
               </div>
 
-              {/* Edit Trigger */}
-              <button
-                onClick={() => handleEditClick('spp', index)}
-                className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 hover:border-indigo-300 dark:border-slate-800 dark:hover:border-indigo-500/30 text-slate-600 dark:text-slate-300 font-bold hover:bg-indigo-50/30 dark:hover:bg-indigo-950/10 hover:text-indigo-650 dark:hover:text-indigo-400 transition-all duration-200 text-xs cursor-pointer active:scale-95 shadow-xs"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                <span>Ubah Data Paket</span>
-              </button>
+              {/* Edit & Delete Triggers */}
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={() => handleEditClick('spp', index)}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 hover:border-indigo-300 dark:border-slate-800 dark:hover:border-indigo-500/30 text-slate-600 dark:text-slate-300 font-bold hover:bg-indigo-50/30 dark:hover:bg-indigo-950/10 hover:text-indigo-650 dark:hover:text-indigo-400 transition-all duration-200 text-xs cursor-pointer active:scale-95 shadow-xs"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  <span>Ubah</span>
+                </button>
+                <button
+                  onClick={() => handleDeleteTier(index)}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-200 hover:border-rose-300 dark:border-slate-800 dark:hover:border-rose-500/30 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50/30 dark:hover:bg-rose-950/10 transition-all duration-200 text-xs cursor-pointer active:scale-95 shadow-xs"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
