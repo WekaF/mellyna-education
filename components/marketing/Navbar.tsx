@@ -37,26 +37,23 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand Logo */}
-          <Link href="/" className="flex items-center group">
-            {scrolled ? (
-              <Image
-                src="/icons/mellyna-logo-horizontal-compact.svg"
-                alt="Mellyna Education"
-                width={160}
-                height={40}
-                className="h-10 w-auto"
-                priority
-              />
-            ) : (
-              <Image
-                src="/icons/mellyna-logo-dark.svg"
-                alt="Mellyna Education"
-                width={160}
-                height={40}
-                className="h-10 w-auto"
-                priority
-              />
-            )}
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <Image
+              src="/icons/mellyna-icon-192.svg"
+              alt="Mellyna"
+              width={36}
+              height={36}
+              className="h-9 w-9 rounded-xl"
+              priority
+            />
+            <div className="flex flex-col leading-none gap-0.5">
+              <span className={`font-heading text-[19px] font-bold tracking-tight transition-colors duration-300 ${
+                scrolled ? 'text-me-primary' : 'text-white'
+              }`}>mellyna</span>
+              <span className={`font-body font-black text-[8px] tracking-[3px] uppercase transition-colors duration-300 ${
+                scrolled ? 'text-me-orange' : 'text-me-yellow'
+              }`}>education</span>
+            </div>
           </Link>
 
           {/* Desktop nav */}
