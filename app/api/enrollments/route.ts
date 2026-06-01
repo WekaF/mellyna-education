@@ -30,11 +30,12 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
     }
-    const activeProgramEnrollment = await prisma.programEnrollment.findFirst({
+    // Get ALL active program enrollments for this student
+    const activeProgramEnrollments = await prisma.programEnrollment.findMany({
       where: { studentId: parsed.data.studentId, status: 'ACTIVE' },
     })
 
-    if (!activeProgramEnrollment) {
+    if (activeProgramEnrollments.length === 0) {
       return NextResponse.json(
         { error: 'Siswa belum memiliki program aktif. Daftarkan program terlebih dahulu.' },
         { status: 422 }
@@ -47,10 +48,16 @@ export async function POST(req: NextRequest) {
     })
     const classProgramList = classPrograms.map((cp) => cp.program)
 
-    if (!classProgramList.includes(activeProgramEnrollment.program)) {
+    // Find the first active program enrollment that matches any of the class programs
+    const matchingEnrollment = activeProgramEnrollments.find((pe) =>
+      classProgramList.includes(pe.program)
+    )
+
+    if (!matchingEnrollment) {
+      const studentPrograms = activeProgramEnrollments.map((pe) => pe.program).join(', ')
       return NextResponse.json(
         {
-          error: `Kelas ini tidak termasuk program ${activeProgramEnrollment.program} yang aktif untuk siswa ini.`,
+          error: `Program aktif siswa (${studentPrograms}) tidak cocok dengan program kelas ini (${classProgramList.join(', ')}).`,
         },
         { status: 422 }
       )
@@ -60,11 +67,11 @@ export async function POST(req: NextRequest) {
       where: {
         studentId_classId: { studentId: parsed.data.studentId, classId: parsed.data.classId },
       },
-      update: { programEnrollmentId: activeProgramEnrollment.id },
+      update: { programEnrollmentId: matchingEnrollment.id },
       create: {
         studentId: parsed.data.studentId,
         classId: parsed.data.classId,
-        programEnrollmentId: activeProgramEnrollment.id,
+        programEnrollmentId: matchingEnrollment.id,
       },
     })
 
