@@ -306,6 +306,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
     setError(null)
     try {
       let res
+      let wasCopy = false
       if (selectedClass) {
         // Editing an already scheduled class
         res = await fetch(`/api/classes/${selectedClass.id}`, {
@@ -314,15 +315,36 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
           body: JSON.stringify(classForm),
         })
       } else if (mode === 'select' && selectedExistingClassId) {
-        // Scheduling an existing class
-        res = await fetch(`/api/classes/${selectedExistingClassId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            dayOfWeek: classForm.dayOfWeek,
-            timeSlot: classForm.timeSlot,
-          }),
-        })
+        const existingClass = classes.find(c => c.id === selectedExistingClassId)
+        const alreadyScheduled = existingClass?.dayOfWeek != null
+
+        if (alreadyScheduled) {
+          // Class already has a slot → create a new session with same properties but new slot
+          wasCopy = true
+          res = await fetch('/api/classes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: classForm.name,
+              programs: classForm.programs,
+              tutorId: classForm.tutorId,
+              additionalTutorIds: classForm.additionalTutorIds,
+              description: classForm.description,
+              dayOfWeek: classForm.dayOfWeek,
+              timeSlot: classForm.timeSlot,
+            }),
+          })
+        } else {
+          // Class not yet scheduled → assign the slot
+          res = await fetch(`/api/classes/${selectedExistingClassId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              dayOfWeek: classForm.dayOfWeek,
+              timeSlot: classForm.timeSlot,
+            }),
+          })
+        }
       } else {
         // Creating a new class
         res = await fetch('/api/classes', {
@@ -337,7 +359,11 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
       }
 
       await fetchData()
-      setSuccessMsg(`Sesi kelas berhasil disimpan ke Timetable!`)
+      setSuccessMsg(
+        wasCopy
+          ? `Sesi baru "${classForm.name}" berhasil ditambahkan ke slot ${classForm.dayOfWeek} ${classForm.timeSlot}!`
+          : `Sesi kelas berhasil disimpan ke Timetable!`
+      )
       setShowClassModal(false)
       setClassSearch('')
       setTimeout(() => setSuccessMsg(null), 4000)
@@ -769,7 +795,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                                 {c.programs.length > 0 && ` (${c.programs.map(p => p.program).join(' + ')})`}
                                 {' • '}{c.tutor.name}
                                 {' '}{c.dayOfWeek
-                                  ? `(Aktif: ${DAYS.find(d => d.key === c.dayOfWeek)?.label || c.dayOfWeek} ${c.timeSlot})`
+                                  ? `(Aktif: ${DAYS.find(d => d.key === c.dayOfWeek)?.label || c.dayOfWeek} ${c.timeSlot} → sesi baru)`
                                   : '(Belum Terjadwal)'}
                               </option>
                             ))}
