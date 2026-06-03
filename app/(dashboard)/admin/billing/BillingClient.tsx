@@ -6,6 +6,15 @@ import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
 import { formatRupiah } from '@/lib/utils'
 
+function rupiahDisplay(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (!digits) return ''
+  return parseInt(digits, 10).toLocaleString('id-ID')
+}
+function rupiahStrip(val: string): string {
+  return val.replace(/\D/g, '')
+}
+
 interface Invoice {
   id: string
   description: string
@@ -424,11 +433,12 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
               <label className="block text-xs font-semibold text-me-muted mb-1">Nominal (Rp) *</label>
               <input
                 required
-                type="number"
-                value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                type="text"
+                inputMode="numeric"
+                value={rupiahDisplay(form.amount)}
+                onChange={(e) => setForm({ ...form, amount: rupiahStrip(e.target.value) })}
                 className="w-full px-3 py-2 rounded-xl border border-me-border text-sm focus:outline-none focus:border-me-primary"
-                placeholder="500000"
+                placeholder="0"
               />
             </div>
             <div>
@@ -495,7 +505,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">Nominal (Rp) *</label>
-              <input required type="number" value={bulkForm.amount} onChange={(e) => setBulkForm({ ...bulkForm, amount: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-me-primary" placeholder="500000" />
+              <input required type="text" inputMode="numeric" value={rupiahDisplay(bulkForm.amount)} onChange={(e) => setBulkForm({ ...bulkForm, amount: rupiahStrip(e.target.value) })} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-me-primary" placeholder="0" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">Keterangan *</label>
@@ -612,11 +622,11 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Nominal (Rp) *</label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   required
-                  min="1"
-                  value={editModal.amount}
-                  onChange={(e) => setEditModal({ ...editModal, amount: e.target.value })}
+                  value={rupiahDisplay(editModal.amount)}
+                  onChange={(e) => setEditModal({ ...editModal, amount: rupiahStrip(e.target.value) })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500"
                 />
               </div>

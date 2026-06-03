@@ -52,7 +52,7 @@ export default function AdminPricingPage() {
   // Edit Modal State
   const [editingItem, setEditingItem] = useState<{ type: 'spp' | 'admin'; index: number } | null>(null)
   const [editName, setEditName] = useState('')
-  const [editPrice, setEditPrice] = useState<number>(0)
+  const [editPrice, setEditPrice] = useState<string>('')
   const [editDesc, setEditDesc] = useState('')
   const [editFeatures, setEditFeatures] = useState<string[]>([])
   const [editBadge, setEditBadge] = useState<string | null>(null)
@@ -88,7 +88,7 @@ export default function AdminPricingPage() {
     const item = type === 'spp' ? sppTiers[index] : fees[index]
     setEditingItem({ type, index })
     setEditName(item.name)
-    setEditPrice(item.price)
+    setEditPrice(String(item.price))
     setEditDesc(item.desc || '')
     setEditFeatures([...item.features])
     setEditBadge(type === 'spp' ? (item as any).badge || null : null)
@@ -97,7 +97,7 @@ export default function AdminPricingPage() {
   const handleAddNew = () => {
     setEditingItem({ type: 'spp', index: -1 })
     setEditName('')
-    setEditPrice(0)
+    setEditPrice('')
     setEditDesc('')
     setEditFeatures([''])
     setEditBadge(null)
@@ -439,12 +439,13 @@ export default function AdminPricingPage() {
                 <div className="space-y-1">
                   <label className="block text-[10px] font-extrabold text-slate-550 dark:text-slate-400 uppercase tracking-wider">Nominal Harga (Rp)</label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     required
-                    min={0}
-                    value={editPrice}
-                    onChange={(e) => setEditPrice(Number(e.target.value) || 0)}
+                    value={editPrice ? parseInt(editPrice.replace(/\D/g, '') || '0', 10).toLocaleString('id-ID') : ''}
+                    onChange={(e) => setEditPrice(e.target.value.replace(/\D/g, ''))}
                     className="w-full px-4 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-hidden focus:border-indigo-500 dark:bg-slate-800 dark:text-white transition-colors font-bold"
+                    placeholder="0"
                   />
                 </div>
 
