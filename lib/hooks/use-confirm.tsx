@@ -24,6 +24,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const resolverRef = useRef<((value: boolean) => void) | null>(null)
 
   const confirm = useCallback((opts: ConfirmOptions): Promise<boolean> => {
+    if (resolverRef.current) return Promise.resolve(false)
     setOptions(opts)
     setOpen(true)
     return new Promise<boolean>((resolve) => {

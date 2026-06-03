@@ -82,7 +82,6 @@ export function ConfirmDialog({
                 transition={{ duration: 0.18, ease: 'easeOut' }}
               >
                 <Dialog.Close
-                  onClick={onCancel}
                   className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-slate-300 transition-colors"
                 >
                   <X className="h-4 w-4" />
@@ -109,12 +108,14 @@ export function ConfirmDialog({
 
                 <div className="mt-6 flex items-center justify-end gap-3">
                   <button
+                    type="button"
                     onClick={onCancel}
                     className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                   >
                     {cancelLabel}
                   </button>
                   <button
+                    type="button"
                     onClick={onConfirm}
                     className={`px-4 py-2 text-sm font-semibold rounded-xl transition-colors cursor-pointer ${cfg.confirmBtn}`}
                   >

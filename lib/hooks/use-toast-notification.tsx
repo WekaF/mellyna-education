@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useCallback, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import * as Toast from '@radix-ui/react-toast'
 import { AnimatePresence, motion } from 'framer-motion'
 import { CheckCircle2, Info, AlertTriangle, XCircle, X } from 'lucide-react'
@@ -67,12 +67,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
-  const toast = {
+  const toast = useMemo(() => ({
     success: (message: string) => addToast(message, 'success'),
     error: (message: string) => addToast(message, 'error'),
     warning: (message: string) => addToast(message, 'warning'),
     info: (message: string) => addToast(message, 'info'),
-  }
+  }), [addToast])
 
   return (
     <ToastContext.Provider value={{ toast }}>
