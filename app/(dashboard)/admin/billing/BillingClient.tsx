@@ -49,6 +49,14 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
   const [manualMethod, setManualMethod] = useState<'CASH' | 'BRI_TRANSFER' | 'OTHER'>('CASH')
   const [manualNotes, setManualNotes] = useState('')
   const [manualSaving, setManualSaving] = useState(false)
+  const [editModal, setEditModal] = useState<{
+    invoiceId: string
+    studentName: string
+    description: string
+    amount: string
+    dueDate: string
+  } | null>(null)
+  const [editSaving, setEditSaving] = useState(false)
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true)
@@ -144,6 +152,33 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
       setManualSaving(false)
     }
   }
+
+  const handleEditInvoice = useCallback(async () => {
+    if (!editModal) return
+    setError(null)
+    setEditSaving(true)
+    try {
+      const res = await fetch(`/api/invoices/${editModal.invoiceId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: editModal.description,
+          amount: parseInt(editModal.amount),
+          dueDate: editModal.dueDate,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Gagal mengubah invoice.')
+      }
+      setEditModal(null)
+      await fetchInvoices()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setEditSaving(false)
+    }
+  }, [editModal, fetchInvoices])
 
   const handleCancelInvoice = useCallback(async (id: string) => {
     if (!confirm('Batalkan invoice ini?')) return
@@ -241,6 +276,18 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
         const sending = sendingWAId === inv.id
         return (
           <div className="flex items-center gap-1 flex-wrap">
+            <button
+              onClick={() => setEditModal({
+                invoiceId: inv.id,
+                studentName: inv.student.name,
+                description: inv.description,
+                amount: String(inv.amount),
+                dueDate: new Date(inv.dueDate).toISOString().split('T')[0],
+              })}
+              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-50 transition-colors cursor-pointer"
+            >
+              Edit
+            </button>
             {(inv.status === 'PENDING' || inv.status === 'OVERDUE') && (
               <button
                 onClick={() => setManualPayModal({ invoiceId: inv.id, studentName: inv.student.name, amount: inv.amount })}
@@ -517,11 +564,71 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
           columns={columns}
           data={invoices}
           loading={loading}
+          defaultPageSize={50}
           searchPlaceholder="Cari siswa, keterangan, status..."
           emptyMessage="Belum ada tagihan."
           emptyIcon="💰"
         />
       </div>
+
+      {editModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-xl">
+            <h3 className="font-bold text-slate-800 dark:text-white mb-1">✏️ Edit Invoice</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Siswa: <strong>{editModal.studentName}</strong></p>
+
+            {error && (
+              <div className="mb-3 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 p-3 text-xs text-rose-600">{error}</div>
+            )}
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Keterangan *</label>
+                <input
+                  type="text"
+                  value={editModal.description}
+                  onChange={(e) => setEditModal({ ...editModal, description: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Nominal (Rp) *</label>
+                <input
+                  type="number"
+                  value={editModal.amount}
+                  onChange={(e) => setEditModal({ ...editModal, amount: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Jatuh Tempo *</label>
+                <input
+                  type="date"
+                  value={editModal.dueDate}
+                  onChange={(e) => setEditModal({ ...editModal, dueDate: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 mt-4">
+              <button
+                onClick={() => setEditModal(null)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-semibold text-xs hover:bg-slate-50 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleEditInvoice}
+                disabled={editSaving}
+                className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold text-xs transition-all cursor-pointer"
+              >
+                {editSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

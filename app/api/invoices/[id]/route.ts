@@ -6,8 +6,9 @@ import { prisma } from '@/lib/db'
 
 const updateInvoiceSchema = z.object({
   status: z.enum(['PENDING', 'PAID', 'OVERDUE', 'CANCELLED']).optional(),
-  description: z.string().optional(),
+  description: z.string().min(1).optional(),
   dueDate: z.string().optional(),
+  amount: z.number().int().positive().optional(),
 })
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
