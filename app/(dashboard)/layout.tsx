@@ -35,9 +35,9 @@ export default async function DashboardLayout({
       <Sidebar user={user} />
 
       {/* Main content area with dynamic margins for desktop layout */}
-      <div className="md:pl-64 lg:pl-72 flex flex-col min-h-screen transition-all duration-300">
+      <div className="md:pl-64 lg:pl-72 flex flex-col min-h-screen transition-all duration-300 isolate">
         {/* Top Header bar inside the dashboard */}
-        <header className="hidden md:flex items-center justify-between px-8 py-5 border-b border-slate-200 dark:border-slate-800/60 bg-white/45 dark:bg-[#151f32]/45 backdrop-blur-md sticky top-0 z-30 transition-all duration-300">
+        <header className="hidden md:flex items-center justify-between px-8 py-5 border-b border-slate-200 dark:border-slate-800/60 bg-white/95 dark:bg-[#151f32]/95 backdrop-blur-sm sticky top-0 z-30 transition-all duration-300">
           <div>
             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium tracking-wider uppercase">Portal Akademik</span>
             <h2 className="text-sm font-semibold text-slate-800 dark:text-white">Mellyna Education System</h2>
