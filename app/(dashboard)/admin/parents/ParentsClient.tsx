@@ -123,6 +123,22 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
   const [addError, setAddError] = useState<string | null>(null)
   const [addSuccess, setAddSuccess] = useState<string | null>(null)
 
+  const [addStep, setAddStep] = useState<'parent' | 'student' | 'program' | 'invoice'>('parent')
+  const [createdParentId, setCreatedParentId] = useState<string | null>(null)
+  const [createdStudentId, setCreatedStudentId] = useState<string | null>(null)
+
+  const [addStudentStep, setAddStudentStep] = useState({ name: '', gradeClass: '', tier: 'Tingkat 1' })
+  const [addStudentStepSaving, setAddStudentStepSaving] = useState(false)
+  const [addStudentStepError, setAddStudentStepError] = useState<string | null>(null)
+
+  const [addProgramStep, setAddProgramStep] = useState<string[]>([])
+  const [addProgramStepSaving, setAddProgramStepSaving] = useState(false)
+  const [addProgramStepError, setAddProgramStepError] = useState<string | null>(null)
+
+  const [addInvoiceStep, setAddInvoiceStep] = useState({ description: 'Paket Registrasi Baru', amount: '400000', dueDate: '' })
+  const [addInvoiceStepSaving, setAddInvoiceStepSaving] = useState(false)
+  const [addInvoiceStepError, setAddInvoiceStepError] = useState<string | null>(null)
+
   const [editingParent, setEditingParent] = useState<Parent | null>(null)
   const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', password: '' })
   const [editSaving, setEditSaving] = useState(false)
@@ -199,15 +215,110 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Gagal menambahkan wali murid.')
-      setAddSuccess(`Akun wali murid "${data.name}" berhasil dibuat. Login dengan email: ${data.email}`)
-      setAddForm({ name: '', email: '', phone: '', password: '' })
-      await fetchParents()
+      setCreatedParentId(data.id)
+      setAddStep('student')
     } catch (err: any) {
       setAddError(err.message)
     } finally {
       setAddSaving(false)
     }
-  }, [addForm, fetchParents])
+  }, [addForm])
+
+  const handleAddStudentStep = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!createdParentId) return
+    setAddStudentStepSaving(true)
+    setAddStudentStepError(null)
+    try {
+      const grade = addStudentStep.gradeClass
+        ? `${addStudentStep.gradeClass} | ${addStudentStep.tier}`
+        : addStudentStep.tier
+      const res = await fetch('/api/students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: addStudentStep.name, grade, parentId: createdParentId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Gagal menambahkan siswa.')
+      setCreatedStudentId(data.id)
+      setAddStep('program')
+    } catch (err: any) {
+      setAddStudentStepError(err.message)
+    } finally {
+      setAddStudentStepSaving(false)
+    }
+  }, [createdParentId, addStudentStep])
+
+  const handleAddProgramStep = useCallback(async () => {
+    if (!createdStudentId) return
+    if (addProgramStep.length === 0) {
+      setAddStep('invoice')
+      return
+    }
+    setAddProgramStepSaving(true)
+    setAddProgramStepError(null)
+    try {
+      for (const program of addProgramStep) {
+        const res = await fetch('/api/program-enrollments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ studentId: createdStudentId, program }),
+        })
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.error || `Gagal mendaftarkan program ${program}.`)
+        }
+      }
+      setAddStep('invoice')
+    } catch (err: any) {
+      setAddProgramStepError(err.message)
+    } finally {
+      setAddProgramStepSaving(false)
+    }
+  }, [createdStudentId, addProgramStep])
+
+  const handleAddInvoiceStep = useCallback(async () => {
+    if (!createdStudentId) return
+    setAddInvoiceStepSaving(true)
+    setAddInvoiceStepError(null)
+    try {
+      const amount = parseInt(addInvoiceStep.amount.replace(/\D/g, ''), 10)
+      if (!amount || amount <= 0) throw new Error('Nominal harus berupa angka positif.')
+      const res = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId: createdStudentId,
+          description: addInvoiceStep.description,
+          amount,
+          dueDate: addInvoiceStep.dueDate,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(typeof data.error === 'string' ? data.error : 'Gagal membuat tagihan.')
+      }
+      await finishRegistration()
+    } catch (err: any) {
+      setAddInvoiceStepError(err.message)
+    } finally {
+      setAddInvoiceStepSaving(false)
+    }
+  }, [createdStudentId, addInvoiceStep])
+
+  const finishRegistration = useCallback(async () => {
+    await fetchParents()
+    setShowAddForm(false)
+    setAddStep('parent')
+    setCreatedParentId(null)
+    setCreatedStudentId(null)
+    setAddForm({ name: '', email: '', phone: '', password: '' })
+    setAddStudentStep({ name: '', gradeClass: '', tier: 'Tingkat 1' })
+    setAddProgramStep([])
+    setAddInvoiceStep({ description: 'Paket Registrasi Baru', amount: '400000', dueDate: '' })
+    setAddError(null)
+    setAddSuccess(null)
+  }, [fetchParents])
 
   const handleStartEdit = useCallback((parent: Parent) => {
     setEditingParent(parent)
@@ -629,17 +740,40 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
         </button>
       </div>
 
-      {/* Add Parent Inline Form */}
+      {/* Add Parent Multi-Step Wizard */}
       {showAddForm && (
         <div className="rounded-2xl bg-white dark:bg-[#121b2d] border border-indigo-100 dark:border-indigo-900/30 shadow-md p-6 space-y-4">
+          {/* Header with step indicator */}
           <div className="flex items-center justify-between">
-            <h2 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <UserPlus className="h-4 w-4 text-indigo-500" />
-              Tambah Akun Wali Murid Baru
-            </h2>
+            <div>
+              <h2 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <UserPlus className="h-4 w-4 text-indigo-500" />
+                {addStep === 'parent' && 'Langkah 1: Data Wali Murid'}
+                {addStep === 'student' && 'Langkah 2: Data Siswa'}
+                {addStep === 'program' && 'Langkah 3: Program Belajar'}
+                {addStep === 'invoice' && 'Langkah 4: Tagihan Awal'}
+              </h2>
+              <div className="flex gap-1.5 mt-1.5">
+                {(['parent', 'student', 'program', 'invoice'] as const).map((s, i) => (
+                  <div
+                    key={s}
+                    className={`h-1 w-8 rounded-full transition-colors ${
+                      addStep === s
+                        ? 'bg-indigo-600'
+                        : (['parent', 'student', 'program', 'invoice'] as const).indexOf(addStep) > i
+                        ? 'bg-indigo-300'
+                        : 'bg-slate-200 dark:bg-slate-700'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
             <button
               onClick={() => {
                 setShowAddForm(false)
+                setAddStep('parent')
+                setCreatedParentId(null)
+                setCreatedStudentId(null)
                 setAddError(null)
                 setAddSuccess(null)
               }}
@@ -649,92 +783,273 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
             </button>
           </div>
 
-          {addError && (
-            <div className="rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 px-4 py-3 text-sm text-rose-600 dark:text-rose-400 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              {addError}
-            </div>
+          {/* STEP 1: Parent Info */}
+          {addStep === 'parent' && (
+            <>
+              {addError && (
+                <div className="rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 px-4 py-3 text-sm text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {addError}
+                </div>
+              )}
+              <form onSubmit={handleAddParent} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Nama Lengkap *</label>
+                  <input
+                    required
+                    value={addForm.name}
+                    onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                    placeholder="Nama wali murid"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Email *</label>
+                  <input
+                    required
+                    type="email"
+                    value={addForm.email}
+                    onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                    placeholder="email@contoh.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">No. WhatsApp</label>
+                  <input
+                    value={addForm.phone}
+                    onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                    placeholder="08xxxxxxxxxx"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Password Sementara *</label>
+                  <input
+                    required
+                    type="password"
+                    minLength={6}
+                    value={addForm.password}
+                    onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                    placeholder="Min. 6 karakter"
+                  />
+                </div>
+                <div className="sm:col-span-2 lg:col-span-4 flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={addSaving}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {addSaving ? 'Menyimpan...' : 'Lanjut →'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowAddForm(false); setAddError(null) }}
+                    className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                </div>
+              </form>
+            </>
           )}
 
-          {addSuccess && (
-            <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
-              {addSuccess}
-            </div>
+          {/* STEP 2: Student Info */}
+          {addStep === 'student' && (
+            <>
+              {addStudentStepError && (
+                <div className="rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 p-3 text-sm text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {addStudentStepError}
+                </div>
+              )}
+              <form onSubmit={handleAddStudentStep} className="grid sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Nama Siswa *</label>
+                  <input
+                    required
+                    value={addStudentStep.name}
+                    onChange={(e) => setAddStudentStep({ ...addStudentStep, name: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                    placeholder="Nama lengkap siswa"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Kelas / Jenjang</label>
+                  <input
+                    value={addStudentStep.gradeClass}
+                    onChange={(e) => setAddStudentStep({ ...addStudentStep, gradeClass: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                    placeholder="mis. Kelas 5 SD"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Paket SPP *</label>
+                  <select
+                    value={addStudentStep.tier}
+                    onChange={(e) => {
+                      setAddStudentStep({ ...addStudentStep, tier: e.target.value })
+                      const tierPrices: Record<string, number> = {
+                        'Tingkat 1': 150000,
+                        'Tingkat 2': 160000,
+                        'Tingkat 3': 170000,
+                        'Tingkat 4': 180000,
+                      }
+                      const price = tierPrices[e.target.value]
+                      if (price) {
+                        setAddInvoiceStep(prev => ({ ...prev, amount: String(price), description: `SPP ${e.target.value} — Bulan Pertama` }))
+                      }
+                    }}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="Tingkat 1">Tingkat 1 — Rp150.000/bulan</option>
+                    <option value="Tingkat 2">Tingkat 2 — Rp160.000/bulan</option>
+                    <option value="Tingkat 3">Tingkat 3 — Rp170.000/bulan</option>
+                    <option value="Tingkat 4">Tingkat 4 — Rp180.000/bulan</option>
+                  </select>
+                </div>
+                <div className="sm:col-span-3 flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={addStudentStepSaving}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {addStudentStepSaving ? 'Menyimpan...' : 'Lanjut →'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddStep('program')}
+                    className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer"
+                  >
+                    Lewati
+                  </button>
+                </div>
+              </form>
+            </>
           )}
 
-          <form onSubmit={handleAddParent} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                Nama Lengkap *
-              </label>
-              <input
-                required
-                value={addForm.name}
-                onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
-                placeholder="Nama wali murid"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                Email *
-              </label>
-              <input
-                required
-                type="email"
-                value={addForm.email}
-                onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
-                placeholder="email@contoh.com"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                No. WhatsApp
-              </label>
-              <input
-                value={addForm.phone}
-                onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
-                placeholder="08xxxxxxxxxx"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                Password Sementara *
-              </label>
-              <input
-                required
-                type="password"
-                minLength={6}
-                value={addForm.password}
-                onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
-                placeholder="Min. 6 karakter"
-              />
-            </div>
-            <div className="sm:col-span-2 lg:col-span-4 flex gap-3">
-              <button
-                type="submit"
-                disabled={addSaving}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
-              >
-                {addSaving ? 'Menyimpan...' : 'Simpan Akun'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAddForm(false)
-                  setAddError(null)
-                  setAddSuccess(null)
-                }}
-                className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer"
-              >
-                Batal
-              </button>
-            </div>
-          </form>
+          {/* STEP 3: Program Selection */}
+          {addStep === 'program' && (
+            <>
+              {addProgramStepError && (
+                <div className="rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 p-3 text-sm text-rose-600 dark:text-rose-400">
+                  {addProgramStepError}
+                </div>
+              )}
+              <div className="space-y-3">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {createdStudentId
+                    ? 'Pilih program untuk siswa yang baru didaftarkan:'
+                    : 'Tidak ada siswa yang didaftarkan — langkah ini akan dilewati.'}
+                </p>
+                {createdStudentId && (
+                  <div className="flex flex-wrap gap-2">
+                    {(['SEMPOA', 'AHE', 'EFK', 'EYL', 'EFE', 'CALISTUNG', 'ENGLISH'] as const).map((prog) => {
+                      const selected = addProgramStep.includes(prog)
+                      return (
+                        <button
+                          key={prog}
+                          type="button"
+                          onClick={() => setAddProgramStep(prev =>
+                            prev.includes(prog) ? prev.filter(p => p !== prog) : [...prev, prog]
+                          )}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border cursor-pointer transition-all ${
+                            selected
+                              ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
+                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-300'
+                          }`}
+                        >
+                          {prog}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleAddProgramStep}
+                    disabled={addProgramStepSaving}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {addProgramStepSaving ? 'Menyimpan...' : addProgramStep.length > 0 ? 'Lanjut →' : 'Lewati →'}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* STEP 4: Initial Invoice */}
+          {addStep === 'invoice' && (
+            <>
+              {addInvoiceStepError && (
+                <div className="rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 p-3 text-sm text-rose-600 dark:text-rose-400">
+                  {addInvoiceStepError}
+                </div>
+              )}
+              <div className="space-y-4">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {createdStudentId
+                    ? 'Buat tagihan awal untuk siswa (opsional). Standar: Paket Registrasi Baru Rp400.000.'
+                    : 'Tidak ada siswa — tagihan tidak bisa dibuat. Klik Selesai untuk menutup.'}
+                </p>
+                {createdStudentId && (
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Keterangan Tagihan *</label>
+                      <input
+                        type="text"
+                        value={addInvoiceStep.description}
+                        onChange={(e) => setAddInvoiceStep({ ...addInvoiceStep, description: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                        placeholder="mis. Paket Registrasi Baru"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Nominal (Rp) *</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={addInvoiceStep.amount ? parseInt(addInvoiceStep.amount.replace(/\D/g, '') || '0', 10).toLocaleString('id-ID') : ''}
+                        onChange={(e) => setAddInvoiceStep({ ...addInvoiceStep, amount: e.target.value.replace(/\D/g, '') })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Jatuh Tempo *</label>
+                      <input
+                        type="date"
+                        value={addInvoiceStep.dueDate}
+                        onChange={(e) => setAddInvoiceStep({ ...addInvoiceStep, dueDate: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-3 pt-2">
+                  {createdStudentId && (
+                    <button
+                      type="button"
+                      onClick={handleAddInvoiceStep}
+                      disabled={addInvoiceStepSaving || !addInvoiceStep.dueDate}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {addInvoiceStepSaving ? 'Menyimpan...' : 'Buat Tagihan & Selesai'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={finishRegistration}
+                    className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer"
+                  >
+                    {createdStudentId ? 'Lewati & Selesai' : 'Selesai'}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 
