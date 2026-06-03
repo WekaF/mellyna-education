@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { Plus, Users, Pencil, Info, Trash2 } from 'lucide-react'
+import { useConfirm } from '@/lib/hooks/use-confirm'
 
 const PROGRAMS = ['SEMPOA', 'AHE', 'EFK', 'EYL', 'EFE', 'CALISTUNG', 'ENGLISH'] as const
 type ProgramValue = typeof PROGRAMS[number]
@@ -148,6 +149,7 @@ interface ClassesClientProps {
 }
 
 export default function ClassesClient({ initialClasses, initialTutors, initialStudents }: ClassesClientProps) {
+  const confirm = useConfirm()
   const [classes, setClasses] = useState<Class[]>(initialClasses)
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -263,7 +265,13 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
   }
 
   const handleUnenroll = async (enrollmentId: string) => {
-    if (!confirm('Keluarkan siswa dari kelas ini?')) return
+    const ok = await confirm({
+      title: 'Keluarkan Siswa',
+      message: 'Keluarkan siswa dari kelas ini?',
+      variant: 'warning',
+      confirmLabel: 'Keluarkan',
+    })
+    if (!ok) return
     try {
       const delRes = await fetch(`/api/enrollments/${enrollmentId}`, { method: 'DELETE' })
       if (!delRes.ok) throw new Error('Gagal mengeluarkan siswa.')
@@ -280,7 +288,14 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
   }
 
   const handleDelete = useCallback(async (cls: Class) => {
-    if (!confirm(`Hapus kelas "${cls.name}"? Semua data enrollment akan ikut terhapus.`)) return
+    const ok = await confirm({
+      title: 'Hapus Kelas',
+      message: `Hapus kelas "${cls.name}"?`,
+      detail: 'Semua data enrollment siswa dalam kelas ini akan ikut terhapus.',
+      variant: 'danger',
+      confirmLabel: 'Hapus Kelas',
+    })
+    if (!ok) return
     setError(null)
     try {
       const res = await fetch(`/api/classes/${cls.id}`, { method: 'DELETE' })
@@ -289,7 +304,7 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
     } catch (err: any) {
       setError(err.message)
     }
-  }, [fetchClasses])
+  }, [fetchClasses, confirm])
 
   const handleEditOpen = useCallback((cls: Class) => {
     setEditClass(cls)
