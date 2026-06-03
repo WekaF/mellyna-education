@@ -335,15 +335,18 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
   }, [togglingId, selectedParent, selectedStudent])
 
   // Helper: check if parent has unpaid billings
-  const getParentBillingStatus = (parent: Parent) => {
+  const getParentBillingStatus = (parent: Parent): 'UNPAID' | 'PAID' | 'NONE' => {
+    let hasInvoice = false
     let hasUnpaid = false
     parent.children.forEach((student) => {
       student.invoices.forEach((invoice) => {
+        hasInvoice = true
         if (invoice.status === 'PENDING' || invoice.status === 'OVERDUE') {
           hasUnpaid = true
         }
       })
     })
+    if (!hasInvoice) return 'NONE'
     return hasUnpaid ? 'UNPAID' : 'PAID'
   }
 
@@ -389,14 +392,18 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
           <div className="flex flex-col gap-1 min-w-[200px]">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-bold text-slate-800 dark:text-slate-100 text-sm">{parent.name}</span>
-              <span className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                billingStatus === 'UNPAID'
-                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400'
-                  : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
-              }`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${billingStatus === 'UNPAID' ? 'bg-rose-500' : 'bg-emerald-500'}`} />
-                {billingStatus === 'UNPAID' ? 'Menunggak' : 'Lunas'}
-              </span>
+              {billingStatus === 'NONE' ? (
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">— belum ada tagihan</span>
+              ) : (
+                <span className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                  billingStatus === 'UNPAID'
+                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400'
+                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
+                }`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${billingStatus === 'UNPAID' ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                  {billingStatus === 'UNPAID' ? 'Menunggak' : 'Lunas'}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
               <span className="flex items-center gap-1">
