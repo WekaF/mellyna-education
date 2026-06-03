@@ -264,7 +264,7 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
     }
   }
 
-  const handleUnenroll = async (enrollmentId: string) => {
+  const handleUnenroll = useCallback(async (enrollmentId: string) => {
     const ok = await confirm({
       title: 'Keluarkan Siswa',
       message: 'Keluarkan siswa dari kelas ini?',
@@ -285,7 +285,7 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
     } catch {
       setError('Gagal mengeluarkan siswa.')
     }
-  }
+  }, [confirm, enrollClass])
 
   const handleDelete = useCallback(async (cls: Class) => {
     const ok = await confirm({

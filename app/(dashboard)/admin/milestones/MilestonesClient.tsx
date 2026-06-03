@@ -39,7 +39,7 @@ const PROGRAM_COLORS: Record<Program, string> = {
 
 export default function MilestonesClient({ initialMilestones }: { initialMilestones: Milestone[] }) {
   const router = useRouter()
-  const confirmDialog = useConfirm()
+  const confirm = useConfirm()
   const toast = useToastNotification()
   const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones)
   const [activeProgram, setActiveProgram] = useState<Program>('SEMPOA')
@@ -99,7 +99,7 @@ export default function MilestonesClient({ initialMilestones }: { initialMilesto
   }, [form, editTarget, router])
 
   const handleDelete = useCallback(async (id: string) => {
-    const ok = await confirmDialog({
+    const ok = await confirm({
       title: 'Hapus Milestone',
       message: 'Hapus milestone ini?',
       detail: 'Data progress siswa yang terhubung juga akan terhapus.',
@@ -117,7 +117,7 @@ export default function MilestonesClient({ initialMilestones }: { initialMilesto
     } finally {
       setLoading(false)
     }
-  }, [confirmDialog, toast])
+  }, [confirm, toast])
 
   return (
     <div className="space-y-8">

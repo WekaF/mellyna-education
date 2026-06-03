@@ -90,7 +90,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
     fetchInvoices()
   }, [fetchInvoices])
 
-  const handleRemind = async () => {
+  const handleRemind = useCallback(async () => {
     const ok = await confirm({
       title: 'Kirim Pengingat WhatsApp',
       message: 'Kirim pengingat WhatsApp ke semua orang tua dengan tagihan PENDING?',
@@ -109,7 +109,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
     } finally {
       setReminding(false)
     }
-  }
+  }, [confirm])
 
   const handleBulkSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
