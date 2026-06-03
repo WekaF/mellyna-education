@@ -155,6 +155,15 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
 
   const handleEditInvoice = useCallback(async () => {
     if (!editModal) return
+    if (!editModal.description.trim()) {
+      setError('Keterangan harus diisi.')
+      return
+    }
+    const amountNum = parseInt(editModal.amount, 10)
+    if (!editModal.amount || isNaN(amountNum) || amountNum <= 0) {
+      setError('Nominal harus berupa angka positif.')
+      return
+    }
     setError(null)
     setEditSaving(true)
     try {
@@ -162,14 +171,14 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          description: editModal.description,
-          amount: parseInt(editModal.amount),
+          description: editModal.description.trim(),
+          amount: amountNum,
           dueDate: editModal.dueDate,
         }),
       })
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || 'Gagal mengubah invoice.')
+        throw new Error(typeof data.error === 'string' ? data.error : 'Gagal mengubah invoice.')
       }
       setEditModal(null)
       await fetchInvoices()
@@ -276,18 +285,23 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
         const sending = sendingWAId === inv.id
         return (
           <div className="flex items-center gap-1 flex-wrap">
-            <button
-              onClick={() => setEditModal({
-                invoiceId: inv.id,
-                studentName: inv.student.name,
-                description: inv.description,
-                amount: String(inv.amount),
-                dueDate: new Date(inv.dueDate).toISOString().split('T')[0],
-              })}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-50 transition-colors cursor-pointer"
-            >
-              Edit
-            </button>
+            {inv.status !== 'PAID' && inv.status !== 'CANCELLED' && (
+              <button
+                onClick={() => {
+                  setError(null)
+                  setEditModal({
+                    invoiceId: inv.id,
+                    studentName: inv.student.name,
+                    description: inv.description,
+                    amount: String(inv.amount),
+                    dueDate: new Date(inv.dueDate).toISOString().split('T')[0],
+                  })
+                }}
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-50 transition-colors cursor-pointer"
+              >
+                Edit
+              </button>
+            )}
             {(inv.status === 'PENDING' || inv.status === 'OVERDUE') && (
               <button
                 onClick={() => setManualPayModal({ invoiceId: inv.id, studentName: inv.student.name, amount: inv.amount })}
@@ -572,7 +586,10 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
       </div>
 
       {editModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setEditModal(null) }}
+        >
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-xl">
             <h3 className="font-bold text-slate-800 dark:text-white mb-1">✏️ Edit Invoice</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Siswa: <strong>{editModal.studentName}</strong></p>
@@ -586,6 +603,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Keterangan *</label>
                 <input
                   type="text"
+                  required
                   value={editModal.description}
                   onChange={(e) => setEditModal({ ...editModal, description: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500"
@@ -595,6 +613,8 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Nominal (Rp) *</label>
                 <input
                   type="number"
+                  required
+                  min="1"
                   value={editModal.amount}
                   onChange={(e) => setEditModal({ ...editModal, amount: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500"
