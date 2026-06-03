@@ -14,7 +14,7 @@ const securityHeaders = [
       "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://app.sandbox.midtrans.com https://app.midtrans.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: http://localhost:9000 https:",
-      "connect-src 'self' https://fonts.gstatic.com",
+      "connect-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com https://app.sandbox.midtrans.com https://app.midtrans.com https://*.tile.openstreetmap.org https://unpkg.com https://sempoakreatif.com https://ahe.education",
       "font-src 'self' https://fonts.gstatic.com",
       "media-src 'self' http://localhost:9000 https:",
       "frame-src https://app.sandbox.midtrans.com https://app.midtrans.com",
