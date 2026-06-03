@@ -71,8 +71,10 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
       const res = await fetch(`/api/invoices?month=${filterMonth}&year=${filterYear}`)
+      if (!res.ok) throw new Error('Gagal memuat data tagihan.')
       setInvoices(await res.json())
     } catch {
       setError('Gagal memuat data tagihan.')
