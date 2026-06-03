@@ -28,6 +28,8 @@ import DataTable from '@/components/common/DataTable'
 import { formatRupiah } from '@/lib/utils'
 import { ProgramEnrollmentBadge } from '@/components/admin/ProgramEnrollmentBadge'
 import { ProgramEnrollmentModal } from '@/components/admin/ProgramEnrollmentModal'
+import { useConfirm } from '@/lib/hooks/use-confirm'
+import { useToastNotification } from '@/lib/hooks/use-toast-notification'
 
 // TS Interfaces matching Prisma relations
 interface TutorInfo {
@@ -153,6 +155,9 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
   const [addStudentForm, setAddStudentForm] = useState({ name: '', grade: '' })
   const [addStudentSaving, setAddStudentSaving] = useState(false)
   const [addStudentError, setAddStudentError] = useState<string | null>(null)
+
+  const confirm = useConfirm()
+  const toast = useToastNotification()
 
   // Program enrollment modal state
   const [programModal, setProgramModal] = useState<{
@@ -403,7 +408,13 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
       ? `Aktifkan kembali akun wali murid "${parent.name}"? Ini juga akan mengaktifkan seluruh siswanya kembali.`
       : `Tangguhkan akun wali murid "${parent.name}"? Seluruh siswa (anak) dari wali murid ini otomatis akan menjadi NONAKTIF.`
 
-    if (!confirm(confirmMsg)) return
+    const ok = await confirm({
+      title: parent.suspended ? 'Aktifkan Akun Wali Murid' : 'Tangguhkan Akun Wali Murid',
+      message: confirmMsg,
+      variant: parent.suspended ? 'info' : 'warning',
+      confirmLabel: parent.suspended ? 'Aktifkan' : 'Tangguhkan',
+    })
+    if (!ok) return
 
     setTogglingId(parent.id)
     try {
@@ -440,43 +451,57 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
         }
       }
     } catch (err: any) {
-      alert(err.message || 'Gagal mengubah status akun.')
+      toast.error(err.message || 'Gagal mengubah status akun.')
     } finally {
       setTogglingId(null)
     }
-  }, [togglingId, selectedParent, selectedStudent])
+  }, [togglingId, selectedParent, selectedStudent, confirm, toast])
 
   const handleDeleteParent = useCallback(async (parent: Parent) => {
-    if (!confirm(`Hapus permanen akun wali murid "${parent.name}"?\n\nSeluruh data siswa, tagihan, absensi, dan laporan belajar akan ikut terhapus. Tindakan ini TIDAK BISA DIBATALKAN.`)) return
+    const ok = await confirm({
+      title: 'Hapus Akun Wali Murid',
+      message: `Hapus permanen akun wali murid "${parent.name}"?`,
+      detail: 'Seluruh data siswa, tagihan, absensi, dan laporan belajar akan ikut terhapus. Tindakan ini TIDAK BISA DIBATALKAN.',
+      variant: 'danger',
+      confirmLabel: 'Hapus Permanen',
+    })
+    if (!ok) return
     try {
       const res = await fetch(`/api/users/${parent.id}`, { method: 'DELETE' })
       if (!res.ok) {
         const data = await res.json()
-        alert(typeof data.error === 'string' ? data.error : 'Gagal menghapus akun.')
+        toast.error(typeof data.error === 'string' ? data.error : 'Gagal menghapus akun.')
         return
       }
       if (selectedParent?.id === parent.id) { setSelectedParent(null); setSelectedStudent(null) }
       await fetchParents()
     } catch {
-      alert('Gagal menghapus akun.')
+      toast.error('Gagal menghapus akun.')
     }
-  }, [selectedParent, fetchParents])
+  }, [selectedParent, fetchParents, confirm, toast])
 
   const handleDeleteStudent = useCallback(async (studentId: string, studentName: string) => {
-    if (!confirm(`Hapus permanen siswa "${studentName}"?\n\nSeluruh data kehadiran, tagihan, dan laporan belajar akan ikut terhapus. Tindakan ini TIDAK BISA DIBATALKAN.`)) return
+    const ok = await confirm({
+      title: 'Hapus Data Siswa',
+      message: `Hapus permanen siswa "${studentName}"?`,
+      detail: 'Seluruh data kehadiran, tagihan, dan laporan belajar akan ikut terhapus. Tindakan ini TIDAK BISA DIBATALKAN.',
+      variant: 'danger',
+      confirmLabel: 'Hapus Permanen',
+    })
+    if (!ok) return
     try {
       const res = await fetch(`/api/students/${studentId}`, { method: 'DELETE' })
       if (!res.ok) {
         const data = await res.json()
-        alert(typeof data.error === 'string' ? data.error : 'Gagal menghapus siswa.')
+        toast.error(typeof data.error === 'string' ? data.error : 'Gagal menghapus siswa.')
         return
       }
       if (selectedStudent?.id === studentId) setSelectedStudent(null)
       await fetchParents()
     } catch {
-      alert('Gagal menghapus siswa.')
+      toast.error('Gagal menghapus siswa.')
     }
-  }, [selectedStudent, fetchParents])
+  }, [selectedStudent, fetchParents, confirm, toast])
 
   // Helper: check if parent has unpaid billings
   const getParentBillingStatus = (parent: Parent): 'UNPAID' | 'PAID' | 'NONE' => {
