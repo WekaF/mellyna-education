@@ -250,7 +250,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
   }, [createdParentId, addStudentStep])
 
   const handleAddProgramStep = useCallback(async () => {
-    if (!createdStudentId) return
+    if (!createdStudentId) { setAddStep('invoice'); return }
     if (addProgramStep.length === 0) {
       setAddStep('invoice')
       return
