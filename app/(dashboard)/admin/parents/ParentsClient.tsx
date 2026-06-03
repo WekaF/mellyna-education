@@ -1332,7 +1332,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
       )}
 
       {editingParent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => setEditingParent(null)} />
           <div className="relative w-full max-w-md bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-800/60 rounded-3xl p-6 shadow-2xl z-10">
             <div className="absolute top-0 left-0 w-full h-[5px] bg-gradient-to-r from-indigo-500 to-violet-500 rounded-t-3xl" />
@@ -1422,7 +1422,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
       )}
       {/* Add Student Modal */}
       {addStudentForParent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs" onClick={() => setAddStudentForParent(null)}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs" onClick={() => setAddStudentForParent(null)}>
           <div className="bg-white dark:bg-[#121a2c] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800/80 p-6 w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-bold text-slate-800 dark:text-white mb-1">Tambah Siswa</h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
