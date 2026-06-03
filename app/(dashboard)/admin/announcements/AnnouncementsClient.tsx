@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { Plus } from 'lucide-react'
+import { useConfirm } from '@/lib/hooks/use-confirm'
 
 interface Announcement {
   id: string
@@ -22,6 +23,7 @@ export default function AnnouncementsClient({ initialAnnouncements }: Announceme
   const [form, setForm] = useState({ title: '', content: '', published: false })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const confirm = useConfirm()
 
   const fetchAnnouncements = useCallback(async () => {
     setLoading(true)
@@ -69,15 +71,21 @@ export default function AnnouncementsClient({ initialAnnouncements }: Announceme
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Hapus pengumuman ini?')) return
+  const handleDelete = useCallback(async (id: string) => {
+    const ok = await confirm({
+      title: 'Hapus Pengumuman',
+      message: 'Hapus pengumuman ini secara permanen?',
+      variant: 'danger',
+      confirmLabel: 'Hapus',
+    })
+    if (!ok) return
     try {
       await fetch(`/api/announcements/${id}`, { method: 'DELETE' })
       await fetchAnnouncements()
     } catch {
       setError('Gagal menghapus pengumuman.')
     }
-  }
+  }, [confirm, fetchAnnouncements])
 
   return (
     <div className="space-y-6">
