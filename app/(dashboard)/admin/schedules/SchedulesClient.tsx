@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from 'react'
 import { Plus, Send, CalendarPlus, X, Info, Trash2 } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
+import { useToastNotification } from '@/lib/hooks/use-toast-notification'
 
 interface Schedule {
   id: string
@@ -46,6 +47,7 @@ export default function SchedulesClient({ initialSchedules, classes }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const toast = useToastNotification()
 
   // Timetable integration
   const [showGenerateModal, setShowGenerateModal] = useState(false)
@@ -85,7 +87,7 @@ export default function SchedulesClient({ initialSchedules, classes }: Props) {
       if (!res.ok) {
         throw new Error(data.error || 'Gagal sinkronisasi dari Timetable.')
       }
-      alert(data.message || 'Jadwal berhasil disinkronkan dan disiarkan via WhatsApp!')
+      toast.success(data.message || 'Jadwal berhasil disinkronkan dan disiarkan via WhatsApp!')
       setShowGenerateModal(false)
       await fetchSchedules()
     } catch (err: any) {
@@ -165,7 +167,7 @@ export default function SchedulesClient({ initialSchedules, classes }: Props) {
       setIsRecurring(false)
       setRecurrenceWeeks(12)
       setForm({ classId: '', date: '', startTime: '', endTime: '', topic: '', location: '' })
-      if (data.count > 1) alert(`${data.count} jadwal berhasil dibuat (jadwal berulang mingguan).`)
+      if (data.count > 1) toast.success(`${data.count} jadwal berhasil dibuat (jadwal berulang mingguan).`)
     } catch (err: any) {
       setError(err.message)
     } finally {
