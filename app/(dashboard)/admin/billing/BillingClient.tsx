@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { Plus, MessageCircle, Users } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
@@ -66,18 +66,24 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
     dueDate: string
   } | null>(null)
   const [editSaving, setEditSaving] = useState(false)
+  const [filterMonth, setFilterMonth] = useState<number>(new Date().getMonth() + 1)
+  const [filterYear, setFilterYear] = useState<number>(new Date().getFullYear())
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/invoices')
+      const res = await fetch(`/api/invoices?month=${filterMonth}&year=${filterYear}`)
       setInvoices(await res.json())
     } catch {
       setError('Gagal memuat data tagihan.')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [filterMonth, filterYear])
+
+  useEffect(() => {
+    fetchInvoices()
+  }, [fetchInvoices])
 
   const handleRemind = async () => {
     if (!confirm('Kirim pengingat WA ke semua orang tua dengan tagihan PENDING?')) return
@@ -385,6 +391,35 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
             <Plus className="h-4 w-4" /> Buat Invoice
           </button>
         </div>
+      </div>
+
+      {/* Month/Year Filter */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Filter Bulan:</span>
+        <select
+          value={filterMonth}
+          onChange={(e) => setFilterMonth(Number(e.target.value))}
+          className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+        >
+          {[
+            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+          ].map((name, i) => (
+            <option key={i + 1} value={i + 1}>{name}</option>
+          ))}
+        </select>
+        <select
+          value={filterYear}
+          onChange={(e) => setFilterYear(Number(e.target.value))}
+          className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+        >
+          {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(y => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+        <span className="text-xs text-slate-400 dark:text-slate-500">
+          {invoices.length} tagihan ditemukan
+        </span>
       </div>
 
       {error && (
