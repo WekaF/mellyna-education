@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from 'react'
 import { Plus, Pencil, Trash2, MessageCircle, UserX, UserCheck } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
+import { useConfirm } from '@/lib/hooks/use-confirm'
 
 interface Student {
   id: string
@@ -29,6 +30,7 @@ interface StudentsClientProps {
 }
 
 export default function StudentsClient({ initialStudents, parents: initialParents }: StudentsClientProps) {
+  const confirm = useConfirm()
   const [students, setStudents] = useState<Student[]>(initialStudents)
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -80,14 +82,21 @@ export default function StudentsClient({ initialStudents, parents: initialParent
   }
 
   const handleDelete = useCallback(async (id: string, name: string) => {
-    if (!confirm(`Hapus siswa "${name}"? Tindakan ini tidak dapat dibatalkan.`)) return
+    const ok = await confirm({
+      title: 'Hapus Siswa',
+      message: `Hapus siswa "${name}"?`,
+      detail: 'Tindakan ini tidak dapat dibatalkan.',
+      variant: 'danger',
+      confirmLabel: 'Hapus Siswa',
+    })
+    if (!ok) return
     try {
       await fetch(`/api/students/${id}`, { method: 'DELETE' })
       await fetchStudents()
     } catch {
       setError('Gagal menghapus siswa.')
     }
-  }, [fetchStudents])
+  }, [fetchStudents, confirm])
 
   const handleEditClick = useCallback((student: Student) => {
     setEditId(student.id)
