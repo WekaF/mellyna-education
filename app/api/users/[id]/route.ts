@@ -88,13 +88,36 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params
 
   try {
-    // Check if the user is a super admin
-    const targetUser = await prisma.user.findUnique({ where: { id } })
-    if (targetUser?.role === 'SUPER_ADMIN') {
+    const targetUser = await prisma.user.findUnique({
+      where: { id },
+      include: { children: { select: { id: true } } },
+    })
+    if (!targetUser) return NextResponse.json({ error: 'User tidak ditemukan.' }, { status: 404 })
+    if (targetUser.role === 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Tidak dapat menghapus Super Admin.' }, { status: 400 })
     }
 
-    await prisma.user.delete({ where: { id } })
+    const studentIds = targetUser.children.map((s) => s.id)
+
+    await prisma.$transaction(async (tx) => {
+      if (studentIds.length > 0) {
+        const invoices = await tx.invoice.findMany({
+          where: { studentId: { in: studentIds } },
+          select: { id: true },
+        })
+        const invoiceIds = invoices.map((i) => i.id)
+        if (invoiceIds.length > 0) {
+          await tx.payment.deleteMany({ where: { invoiceId: { in: invoiceIds } } })
+        }
+        await tx.invoice.deleteMany({ where: { studentId: { in: studentIds } } })
+        await tx.attendance.deleteMany({ where: { studentId: { in: studentIds } } })
+        await tx.enrollment.deleteMany({ where: { studentId: { in: studentIds } } })
+        await tx.learningReport.deleteMany({ where: { studentId: { in: studentIds } } })
+        await tx.student.deleteMany({ where: { id: { in: studentIds } } })
+      }
+      await tx.user.delete({ where: { id } })
+    })
+
     return NextResponse.json({ success: true })
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Gagal menghapus user.' }, { status: 500 })
