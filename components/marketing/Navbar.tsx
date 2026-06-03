@@ -72,22 +72,12 @@ export default function Navbar() {
           </div>
 
           {/* Desktop CTA */}
-          <div className="hidden md:flex items-center gap-3">
-            <Link
-              href="/login"
-              className={`px-4 py-2 text-sm font-bold rounded-xl transition-all duration-200 ${
-                scrolled
-                  ? 'text-me-text hover:bg-me-surface'
-                  : 'text-white hover:bg-white/10'
-              }`}
-            >
-              Masuk
-            </Link>
+          <div className="hidden md:flex items-center">
             <Link
               href="/login"
               className="px-5 py-2 text-sm font-bold text-white bg-me-primary rounded-xl shadow-brand hover:bg-me-primary-light hover:-translate-y-0.5 transition-all duration-200"
             >
-              Portal Orang Tua
+              Masuk
             </Link>
           </div>
 
