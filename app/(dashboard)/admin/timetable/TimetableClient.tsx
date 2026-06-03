@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Plus, Edit, Users, Trash2, CalendarPlus, X, Check, Search, Sparkles, Send, Clock, User, Info } from 'lucide-react'
+import { useConfirm } from '@/lib/hooks/use-confirm'
 
 type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
 
@@ -78,6 +79,7 @@ interface Props {
 }
 
 export default function TimetableClient({ initialClasses, initialTutors, initialStudents, initialPiketList }: Props) {
+  const confirm = useConfirm()
   const [classes, setClasses] = useState<ClassModel[]>(initialClasses)
   const [tutors, setTutors] = useState<Tutor[]>(initialTutors)
   const [students, setStudents] = useState<Student[]>(initialStudents)
@@ -407,7 +409,14 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
 
   const handleDeleteClass = async () => {
     if (!selectedClass) return
-    if (!confirm(`Apakah Anda yakin ingin menghapus kelas "${selectedClass.name}" secara permanen? Seluruh pendaftaran siswa akan dihapus.`)) return
+    const ok = await confirm({
+      title: 'Hapus Kelas Permanen',
+      message: `Hapus kelas "${selectedClass.name}" secara permanen?`,
+      detail: 'Seluruh pendaftaran siswa dalam kelas ini akan ikut dihapus.',
+      variant: 'danger',
+      confirmLabel: 'Hapus Kelas',
+    })
+    if (!ok) return
     setSavingClass(true)
     setError(null)
     try {
