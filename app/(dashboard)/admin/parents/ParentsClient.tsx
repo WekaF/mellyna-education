@@ -381,26 +381,37 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
   const columns = useMemo<ColumnDef<Parent>[]>(() => [
     {
       accessorKey: 'name',
-      header: 'Nama Wali Murid',
+      header: 'Wali Murid',
       cell: ({ row }) => {
         const parent = row.original
+        const billingStatus = getParentBillingStatus(parent)
         return (
-          <div className="flex flex-col">
-            <span className="font-bold text-slate-800 dark:text-slate-100 text-sm tracking-wide">{parent.name}</span>
-            <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400 dark:text-slate-500">
+          <div className="flex flex-col gap-1 min-w-[200px]">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-slate-800 dark:text-slate-100 text-sm">{parent.name}</span>
+              <span className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                billingStatus === 'UNPAID'
+                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400'
+                  : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
+              }`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${billingStatus === 'UNPAID' ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                {billingStatus === 'UNPAID' ? 'Menunggak' : 'Lunas'}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
               <span className="flex items-center gap-1">
-                <Mail className="h-3.5 w-3.5 shrink-0 text-slate-350" />
-                {parent.email}
+                <Mail className="h-3 w-3 shrink-0" />
+                <span className="truncate max-w-[160px]">{parent.email}</span>
               </span>
               {parent.phone && (
                 <a
                   href={getWaLink(parent.phone, parent.name) || '#'}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium transition-colors"
+                  className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 font-medium transition-colors"
                   title="Hubungi via WhatsApp"
                 >
-                  <Phone className="h-3.5 w-3.5 shrink-0" />
+                  <Phone className="h-3 w-3 shrink-0" />
                   {parent.phone}
                 </a>
               )}
@@ -410,52 +421,35 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
       },
     },
     {
-      id: 'children',
-      header: 'Siswa / Anak',
+      id: 'siswa_program',
+      header: 'Siswa & Program',
+      enableSorting: false,
       cell: ({ row }) => {
         const parent = row.original
         if (parent.children.length === 0) {
-          return <span className="text-xs text-slate-400 dark:text-slate-500 italic">Belum mendaftarkan siswa</span>
+          return <span className="text-xs text-slate-400 dark:text-slate-500 italic">Belum ada siswa</span>
         }
         return (
-          <div className="flex flex-wrap gap-1.5 max-w-xs">
-            {parent.children.map((child) => (
-              <button
-                key={child.id}
-                onClick={() => {
-                  setSelectedParent(parent)
-                  setSelectedStudent(child)
-                  setActiveAnalyticTab('overview')
-                }}
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 shadow-xs hover:-translate-y-0.5 cursor-pointer transition-all duration-200 ${
-                  child.isActive
-                    ? 'bg-blue-50/70 border-blue-200 text-blue-700 dark:bg-blue-950/20 dark:border-blue-900/60 dark:text-blue-400'
-                    : 'bg-slate-50 border-slate-200 text-slate-400 line-through dark:bg-slate-900/40 dark:border-slate-800 dark:text-slate-500'
-                }`}
-                title={`Lihat Analitik: ${child.name}`}
-              >
-                📊 {child.name}
-              </button>
-            ))}
-          </div>
-        )
-      },
-    },
-    {
-      id: 'program',
-      header: 'Program',
-      cell: ({ row }) => {
-        const parent = row.original
-        if (parent.children.length === 0) {
-          return <span className="text-xs text-slate-400 dark:text-slate-500 italic">-</span>
-        }
-        return (
-          <div className="space-y-1.5">
+          <div className="space-y-2 min-w-[200px]">
             {parent.children.map((child) => {
               const actives = (child.programEnrollments ?? []).filter((pe) => pe.status === 'ACTIVE')
               return (
-                <div key={child.id} className="flex items-start gap-1.5">
-                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 shrink-0 w-16 truncate pt-0.5">{child.name}:</span>
+                <div key={child.id} className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => {
+                      setSelectedParent(parent)
+                      setSelectedStudent(child)
+                      setActiveAnalyticTab('overview')
+                    }}
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 shadow-xs hover:-translate-y-0.5 cursor-pointer transition-all duration-200 shrink-0 ${
+                      child.isActive
+                        ? 'bg-blue-50/70 border-blue-200 text-blue-700 dark:bg-blue-950/20 dark:border-blue-900/60 dark:text-blue-400'
+                        : 'bg-slate-50 border-slate-200 text-slate-400 line-through dark:bg-slate-900/40 dark:border-slate-800 dark:text-slate-500'
+                    }`}
+                    title={`Lihat Analitik: ${child.name}`}
+                  >
+                    📊 {child.name}
+                  </button>
                   <div className="flex flex-wrap items-center gap-1">
                     {actives.length === 0 ? (
                       <ProgramEnrollmentBadge program={null} />
@@ -466,10 +460,10 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
                     )}
                     <button
                       onClick={() => openProgramModal(child)}
-                      className="group flex items-center cursor-pointer"
+                      className="text-[10px] text-indigo-500 font-bold opacity-60 hover:opacity-100 transition-opacity cursor-pointer"
                       title={`Tambah program untuk ${child.name}`}
                     >
-                      <span className="text-[10px] text-indigo-500 font-bold opacity-60 group-hover:opacity-100 transition-opacity">+</span>
+                      +
                     </button>
                   </div>
                 </div>
@@ -480,59 +474,33 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
       },
     },
     {
-      id: 'packages',
-      header: 'Paket Belajar',
-      cell: ({ row }) => {
-        const parent = row.original
-        if (parent.children.length === 0) {
-          return <span className="text-xs text-slate-400 dark:text-slate-500">-</span>
-        }
-        return (
-          <div className="space-y-1.5">
-            {parent.children.map((child) => {
-              const baseGrade = child.grade ? child.grade.split(' | ')[0] : 'Siswa Bimbel'
-              const pricingPart = child.grade && child.grade.includes(' | ') ? child.grade.split(' | ')[1] : 'Tingkat 1'
-
-              return (
-                <div key={child.id} className="text-xs flex items-center gap-1">
-                  <span className="font-semibold text-slate-700 dark:text-slate-350">{child.name}:</span>
-                  <span className="text-slate-500 dark:text-slate-450 truncate" title={`${baseGrade} (${pricingPart})`}>
-                    {baseGrade} <span className="text-[10px] px-1 bg-slate-100 dark:bg-slate-800 rounded font-semibold text-indigo-600 dark:text-indigo-400">{pricingPart.split(' ')[0]}</span>
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        )
-      },
-    },
-    {
-      id: 'billing_status',
-      header: 'Status Keuangan',
-      cell: ({ row }) => {
-        const parent = row.original
-        const status = getParentBillingStatus(parent)
-        return status === 'UNPAID' ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-            Menunggak
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Lunas
-          </span>
-        )
-      },
-    },
-    {
       id: 'account_status',
       header: 'Status Akun',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const parent = row.original
+        return parent.suspended ? (
+          <span className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 whitespace-nowrap">
+            <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+            Suspended
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 whitespace-nowrap">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            Aktif
+          </span>
+        )
+      },
+    },
+    {
+      id: 'actions',
+      header: '',
+      enableSorting: false,
       cell: ({ row }) => {
         const parent = row.original
         const isToggling = togglingId === parent.id
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-1.5 flex-wrap">
             <button
               onClick={() => handleStartEdit(parent)}
               className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg cursor-pointer transition-all border bg-slate-50 border-slate-200 text-slate-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 dark:bg-slate-900/40 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-indigo-950/20 dark:hover:text-indigo-400"
@@ -542,9 +510,33 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
               Edit
             </button>
             <button
+              onClick={() => {
+                setAddStudentForParent(parent)
+                setAddStudentForm({ name: '', grade: '' })
+                setAddStudentError(null)
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/30 dark:text-emerald-400 transition-colors cursor-pointer border border-emerald-200 dark:border-emerald-900/40"
+            >
+              <UserPlus className="h-3 w-3" />
+              +Siswa
+            </button>
+            {parent.children.length > 0 && (
+              <button
+                onClick={() => {
+                  setSelectedParent(parent)
+                  setSelectedStudent(parent.children[0])
+                  setActiveAnalyticTab('overview')
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/30 dark:text-indigo-400 transition-colors cursor-pointer border border-indigo-200 dark:border-indigo-900/40"
+              >
+                <BarChart2 className="h-3 w-3" />
+                Analitik
+              </button>
+            )}
+            <button
               onClick={() => handleToggleSuspend(parent)}
               disabled={isToggling}
-              className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-lg cursor-pointer transition-all duration-200 disabled:opacity-50 border ${
+              className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg cursor-pointer transition-all duration-200 disabled:opacity-50 border ${
                 parent.suspended
                   ? 'bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100/70 dark:bg-rose-950/10 dark:border-rose-900/40 dark:text-rose-400'
                   : 'bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100/70 dark:bg-emerald-950/10 dark:border-emerald-900/40 dark:text-emerald-400'
@@ -557,49 +549,13 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
               ) : (
                 <UserCheck className="h-3.5 w-3.5" />
               )}
-              {parent.suspended ? 'Suspended' : 'Aktif'}
+              {parent.suspended ? 'Suspend' : 'Aktif'}
             </button>
           </div>
         )
       },
     },
-    {
-      id: 'actions',
-      header: '',
-      enableSorting: false,
-      cell: ({ row }) => {
-        const parent = row.original
-        return (
-          <div className="flex items-center justify-end gap-2">
-            <button
-              onClick={() => {
-                setAddStudentForParent(parent)
-                setAddStudentForm({ name: '', grade: '' })
-                setAddStudentError(null)
-              }}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/30 dark:text-emerald-400 transition-colors cursor-pointer"
-            >
-              <UserPlus className="h-3.5 w-3.5" />
-              <span>+Siswa</span>
-            </button>
-            {parent.children.length > 0 && (
-              <button
-                onClick={() => {
-                  setSelectedParent(parent)
-                  setSelectedStudent(parent.children[0])
-                  setActiveAnalyticTab('overview')
-                }}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/30 dark:text-indigo-400 transition-colors cursor-pointer"
-              >
-                <BarChart2 className="h-3.5 w-3.5" />
-                <span>Analitik</span>
-              </button>
-            )}
-          </div>
-        )
-      },
-    },
-  ], [handleToggleSuspend, togglingId, handleStartEdit])
+  ], [handleToggleSuspend, togglingId, handleStartEdit, setSelectedParent, setSelectedStudent, setActiveAnalyticTab, setAddStudentForParent, setAddStudentForm, setAddStudentError, openProgramModal])
 
   // Calculation for student analytics
   const studentAnalytics = useMemo(() => {
