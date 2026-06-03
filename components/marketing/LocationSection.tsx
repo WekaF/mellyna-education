@@ -100,13 +100,14 @@ export default function LocationSection() {
                   <p className="text-indigo-100 text-xs mt-0.5">Hubungi kami sekarang</p>
                 </div>
               </div>
+              <p className="text-white/90 text-sm font-semibold mb-3">+62 857-3100-8212</p>
               <a
-                href="https://maps.app.goo.gl/ZFnnCMCh7yo27j9m7"
+                href="https://wa.me/628573100212"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full text-center py-2.5 rounded-xl bg-white text-indigo-600 text-sm font-bold hover:bg-indigo-50 transition-colors"
               >
-                Kunjungi Kami
+                WhatsApp Kami
               </a>
             </div>
           </motion.div>
