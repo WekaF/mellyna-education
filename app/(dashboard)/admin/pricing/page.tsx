@@ -5,6 +5,7 @@ import { Check, Info, BookOpen, Pencil, RotateCcw, X, Plus, Trash2, Save } from 
 import { UserPlus, Award } from 'lucide-react'
 import { formatRupiah } from '@/lib/utils'
 import { defaultSppTiers, defaultAdminFees } from '@/lib/constants/pricing'
+import { useConfirm } from '@/lib/hooks/use-confirm'
 
 const tierVisuals = [
   {
@@ -40,6 +41,7 @@ const monthlyTiers = defaultSppTiers.map((tier, i) => ({ ...tier, ...tierVisuals
 const adminFees = defaultAdminFees.map((fee, i) => ({ ...fee, ...feeVisuals[i] }))
 
 export default function AdminPricingPage() {
+  const confirm = useConfirm()
   const [activeTab, setActiveTab] = useState<'spp' | 'admin'>('spp')
   const [sppTiers, setSppTiers] = useState(monthlyTiers)
   const [fees, setFees] = useState(adminFees)
@@ -103,9 +105,16 @@ export default function AdminPricingPage() {
     setEditBadge(null)
   }
 
-  const handleDeleteTier = (index: number) => {
+  const handleDeleteTier = async (index: number) => {
     const name = sppTiers[index].name
-    if (!confirm(`Hapus paket "${name}"? Tindakan ini tidak dapat dibatalkan.`)) return
+    const ok = await confirm({
+      title: 'Hapus Paket Harga',
+      message: `Hapus paket "${name}"?`,
+      detail: 'Tindakan ini tidak dapat dibatalkan.',
+      variant: 'danger',
+      confirmLabel: 'Hapus Paket',
+    })
+    if (!ok) return
     const updated = sppTiers.filter((_, i) => i !== index)
     setSppTiers(updated)
     localStorage.setItem('mellyna_spp_tiers', JSON.stringify(updated))
@@ -178,8 +187,15 @@ export default function AdminPricingPage() {
     setEditingItem(null)
   }
 
-  const handleResetDefaults = () => {
-    if (confirm('Apakah Anda yakin ingin mengembalikan semua paket harga ke setelan awal?')) {
+  const handleResetDefaults = async () => {
+    const ok = await confirm({
+      title: 'Reset ke Setelan Awal',
+      message: 'Kembalikan semua paket harga ke setelan awal?',
+      detail: 'Seluruh perubahan harga yang sudah dibuat akan hilang.',
+      variant: 'warning',
+      confirmLabel: 'Reset Sekarang',
+    })
+    if (ok) {
       setSppTiers(monthlyTiers)
       setFees(adminFees)
       localStorage.removeItem('mellyna_spp_tiers')
