@@ -146,7 +146,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
     activeEnrollments: { id: string; program: string }[]
   }>({ isOpen: false, studentId: '', studentName: '', mode: 'assign', activeEnrollments: [] })
 
-  const openProgramModal = (student: Student) => {
+  const openProgramModal = useCallback((student: Student) => {
     const active = (student.programEnrollments ?? []).filter((pe) => pe.status === 'ACTIVE')
     setProgramModal({
       isOpen: true,
@@ -155,7 +155,7 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
       mode: active.length === 0 ? 'assign' : 'add',
       activeEnrollments: active.map((pe) => ({ id: pe.id, program: pe.program })),
     })
-  }
+  }, [])
 
   const closeProgramModal = () => setProgramModal((prev) => ({ ...prev, isOpen: false }))
 
