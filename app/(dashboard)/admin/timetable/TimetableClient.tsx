@@ -603,25 +603,13 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                                 </span>
                               ))}
                             </div>
-                            <div className="flex opacity-0 group-hover/card:opacity-100 transition-opacity gap-1">
+                            <div className="flex gap-1">
                               <button
                                 onClick={() => handleOpenEditModal(cls)}
                                 title="Ubah Kelas"
                                 className="p-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors cursor-pointer"
                               >
                                 <Edit className="h-2.5 w-2.5" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setEnrollClass(cls)
-                                  setStudentSearch('')
-                                  setEnrollError(null)
-                                  setShowEnrollModal(true)
-                                }}
-                                title="Kelola Siswa"
-                                className="p-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 hover:text-emerald-600 transition-colors cursor-pointer"
-                              >
-                                <Users className="h-2.5 w-2.5" />
                               </button>
                             </div>
                           </div>
@@ -632,12 +620,20 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                             <User className="h-2.5 w-2.5 opacity-60 shrink-0" />
                             {[cls.tutor.name, ...(cls.additionalTutors ?? []).map(at => at.tutor.name)].join(', ')}
                           </div>
-                          <div className="mt-2 pt-1 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-[10px]">
-                            <span className="text-slate-400 dark:text-slate-500 font-medium">👥 Siswa</span>
+                          <button
+                            onClick={() => {
+                              setEnrollClass(cls)
+                              setStudentSearch('')
+                              setEnrollError(null)
+                              setShowEnrollModal(true)
+                            }}
+                            className="mt-2 pt-1 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-[10px] w-full cursor-pointer hover:opacity-80 transition-opacity"
+                          >
+                            <span className="text-slate-400 dark:text-slate-500 font-medium">👥 Kelola Siswa</span>
                             <span className="font-bold text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30">
                               {cls.enrollments.length}
                             </span>
-                          </div>
+                          </button>
                         </div>
                       ))}
 
