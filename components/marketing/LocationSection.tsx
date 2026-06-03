@@ -102,7 +102,7 @@ export default function LocationSection() {
               </div>
               <p className="text-white/90 text-sm font-semibold mb-3">+62 857-3100-8212</p>
               <a
-                href="https://wa.me/628573100212"
+                href="https://wa.me/6285731008212"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full text-center py-2.5 rounded-xl bg-white text-indigo-600 text-sm font-bold hover:bg-indigo-50 transition-colors"
