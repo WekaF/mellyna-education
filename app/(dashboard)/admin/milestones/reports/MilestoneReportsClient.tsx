@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { ReportPeriodType } from '@prisma/client'
 import { Plus, FileText, Trash2, Download, Send, Search, X } from 'lucide-react'
+import { useConfirm } from '@/lib/hooks/use-confirm'
+import { useToastNotification } from '@/lib/hooks/use-toast-notification'
 
 type Student = { id: string; name: string; grade: string | null }
 type Report = {
@@ -78,6 +80,8 @@ export default function MilestoneReportsClient({
   const [searchQuery, setSearchQuery] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
+  const confirm = useConfirm()
+  const toast = useToastNotification()
 
   const [form, setForm] = useState({
     studentId: '',
@@ -146,16 +150,22 @@ export default function MilestoneReportsClient({
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Hapus raport ini?')) return
+  const handleDelete = useCallback(async (id: string) => {
+    const ok = await confirm({
+      title: 'Hapus Raport',
+      message: 'Hapus raport ini secara permanen?',
+      variant: 'danger',
+      confirmLabel: 'Hapus Raport',
+    })
+    if (!ok) return
     try {
       const res = await fetch(`/api/milestone-reports/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error()
       setReports((prev) => prev.filter((r) => r.id !== id))
     } catch {
-      alert('Gagal menghapus raport')
+      toast.error('Gagal menghapus raport')
     }
-  }
+  }, [confirm, toast])
 
   const fmtDate = (s: string) =>
     new Date(s).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
