@@ -326,6 +326,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               name: classForm.name,
+              mainProgram: existingClass!.mainProgram,
               programs: classForm.programs,
               tutorId: classForm.tutorId,
               additionalTutorIds: classForm.additionalTutorIds,
