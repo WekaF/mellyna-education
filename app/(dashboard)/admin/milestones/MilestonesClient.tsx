@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Program } from '@prisma/client'
 import { Plus, Pencil, Trash2, BookMarked } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useConfirm } from '@/lib/hooks/use-confirm'
+import { useToastNotification } from '@/lib/hooks/use-toast-notification'
 
 type Milestone = {
   id: string
@@ -37,6 +39,8 @@ const PROGRAM_COLORS: Record<Program, string> = {
 
 export default function MilestonesClient({ initialMilestones }: { initialMilestones: Milestone[] }) {
   const router = useRouter()
+  const confirmDialog = useConfirm()
+  const toast = useToastNotification()
   const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones)
   const [activeProgram, setActiveProgram] = useState<Program>('SEMPOA')
   const [showForm, setShowForm] = useState(false)
@@ -61,7 +65,7 @@ export default function MilestonesClient({ initialMilestones }: { initialMilesto
     setShowForm(true)
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!form.name.trim()) { setError('Nama milestone wajib diisi'); return }
     setLoading(true)
     setError('')
@@ -92,21 +96,28 @@ export default function MilestonesClient({ initialMilestones }: { initialMilesto
     } finally {
       setLoading(false)
     }
-  }
+  }, [form, editTarget, router])
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Hapus milestone ini? Data progress siswa yang terhubung juga akan terhapus.')) return
+  const handleDelete = useCallback(async (id: string) => {
+    const ok = await confirmDialog({
+      title: 'Hapus Milestone',
+      message: 'Hapus milestone ini?',
+      detail: 'Data progress siswa yang terhubung juga akan terhapus.',
+      variant: 'danger',
+      confirmLabel: 'Hapus Milestone',
+    })
+    if (!ok) return
     setLoading(true)
     try {
       const res = await fetch(`/api/milestones/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Gagal menghapus milestone')
       setMilestones((prev) => prev.filter((m) => m.id !== id))
     } catch (e: any) {
-      alert(e.message)
+      toast.error(e.message)
     } finally {
       setLoading(false)
     }
-  }
+  }, [confirmDialog, toast])
 
   return (
     <div className="space-y-8">
