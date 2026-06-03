@@ -31,6 +31,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (current.status !== 'ACTIVE') {
       return NextResponse.json({ error: 'Hanya program yang ACTIVE yang bisa di-upgrade' }, { status: 400 })
     }
+    if (parsed.data.newPrograms.includes(current.program as any)) {
+      return NextResponse.json(
+        { error: 'Program baru tidak boleh sama dengan program aktif saat ini' },
+        { status: 400 }
+      )
+    }
     const [, ...newEnrollments] = await prisma.$transaction([
       prisma.programEnrollment.update({
         where: { id },
