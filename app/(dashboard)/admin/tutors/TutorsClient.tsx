@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from 'react'
 import { Plus, X } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
+import { useConfirm } from '@/lib/hooks/use-confirm'
 
 interface Tutor {
   id: string
@@ -26,6 +27,7 @@ interface TutorsClientProps {
 }
 
 export default function TutorsClient({ initialTutors }: TutorsClientProps) {
+  const confirm = useConfirm()
   const [tutors, setTutors] = useState<Tutor[]>(initialTutors)
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -111,7 +113,13 @@ export default function TutorsClient({ initialTutors }: TutorsClientProps) {
   }
 
   const handleToggleSuspend = useCallback(async (tutor: Tutor) => {
-    if (!confirm(`${tutor.suspended ? 'Aktifkan kembali' : 'Tangguhkan'} akun tutor "${tutor.name}"?`)) return
+    const ok = await confirm({
+      title: tutor.suspended ? 'Aktifkan Akun Tutor' : 'Tangguhkan Akun Tutor',
+      message: `${tutor.suspended ? 'Aktifkan kembali' : 'Tangguhkan'} akun tutor "${tutor.name}"?`,
+      variant: tutor.suspended ? 'info' : 'warning',
+      confirmLabel: tutor.suspended ? 'Aktifkan' : 'Tangguhkan',
+    })
+    if (!ok) return
     setSuspending(tutor.id)
     try {
       const res = await fetch(`/api/admin/users/${tutor.id}/suspend`, { method: 'PATCH' })
@@ -125,7 +133,7 @@ export default function TutorsClient({ initialTutors }: TutorsClientProps) {
     } finally {
       setSuspending(null)
     }
-  }, [fetchTutors])
+  }, [fetchTutors, confirm])
 
   const columns = useMemo<ColumnDef<Tutor>[]>(() => [
     {
