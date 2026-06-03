@@ -38,7 +38,7 @@ export function ProgramEnrollmentModal({
   activeEnrollments = [],
   onSuccess,
 }: ProgramEnrollmentModalProps) {
-  const [selectedProgram, setSelectedProgram] = useState<ProgramKey | null>(null)
+  const [selectedPrograms, setSelectedPrograms] = useState<ProgramKey[]>([])
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -50,30 +50,35 @@ export function ProgramEnrollmentModal({
     : PROGRAMS
 
   const handleSubmit = async () => {
-    if (!selectedProgram) {
-      setError('Pilih program terlebih dahulu.')
+    if (selectedPrograms.length === 0) {
+      setError('Pilih minimal satu program.')
       return
     }
     setLoading(true)
     setError(null)
     try {
-      let res: Response
       if (mode === 'assign' || mode === 'add') {
-        res = await fetch('/api/program-enrollments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ studentId, program: selectedProgram, notes: notes || undefined }),
-        })
+        for (const program of selectedPrograms) {
+          const res = await fetch('/api/program-enrollments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ studentId, program, notes: notes || undefined }),
+          })
+          if (!res.ok) {
+            const data = await res.json()
+            throw new Error(data.error || 'Terjadi kesalahan.')
+          }
+        }
       } else {
-        res = await fetch(`/api/program-enrollments/${currentProgramEnrollmentId}/upgrade`, {
+        const res = await fetch(`/api/program-enrollments/${currentProgramEnrollmentId}/upgrade`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ newProgram: selectedProgram, notes: notes || undefined }),
+          body: JSON.stringify({ newPrograms: selectedPrograms, notes: notes || undefined }),
         })
-      }
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Terjadi kesalahan.')
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.error || 'Terjadi kesalahan.')
+        }
       }
       handleClose()
       onSuccess()
@@ -107,7 +112,7 @@ export function ProgramEnrollmentModal({
   }
 
   const handleClose = () => {
-    setSelectedProgram(null)
+    setSelectedPrograms([])
     setNotes('')
     setError(null)
     onClose()
@@ -217,12 +222,18 @@ export function ProgramEnrollmentModal({
               </label>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 {availablePrograms.map((program) => {
-                  const isSelected = selectedProgram === program
+                  const isSelected = selectedPrograms.includes(program)
                   return (
                     <button
                       key={program}
                       type="button"
-                      onClick={() => setSelectedProgram(program)}
+                      onClick={() => {
+                        setSelectedPrograms(prev =>
+                          prev.includes(program)
+                            ? prev.filter(p => p !== program)
+                            : [...prev, program]
+                        )
+                      }}
                       className={`relative flex items-center gap-2.5 p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
                         isSelected
                           ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 shadow-sm'
@@ -275,7 +286,7 @@ export function ProgramEnrollmentModal({
           {availablePrograms.length > 0 && (
             <button
               onClick={handleSubmit}
-              disabled={loading || !selectedProgram}
+              disabled={loading || selectedPrograms.length === 0}
               className={`px-5 py-2 rounded-xl text-sm font-bold text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${buttonColor}`}
             >
               {buttonLabel}
