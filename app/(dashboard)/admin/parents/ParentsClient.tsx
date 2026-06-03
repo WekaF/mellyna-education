@@ -21,6 +21,7 @@ import {
   BookOpen,
   Check,
   Pencil,
+  Trash2,
 } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
@@ -445,6 +446,38 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
     }
   }, [togglingId, selectedParent, selectedStudent])
 
+  const handleDeleteParent = useCallback(async (parent: Parent) => {
+    if (!confirm(`Hapus permanen akun wali murid "${parent.name}"?\n\nSeluruh data siswa, tagihan, absensi, dan laporan belajar akan ikut terhapus. Tindakan ini TIDAK BISA DIBATALKAN.`)) return
+    try {
+      const res = await fetch(`/api/users/${parent.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(typeof data.error === 'string' ? data.error : 'Gagal menghapus akun.')
+        return
+      }
+      if (selectedParent?.id === parent.id) { setSelectedParent(null); setSelectedStudent(null) }
+      await fetchParents()
+    } catch {
+      alert('Gagal menghapus akun.')
+    }
+  }, [selectedParent, fetchParents])
+
+  const handleDeleteStudent = useCallback(async (studentId: string, studentName: string) => {
+    if (!confirm(`Hapus permanen siswa "${studentName}"?\n\nSeluruh data kehadiran, tagihan, dan laporan belajar akan ikut terhapus. Tindakan ini TIDAK BISA DIBATALKAN.`)) return
+    try {
+      const res = await fetch(`/api/students/${studentId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(typeof data.error === 'string' ? data.error : 'Gagal menghapus siswa.')
+        return
+      }
+      if (selectedStudent?.id === studentId) setSelectedStudent(null)
+      await fetchParents()
+    } catch {
+      alert('Gagal menghapus siswa.')
+    }
+  }, [selectedStudent, fetchParents])
+
   // Helper: check if parent has unpaid billings
   const getParentBillingStatus = (parent: Parent): 'UNPAID' | 'PAID' | 'NONE' => {
     let hasInvoice = false
@@ -669,11 +702,19 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
               )}
               {parent.suspended ? 'Suspend' : 'Aktif'}
             </button>
+            <button
+              onClick={() => handleDeleteParent(parent)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg cursor-pointer transition-all border bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100 dark:bg-rose-950/10 dark:border-rose-900/40 dark:text-rose-400"
+              title="Hapus permanen akun wali murid"
+            >
+              <Trash2 className="h-3 w-3" />
+              Hapus
+            </button>
           </div>
         )
       },
     },
-  ], [handleToggleSuspend, togglingId, handleStartEdit, setSelectedParent, setSelectedStudent, setActiveAnalyticTab, setAddStudentForParent, setAddStudentForm, setAddStudentError, openProgramModal])
+  ], [handleToggleSuspend, handleDeleteParent, togglingId, handleStartEdit, setSelectedParent, setSelectedStudent, setActiveAnalyticTab, setAddStudentForParent, setAddStudentForm, setAddStudentError, openProgramModal])
 
   // Calculation for student analytics
   const studentAnalytics = useMemo(() => {
@@ -1600,7 +1641,13 @@ export default function ParentsClient({ initialParents }: ParentsClientProps) {
                 {/* Footer of Drawer */}
                 <div className="px-6 py-4 bg-slate-50 dark:bg-[#0e1423] border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider shrink-0">
                   <span>Portal Akademik Mellyna Education</span>
-                  <span>ID Siswa: {selectedStudent.id}</span>
+                  <button
+                    onClick={() => handleDeleteStudent(selectedStudent.id, selectedStudent.name)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-rose-200 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-950/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition-colors cursor-pointer normal-case text-[10px] font-bold"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Hapus Siswa
+                  </button>
                 </div>
 
               </div>
