@@ -1,8 +1,9 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Check, Star, UserPlus, Award } from 'lucide-react'
-import { defaultSppTiers, defaultAdminFees } from '@/lib/constants/pricing'
+import { defaultSppTiers, defaultAdminFees, SppTier, AdminFee } from '@/lib/constants/pricing'
 import { formatRupiah } from '@/lib/utils'
 
 const tierStyles = [
@@ -23,6 +24,20 @@ const feeIconBgs = [
 ]
 
 export default function PricingSection() {
+  const [sppTiers, setSppTiers] = useState<SppTier[]>(defaultSppTiers)
+  const [adminFees, setAdminFees] = useState<AdminFee[]>(defaultAdminFees)
+
+  useEffect(() => {
+    const savedSpp = localStorage.getItem('mellyna_spp_tiers')
+    if (savedSpp) {
+      try { setSppTiers(JSON.parse(savedSpp)) } catch {}
+    }
+    const savedFees = localStorage.getItem('mellyna_admin_fees')
+    if (savedFees) {
+      try { setAdminFees(JSON.parse(savedFees)) } catch {}
+    }
+  }, [])
+
   return (
     <section id="harga" className="py-24 bg-slate-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -57,7 +72,7 @@ export default function PricingSection() {
 
         {/* SPP Tier cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-14">
-          {defaultSppTiers.map((tier, index) => {
+          {sppTiers.map((tier, index) => {
             const styles = tierStyles[index]
             return (
               <motion.div
@@ -119,7 +134,7 @@ export default function PricingSection() {
 
         {/* Admin fee cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {defaultAdminFees.map((fee, index) => {
+          {adminFees.map((fee, index) => {
             const Icon = feeIcons[index]
             return (
               <motion.div
