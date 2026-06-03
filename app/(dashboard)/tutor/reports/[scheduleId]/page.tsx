@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Save, Upload, Trash2 } from 'lucide-react'
+import { useConfirm } from '@/lib/hooks/use-confirm'
 
 interface Student {
   id: string
@@ -29,6 +30,7 @@ interface ReportEntry {
 export default function TutorReportsPage() {
   const params = useParams()
   const router = useRouter()
+  const confirm = useConfirm()
   const scheduleId = params.scheduleId as string
 
   const [schedule, setSchedule] = useState<any>(null)
@@ -132,8 +134,14 @@ export default function TutorReportsPage() {
     }
   }
 
-  const handleDeleteMedia = async (studentId: string, mediaId: string) => {
-    if (!confirm('Hapus media ini?')) return
+  const handleDeleteMedia = useCallback(async (studentId: string, mediaId: string) => {
+    const ok = await confirm({
+      title: 'Hapus Media',
+      message: 'Hapus media ini secara permanen?',
+      variant: 'danger',
+      confirmLabel: 'Hapus Media',
+    })
+    if (!ok) return
     try {
       const res = await fetch(`/api/media/${mediaId}`, { method: 'DELETE' })
       if (!res.ok) throw new Error()
@@ -147,7 +155,7 @@ export default function TutorReportsPage() {
     } catch {
       setError('Gagal menghapus media.')
     }
-  }
+  }, [confirm])
 
   if (loading) {
     return (
