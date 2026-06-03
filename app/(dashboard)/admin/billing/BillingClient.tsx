@@ -5,6 +5,7 @@ import { Plus, MessageCircle, Users } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
 import { formatRupiah } from '@/lib/utils'
+import { useConfirm } from '@/lib/hooks/use-confirm'
 
 function rupiahDisplay(raw: string): string {
   const digits = raw.replace(/\D/g, '')
@@ -38,6 +39,8 @@ interface BillingClientProps {
 }
 
 export default function BillingClient({ initialInvoices, initialStudents, initialClasses }: BillingClientProps) {
+  const confirm = useConfirm()
+
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices)
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -88,7 +91,13 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
   }, [fetchInvoices])
 
   const handleRemind = async () => {
-    if (!confirm('Kirim pengingat WA ke semua orang tua dengan tagihan PENDING?')) return
+    const ok = await confirm({
+      title: 'Kirim Pengingat WhatsApp',
+      message: 'Kirim pengingat WhatsApp ke semua orang tua dengan tagihan PENDING?',
+      variant: 'info',
+      confirmLabel: 'Kirim Sekarang',
+    })
+    if (!ok) return
     setReminding(true)
     setRemindResult(null)
     try {
@@ -207,7 +216,13 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
   }, [editModal, fetchInvoices])
 
   const handleCancelInvoice = useCallback(async (id: string) => {
-    if (!confirm('Batalkan invoice ini?')) return
+    const ok = await confirm({
+      title: 'Batalkan Invoice',
+      message: 'Batalkan invoice ini? Status akan berubah menjadi DIBATALKAN.',
+      variant: 'warning',
+      confirmLabel: 'Batalkan Invoice',
+    })
+    if (!ok) return
     setError(null)
     try {
       const res = await fetch(`/api/invoices/${id}`, {
@@ -220,10 +235,17 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
     } catch {
       setError('Gagal membatalkan invoice.')
     }
-  }, [fetchInvoices])
+  }, [confirm, fetchInvoices])
 
   const handleDeleteInvoice = useCallback(async (id: string) => {
-    if (!confirm('Hapus invoice ini permanen? Tindakan tidak bisa dibatalkan.')) return
+    const ok = await confirm({
+      title: 'Hapus Invoice',
+      message: 'Hapus invoice ini secara permanen?',
+      detail: 'Tindakan ini tidak bisa dibatalkan.',
+      variant: 'danger',
+      confirmLabel: 'Hapus Invoice',
+    })
+    if (!ok) return
     setError(null)
     try {
       const res = await fetch(`/api/invoices/${id}`, { method: 'DELETE' })
@@ -232,7 +254,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
     } catch {
       setError('Gagal menghapus invoice.')
     }
-  }, [fetchInvoices])
+  }, [confirm, fetchInvoices])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
