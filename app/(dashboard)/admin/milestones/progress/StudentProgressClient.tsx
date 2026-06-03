@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Program, MilestoneStatus } from '@prisma/client'
 import { Award, Search, X } from 'lucide-react'
+import { useToastNotification } from '@/lib/hooks/use-toast-notification'
 
 type Student = { id: string; name: string; grade: string | null }
 type Milestone = { id: string; name: string; description: string | null; program: Program; order: number }
@@ -28,6 +29,7 @@ export default function StudentProgressClient({
   students: Student[]
   milestones: Milestone[]
 }) {
+  const toast = useToastNotification()
   const [selectedStudentId, setSelectedStudentId] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [showDropdown, setShowDropdown] = useState(false)
@@ -54,7 +56,7 @@ export default function StudentProgressClient({
       if (!res.ok) throw new Error('Gagal memuat data')
       setProgressData(await res.json())
     } catch {
-      alert('Gagal memuat progress siswa')
+      toast.error('Gagal memuat progress siswa')
     } finally {
       setLoading(false)
     }
@@ -99,7 +101,7 @@ export default function StudentProgressClient({
       if (!res.ok) throw new Error('Gagal memperbarui status')
       await fetchProgress(selectedStudentId)
     } catch {
-      alert('Gagal memperbarui status milestone')
+      toast.error('Gagal memperbarui status milestone')
     } finally {
       setUpdating(null)
     }
