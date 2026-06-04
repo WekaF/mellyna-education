@@ -60,7 +60,7 @@ describe('GET /api/cron/timetable-generate - auto-broadcast toggle', () => {
     await GET(req as any)
 
     // Allow fire-and-forget to run
-    await new Promise(r => setTimeout(r, 50))
+    for (let i = 0; i < 20; i++) await Promise.resolve()
     expect(waha.sendWhatsApp).toHaveBeenCalled()
   })
 
@@ -72,7 +72,7 @@ describe('GET /api/cron/timetable-generate - auto-broadcast toggle', () => {
     const req = new Request(cronUrl)
     await GET(req as any)
 
-    await new Promise(r => setTimeout(r, 50))
+    for (let i = 0; i < 20; i++) await Promise.resolve()
     expect(waha.sendWhatsApp).not.toHaveBeenCalled()
   })
 
@@ -82,7 +82,7 @@ describe('GET /api/cron/timetable-generate - auto-broadcast toggle', () => {
     const req = new Request(cronUrl)
     await GET(req as any)
 
-    await new Promise(r => setTimeout(r, 50))
+    for (let i = 0; i < 20; i++) await Promise.resolve()
     expect(waha.sendWhatsApp).toHaveBeenCalled()
   })
 })
