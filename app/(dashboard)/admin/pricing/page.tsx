@@ -118,6 +118,7 @@ export default function AdminPricingPage() {
     const updated = sppTiers.filter((_, i) => i !== index)
     setSppTiers(updated)
     localStorage.setItem('mellyna_spp_tiers', JSON.stringify(updated))
+    await fetch('/api/pricing', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sppTiers: updated }) })
     triggerToast(`Paket ${name} berhasil dihapus.`)
   }
 
@@ -135,7 +136,7 @@ export default function AdminPricingPage() {
     setEditFeatures(editFeatures.filter((_, i) => i !== index))
   }
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingItem) return
 
@@ -154,6 +155,7 @@ export default function AdminPricingPage() {
         const updated = [...sppTiers, newTier]
         setSppTiers(updated)
         localStorage.setItem('mellyna_spp_tiers', JSON.stringify(updated))
+        await fetch('/api/pricing', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sppTiers: updated }) })
         triggerToast(`Berhasil menambahkan paket ${editName}!`)
       } else {
         const updated = [...sppTiers]
@@ -167,6 +169,7 @@ export default function AdminPricingPage() {
         }
         setSppTiers(updated)
         localStorage.setItem('mellyna_spp_tiers', JSON.stringify(updated))
+        await fetch('/api/pricing', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sppTiers: updated }) })
         triggerToast(`Berhasil memperbarui paket ${editName}!`)
       }
       setEditingItem(null)
@@ -181,6 +184,7 @@ export default function AdminPricingPage() {
       }
       setFees(updated)
       localStorage.setItem('mellyna_admin_fees', JSON.stringify(updated))
+      await fetch('/api/pricing', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminFees: updated }) })
       triggerToast(`Berhasil memperbarui biaya ${editName}!`)
     }
 
@@ -200,6 +204,10 @@ export default function AdminPricingPage() {
       setFees(adminFees)
       localStorage.removeItem('mellyna_spp_tiers')
       localStorage.removeItem('mellyna_admin_fees')
+      await Promise.all([
+        fetch('/api/pricing', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sppTiers: defaultSppTiers }) }),
+        fetch('/api/pricing', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminFees: defaultAdminFees }) }),
+      ])
       triggerToast('Sistem harga berhasil diatur ulang ke bawaan.')
     }
   }

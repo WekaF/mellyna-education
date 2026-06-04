@@ -28,14 +28,13 @@ export default function PricingSection() {
   const [adminFees, setAdminFees] = useState<AdminFee[]>(defaultAdminFees)
 
   useEffect(() => {
-    const savedSpp = localStorage.getItem('mellyna_spp_tiers')
-    if (savedSpp) {
-      try { setSppTiers(JSON.parse(savedSpp)) } catch {}
-    }
-    const savedFees = localStorage.getItem('mellyna_admin_fees')
-    if (savedFees) {
-      try { setAdminFees(JSON.parse(savedFees)) } catch {}
-    }
+    fetch('/api/pricing')
+      .then(r => r.json())
+      .then(data => {
+        if (data.sppTiers?.length) setSppTiers(data.sppTiers)
+        if (data.adminFees?.length) setAdminFees(data.adminFees)
+      })
+      .catch(() => {})
   }, [])
 
   return (
