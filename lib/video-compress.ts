@@ -31,11 +31,19 @@ export async function compressVideo(
         outputPath,
       ]
       const proc = spawn(ffmpegStatic as string, args)
+      const timeout = setTimeout(() => {
+        proc.kill('SIGKILL')
+        reject(new Error('ffmpeg timeout after 8 minutes'))
+      }, 8 * 60 * 1000)
       proc.on('close', (code) => {
+        clearTimeout(timeout)
         if (code === 0) resolve()
         else reject(new Error(`ffmpeg exited with code ${code}`))
       })
-      proc.on('error', reject)
+      proc.on('error', (e) => {
+        clearTimeout(timeout)
+        reject(e)
+      })
     })
 
     const compressed = await readFile(outputPath)
