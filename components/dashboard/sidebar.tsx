@@ -28,6 +28,7 @@ import {
   Trophy,
   BookMarked,
   Scroll,
+  UserCheck,
 } from 'lucide-react'
 import { ThemeToggleButton } from '../common/ThemeToggleButton'
 
@@ -76,6 +77,7 @@ export default function Sidebar({ user }: SidebarProps) {
             subItems: [
               { name: 'Siswa', href: '/admin/students', icon: GraduationCap },
               { name: 'Tutor', href: '/admin/tutors', icon: Users },
+              { name: 'Monitoring Tutor', href: '/admin/tutor-monitoring', icon: UserCheck },
               { name: 'Wali Murid / Parent', href: '/admin/parents', icon: UsersRound },
             ],
           },
