@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { TutorLocationEdit } from '@/components/dashboard/TutorLocationEdit'
+import AnnouncementsWidget from '@/components/dashboard/AnnouncementsWidget'
 
 export default async function TutorDashboardPage() {
   const session = await getServerSession(authOptions)
@@ -42,6 +43,8 @@ export default async function TutorDashboardPage() {
         <h1 className="text-3xl font-extrabold tracking-tight">Dashboard Tutor 👋</h1>
         <p className="mt-2 text-emerald-100">Kelola jadwal mengajar, absensi siswa, dan laporan perkembangan belajar.</p>
       </div>
+
+      <AnnouncementsWidget />
 
       <div>
         <h2 className="text-lg font-bold text-slate-800 mb-4">📅 Jadwal Mengajar</h2>
