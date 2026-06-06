@@ -27,6 +27,10 @@ const fmtDateShort = (d: Date) =>
     year: 'numeric',
   }).format(d)
 
+function fmtStars(score: number): string {
+  return '⭐'.repeat(score) + '☆'.repeat(5 - score) + ` (${score}/5)`
+}
+
 export async function notifyParentNewReport(data: ParentReportData): Promise<boolean> {
   const lines = [
     `Assalamualaikum Bunda/Ayah *${data.parentName}*,`,
@@ -37,7 +41,7 @@ export async function notifyParentNewReport(data: ParentReportData): Promise<boo
     `📅 Tanggal: ${fmtDateLong(data.scheduleDate)}`,
   ]
   if (data.topic) lines.push(`📖 Materi: ${data.topic}`)
-  if (data.score !== null) lines.push(`⭐ Nilai: ${data.score}/100`)
+  if (data.score !== null) lines.push(`⭐ Penilaian: ${fmtStars(data.score)}`)
   lines.push(``, `💬 *Catatan Tutor:*`, data.content)
 
   if (data.mediaVideos && data.mediaVideos.length > 0) {
@@ -74,7 +78,7 @@ export function buildParentWeeklyDigestMessage(
   ]
   for (const r of reports) {
     lines.push(`👤 *${r.studentName}* — ${r.className}`)
-    if (r.score !== null) lines.push(`   ⭐ Nilai: ${r.score}/100`)
+    if (r.score !== null) lines.push(`   ⭐ Penilaian: ${fmtStars(r.score)}`)
     const preview = r.content.length > 120 ? r.content.slice(0, 120) + '…' : r.content
     lines.push(`   📝 ${preview}`, ``)
   }
@@ -105,7 +109,7 @@ export function buildAdminDailyDigestMessage(date: Date, reports: AdminDigestIte
   for (const [cn, reps] of Object.entries(byClass)) {
     lines.push(`📚 *${cn}* (${reps.length} siswa)`)
     for (const r of reps) {
-      const s = r.score !== null ? ` | Nilai: ${r.score}` : ''
+      const s = r.score !== null ? ` | ${fmtStars(r.score)}` : ''
       lines.push(`  • ${r.studentName}${s}`)
     }
     lines.push(``)
