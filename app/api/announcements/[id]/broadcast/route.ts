@@ -17,6 +17,9 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     const announcement = await prisma.announcement.findUnique({ where: { id } })
     if (!announcement) return NextResponse.json({ error: 'Not Found' }, { status: 404 })
     if (!announcement.published) return NextResponse.json({ error: 'Announcement not published' }, { status: 400 })
+    if (announcement.broadcastedAt) {
+      return NextResponse.json({ error: 'Announcement already broadcast', broadcastedAt: announcement.broadcastedAt }, { status: 409 })
+    }
 
     // Fetch all parents and tutors with phone numbers
     const [parents, tutors] = await Promise.all([
@@ -37,6 +40,12 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 ${announcement.content}
 
 _Mellyna Education_`
+
+    // Mark as broadcast before dispatching (idempotency guard)
+    await prisma.announcement.update({
+      where: { id },
+      data: { broadcastedAt: new Date() },
+    })
 
     // Dispatch WA messages asynchronously — doesn't block the API response
     Promise.resolve().then(async () => {
