@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Save, Upload, Trash2 } from 'lucide-react'
 import { useConfirm } from '@/lib/hooks/use-confirm'
+import { StarRating } from '@/components/ui/star-rating'
 
 interface Student {
   id: string
@@ -21,7 +22,7 @@ interface MediaItem {
 interface ReportEntry {
   studentId: string
   content: string
-  score: string
+  score: number | null
   reportId: string | null
   uploading: boolean
   media: MediaItem[]
@@ -60,7 +61,7 @@ export default function TutorReportsPage() {
         setEntries(students.map((s) => ({
           studentId: s.id,
           content: existingReports[s.id]?.content || '',
-          score: existingReports[s.id]?.score?.toString() || '',
+          score: existingReports[s.id]?.score ?? null,
           reportId: existingReports[s.id]?.id || null,
           uploading: false,
           media: existingReports[s.id]?.media || [],
@@ -87,7 +88,7 @@ export default function TutorReportsPage() {
           studentId,
           scheduleId,
           content: entry.content,
-          score: entry.score ? parseInt(entry.score) : undefined,
+          score: entry.score ?? undefined,
         }),
       })
       if (!res.ok) throw new Error()
@@ -244,24 +245,20 @@ export default function TutorReportsPage() {
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="w-full sm:w-36">
+                    <div>
                       <label className="block text-xs font-semibold text-slate-600 mb-1">
-                        Nilai (0-100)
+                        Penilaian
                       </label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={entry?.score || ''}
-                        onChange={(e) =>
+                      <StarRating
+                        value={entry?.score ?? null}
+                        onChange={(val) =>
                           setEntries((prev) =>
                             prev.map((en) =>
-                              en.studentId === student.id ? { ...en, score: e.target.value } : en
+                              en.studentId === student.id ? { ...en, score: val } : en
                             )
                           )
                         }
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500"
-                        placeholder="mis. 85"
+                        size="lg"
                       />
                     </div>
                     <div className="flex-1 flex items-end gap-3 flex-wrap">
