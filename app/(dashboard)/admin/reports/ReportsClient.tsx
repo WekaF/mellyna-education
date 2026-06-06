@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Search } from 'lucide-react'
+import { StarRating } from '@/components/ui/star-rating'
 
 interface Media {
   id: string
@@ -81,8 +82,8 @@ export default function ReportsClient({ initialReports }: ReportsClientProps) {
                   )}
                 </div>
                 {report.score !== null && (
-                  <div className="flex items-center justify-center h-12 w-12 rounded-2xl bg-indigo-50 border border-indigo-100 shrink-0">
-                    <span className="text-lg font-extrabold text-indigo-600">{report.score}</span>
+                  <div className="shrink-0">
+                    <StarRating value={report.score} size="md" />
                   </div>
                 )}
               </div>

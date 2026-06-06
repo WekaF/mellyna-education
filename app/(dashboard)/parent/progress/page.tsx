@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import Image from 'next/image'
+import { StarRating } from '@/components/ui/star-rating'
 
 export default async function ParentProgressPage({ searchParams }: { searchParams: Promise<{ studentId?: string }> }) {
   const session = await getServerSession(authOptions)
@@ -60,8 +61,8 @@ export default async function ParentProgressPage({ searchParams }: { searchParam
                   <p className="text-xs text-slate-400 mt-0.5">Tutor: {report.tutor.name}</p>
                 </div>
                 {report.score !== null && (
-                  <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-indigo-50 border border-indigo-100 shrink-0">
-                    <span className="text-xl font-extrabold text-indigo-600">{report.score}</span>
+                  <div className="shrink-0">
+                    <StarRating value={report.score} size="md" />
                   </div>
                 )}
               </div>

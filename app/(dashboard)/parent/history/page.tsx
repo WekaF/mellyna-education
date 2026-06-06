@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
+import { StarRating } from '@/components/ui/star-rating'
 
 function formatDate(date: Date) {
   return date.toLocaleDateString('id-ID', {
@@ -213,11 +214,7 @@ export default async function ParentHistoryPage({
                                       Laporan Tutor
                                     </p>
                                     {report.score !== null && (
-                                      <div className="h-9 w-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 flex items-center justify-center">
-                                        <span className="text-sm font-extrabold text-indigo-600 dark:text-indigo-400">
-                                          {report.score}
-                                        </span>
-                                      </div>
+                                      <StarRating value={report.score} size="sm" />
                                     )}
                                   </div>
                                   <p className="text-xs text-slate-600 dark:text-slate-400 whitespace-pre-line leading-relaxed">
