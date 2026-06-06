@@ -5,25 +5,53 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { TutorLocationEdit } from '@/components/dashboard/TutorLocationEdit'
 import AnnouncementsWidget from '@/components/dashboard/AnnouncementsWidget'
+import { TutorDailyCheckIn } from '@/components/dashboard/TutorDailyCheckIn'
+import { getTodayWIB } from '@/lib/geolocation'
 
 export default async function TutorDashboardPage() {
   const session = await getServerSession(authOptions)
   if (!session) redirect('/login')
   const userId = (session.user as any).id
 
-  const schedules = await prisma.schedule.findMany({
-    where: {
-      OR: [
-        { class: { tutorId: userId } },
-        { class: { additionalTutors: { some: { tutorId: userId } } } },
-      ],
-      date: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-    },
-    include: {
-      class: { select: { name: true, _count: { select: { enrollments: true } } } },
-      _count: { select: { reports: true, participants: true } },
-    },
-    orderBy: { date: 'asc' },
+  const today = getTodayWIB()
+  const todayStart = new Date(`${today}T00:00:00+07:00`)
+  const todayEnd = new Date(`${today}T23:59:59+07:00`)
+
+  const [schedules, todayCheckIn, hasScheduleToday] = await Promise.all([
+    prisma.schedule.findMany({
+      where: {
+        OR: [
+          { class: { tutorId: userId } },
+          { class: { additionalTutors: { some: { tutorId: userId } } } },
+        ],
+        date: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+      },
+      include: {
+        class: { select: { name: true, _count: { select: { enrollments: true } } } },
+        _count: { select: { reports: true, participants: true } },
+      },
+      orderBy: { date: 'asc' },
+    }),
+    prisma.tutorCheckIn.findUnique({
+      where: { tutorId_date: { tutorId: userId, date: today } },
+    }),
+    prisma.schedule.findFirst({
+      where: {
+        date: { gte: todayStart, lte: todayEnd },
+        status: { in: ['PUBLISHED', 'COMPLETED'] },
+        OR: [
+          { class: { tutorId: userId } },
+          { class: { additionalTutors: { some: { tutorId: userId } } } },
+        ],
+      },
+    }),
+  ])
+
+  const todayLabel = new Date(todayStart).toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
   })
 
   const statusColor = {
@@ -44,6 +72,15 @@ export default async function TutorDashboardPage() {
         <p className="mt-2 text-emerald-100">Kelola jadwal mengajar, absensi siswa, dan laporan perkembangan belajar.</p>
       </div>
 
+      {/* Absensi harian — satu kali per hari */}
+      <TutorDailyCheckIn
+        todayLabel={todayLabel}
+        initialCheckedIn={todayCheckIn?.isWithinRadius ?? false}
+        initialCheckedInAt={todayCheckIn?.checkedInAt.toISOString()}
+        initialDistanceM={todayCheckIn ? Math.round(todayCheckIn.distanceM) : undefined}
+        hasScheduleToday={!!hasScheduleToday}
+      />
+
       <AnnouncementsWidget />
 
       <div>
@@ -56,7 +93,10 @@ export default async function TutorDashboardPage() {
         ) : (
           <div className="space-y-3">
             {schedules.map((schedule) => (
-              <div key={schedule.id} className="rounded-2xl bg-white border border-slate-100 shadow-xs p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div
+                key={schedule.id}
+                className="rounded-2xl bg-white border border-slate-100 shadow-xs p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+              >
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h3 className="font-bold text-slate-800">{schedule.class.name}</h3>
@@ -70,13 +110,29 @@ export default async function TutorDashboardPage() {
                     )}
                   </div>
                   <p className="text-sm text-slate-500">
-                    {new Date(schedule.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} • {schedule.startTime}–{schedule.endTime}
+                    {new Date(schedule.date).toLocaleDateString('id-ID', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}{' '}
+                    • {schedule.startTime}–{schedule.endTime}
                   </p>
-                  {schedule.topic && <p className="text-sm text-indigo-600 font-medium mt-0.5">📚 {schedule.topic}</p>}
-                  <p className="text-xs text-slate-400 mt-1">{schedule.class._count.enrollments} siswa terdaftar</p>
+                  {schedule.topic && (
+                    <p className="text-sm text-indigo-600 font-medium mt-0.5">📚 {schedule.topic}</p>
+                  )}
+                  <p className="text-xs text-slate-400 mt-1">
+                    {schedule.class._count.enrollments} siswa terdaftar
+                  </p>
                   <TutorLocationEdit scheduleId={schedule.id} location={schedule.location} />
                   {schedule._count.participants > 0 && (
-                    <p className={`text-xs mt-1 font-medium ${schedule._count.reports >= schedule._count.participants ? 'text-emerald-600' : 'text-orange-500'}`}>
+                    <p
+                      className={`text-xs mt-1 font-medium ${
+                        schedule._count.reports >= schedule._count.participants
+                          ? 'text-emerald-600'
+                          : 'text-orange-500'
+                      }`}
+                    >
                       📝 {schedule._count.reports}/{schedule._count.participants} laporan diisi
                     </p>
                   )}
