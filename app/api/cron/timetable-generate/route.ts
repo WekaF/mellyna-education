@@ -16,7 +16,7 @@ const DAY_OFFSETS: Record<DayOfWeek, number> = {
 function getTimeRange(slot: string): { start: string; end: string } {
   if (slot.includes(':')) {
     const [h, m] = slot.split(':').map(Number)
-    const totalMins = h * 60 + m + 45
+    const totalMins = h * 60 + m + 60
     const endH = Math.floor(totalMins / 60) % 24
     const endM = totalMins % 60
     return {
@@ -25,13 +25,13 @@ function getTimeRange(slot: string): { start: string; end: string } {
     }
   }
   const mapping: Record<string, { start: string; end: string }> = {
-    'JAM 1': { start: '13:00', end: '13:45' },
-    'JAM 2': { start: '14:00', end: '14:45' },
-    'JAM 3': { start: '15:00', end: '15:45' },
-    'JAM 4': { start: '16:00', end: '16:45' },
-    'JAM 7': { start: '19:00', end: '19:45' },
+    'JAM 1': { start: '13:00', end: '14:00' },
+    'JAM 2': { start: '14:00', end: '15:00' },
+    'JAM 3': { start: '15:00', end: '16:00' },
+    'JAM 4': { start: '16:00', end: '17:00' },
+    'JAM 7': { start: '19:00', end: '20:00' },
   }
-  return mapping[slot] ?? { start: '08:00', end: '08:45' }
+  return mapping[slot] ?? { start: '08:00', end: '09:00' }
 }
 
 export async function GET(req: NextRequest) {
