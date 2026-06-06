@@ -28,6 +28,8 @@ describe('getTimeRange', () => {
   })
   it('JAM slots → correct 60-min windows', () => {
     expect(getTimeRange('JAM 1')).toEqual({ start: '13:00', end: '14:00' })
+    expect(getTimeRange('JAM 2')).toEqual({ start: '14:00', end: '15:00' })
+    expect(getTimeRange('JAM 3')).toEqual({ start: '15:00', end: '16:00' })
     expect(getTimeRange('JAM 4')).toEqual({ start: '16:00', end: '17:00' })
     expect(getTimeRange('JAM 7')).toEqual({ start: '19:00', end: '20:00' })
   })
