@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { formatRupiah } from '@/lib/utils'
 import ParentScheduleList from '@/components/dashboard/ParentScheduleList'
 import { ProgramEnrollmentBadge } from '@/components/admin/ProgramEnrollmentBadge'
+import AnnouncementsWidget from '@/components/dashboard/AnnouncementsWidget'
 
 export default async function ParentDashboardPage() {
   const session = await getServerSession(authOptions)
@@ -130,6 +131,8 @@ export default async function ParentDashboardPage() {
 
         {/* Right column - Summary & Shortcuts */}
         <div className="space-y-6">
+          <AnnouncementsWidget />
+
           <div className="rounded-2xl bg-white dark:bg-[#1e293b]/45 border border-slate-100 dark:border-slate-800/60 p-6 shadow-xs space-y-4">
             <h3 className="font-extrabold text-sm text-slate-800 dark:text-white uppercase tracking-wider">⚡ Navigasi Pintar</h3>
             <div className="grid gap-2">
