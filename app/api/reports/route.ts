@@ -9,7 +9,7 @@ const upsertReportSchema = z.object({
   studentId: z.string().min(1),
   scheduleId: z.string().min(1),
   content: z.string().min(1),
-  score: z.number().int().min(0).max(100).optional(),
+  score: z.number().int().min(1).max(5).optional(),
 })
 
 export async function GET(req: NextRequest) {
