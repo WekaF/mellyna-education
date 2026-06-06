@@ -81,11 +81,12 @@ export default function AnnouncementsClient({ initialAnnouncements }: Announceme
   const handleTogglePublish = useCallback(async (id: string, published: boolean) => {
     const willPublish = !published
     try {
-      await fetch(`/api/announcements/${id}`, {
+      const res = await fetch(`/api/announcements/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ published: willPublish }),
       })
+      if (!res.ok) throw new Error('Gagal memperbarui status pengumuman.')
       await fetchAnnouncements()
       // Trigger WA broadcast only when publishing (not when hiding)
       if (willPublish) {
