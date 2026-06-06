@@ -53,6 +53,7 @@ export default function AnnouncementsClient({ initialAnnouncements }: Announceme
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const shouldBroadcast = form.published
     setSaving(true)
     setError(null)
     try {
@@ -67,7 +68,7 @@ export default function AnnouncementsClient({ initialAnnouncements }: Announceme
       setShowForm(false)
       setForm({ title: '', content: '', published: false })
       // Broadcast immediately if created as published
-      if (form.published && created?.id) {
+      if (shouldBroadcast && created?.id) {
         await triggerBroadcast(created.id)
       }
     } catch (err: any) {
@@ -77,7 +78,7 @@ export default function AnnouncementsClient({ initialAnnouncements }: Announceme
     }
   }
 
-  const handleTogglePublish = async (id: string, published: boolean) => {
+  const handleTogglePublish = useCallback(async (id: string, published: boolean) => {
     const willPublish = !published
     try {
       await fetch(`/api/announcements/${id}`, {
@@ -93,7 +94,7 @@ export default function AnnouncementsClient({ initialAnnouncements }: Announceme
     } catch {
       setError('Gagal memperbarui status pengumuman.')
     }
-  }
+  }, [fetchAnnouncements, triggerBroadcast])
 
   const handleDelete = useCallback(async (id: string) => {
     const ok = await confirm({
