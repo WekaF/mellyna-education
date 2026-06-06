@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    let buffer = Buffer.from(await file.arrayBuffer())
+    let buffer: Buffer = Buffer.from(await file.arrayBuffer())
     let filename = file.name
     const isVideo = file.type.startsWith('video/')
 
