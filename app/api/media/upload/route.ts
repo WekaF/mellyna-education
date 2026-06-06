@@ -3,8 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { uploadFile } from '@/lib/storage'
 import { prisma } from '@/lib/db'
+import { compressVideo } from '@/lib/video-compress'
 
-const MAX_SIZE = 50 * 1024 * 1024 // 50MB
+const MAX_RAW_SIZE = 500 * 1024 * 1024 // 500MB raw input; videos are compressed before storing
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -24,33 +25,40 @@ export async function POST(req: NextRequest) {
     if (!file) return NextResponse.json({ error: 'File tidak ditemukan.' }, { status: 400 })
     if (!reportId) return NextResponse.json({ error: 'reportId diperlukan.' }, { status: 400 })
 
-    // Validate file type
     if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
       return NextResponse.json({ error: 'Hanya file gambar atau video yang diizinkan.' }, { status: 400 })
     }
 
-    // Validate size
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'Ukuran file melebihi batas 50MB.' }, { status: 400 })
+    if (file.size > MAX_RAW_SIZE) {
+      return NextResponse.json({ error: 'Ukuran file melebihi batas 500MB.' }, { status: 400 })
     }
 
-    // Verify the report exists and belongs to this tutor
     const report = await prisma.learningReport.findUnique({ where: { id: reportId } })
     if (!report) return NextResponse.json({ error: 'Report tidak ditemukan.' }, { status: 404 })
     if (role === 'TUTOR' && report.tutorId !== userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer())
-    const url = await uploadFile(buffer, file.name, file.type)
+    let buffer = Buffer.from(await file.arrayBuffer())
+    let filename = file.name
+    const isVideo = file.type.startsWith('video/')
+
+    if (isVideo) {
+      const compressed = await compressVideo(buffer, file.name)
+      buffer = compressed.buffer
+      filename = compressed.filename
+    }
+
+    const mimeType = isVideo ? 'video/mp4' : file.type
+    const url = await uploadFile(buffer, filename, mimeType)
 
     const media = await prisma.media.create({
       data: {
         reportId,
         url,
-        type: file.type.startsWith('image/') ? 'PHOTO' : 'VIDEO',
-        filename: file.name,
-        size: file.size,
+        type: isVideo ? 'VIDEO' : 'PHOTO',
+        filename,
+        size: buffer.length,
       },
     })
 

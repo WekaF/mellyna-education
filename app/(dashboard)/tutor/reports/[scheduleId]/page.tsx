@@ -294,13 +294,30 @@ export default function TutorReportsPage() {
                         }}
                       />
                     </div>
+                    <p className="text-xs text-slate-400 w-full">
+                      Upload min. 2 video laporan (1 per program). Video akan dikompres otomatis.
+                    </p>
                   </div>
 
                   {entry?.media && entry.media.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-slate-500 mb-2">
-                        Media Terupload ({entry.media.length}):
-                      </p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <p className="text-xs font-semibold text-slate-500">
+                          Media Terupload ({entry.media.length}):
+                        </p>
+                        {(() => {
+                          const videoCount = entry.media.filter((m) => m.type === 'VIDEO').length
+                          return videoCount < 2 ? (
+                            <span className="text-xs bg-amber-100 text-amber-700 font-semibold px-2 py-0.5 rounded-lg">
+                              📹 {videoCount}/2 video
+                            </span>
+                          ) : (
+                            <span className="text-xs bg-emerald-100 text-emerald-700 font-semibold px-2 py-0.5 rounded-lg">
+                              📹 {videoCount} video ✓
+                            </span>
+                          )
+                        })()}
+                      </div>
                       <div className="flex flex-wrap gap-3">
                         {entry.media.map((m) => (
                           <div key={m.id} className="relative group">
