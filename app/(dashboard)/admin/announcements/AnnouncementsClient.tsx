@@ -37,6 +37,20 @@ export default function AnnouncementsClient({ initialAnnouncements }: Announceme
     }
   }, [])
 
+  const triggerBroadcast = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/announcements/${id}/broadcast`, { method: 'POST' })
+      const data = await res.json()
+      if (res.ok) {
+        console.log(`[Broadcast] WA dikirim ke ${data.recipientCount} penerima.`)
+      } else {
+        console.warn(`[Broadcast] Broadcast tidak berhasil: ${data.error}`)
+      }
+    } catch (e) {
+      console.error('[Broadcast] Error saat broadcast:', e)
+    }
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -48,9 +62,14 @@ export default function AnnouncementsClient({ initialAnnouncements }: Announceme
         body: JSON.stringify(form),
       })
       if (!res.ok) throw new Error('Gagal menyimpan pengumuman.')
+      const created = await res.json()
       await fetchAnnouncements()
       setShowForm(false)
       setForm({ title: '', content: '', published: false })
+      // Broadcast immediately if created as published
+      if (form.published && created?.id) {
+        await triggerBroadcast(created.id)
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -59,13 +78,18 @@ export default function AnnouncementsClient({ initialAnnouncements }: Announceme
   }
 
   const handleTogglePublish = async (id: string, published: boolean) => {
+    const willPublish = !published
     try {
       await fetch(`/api/announcements/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ published: !published }),
+        body: JSON.stringify({ published: willPublish }),
       })
       await fetchAnnouncements()
+      // Trigger WA broadcast only when publishing (not when hiding)
+      if (willPublish) {
+        await triggerBroadcast(id)
+      }
     } catch {
       setError('Gagal memperbarui status pengumuman.')
     }
