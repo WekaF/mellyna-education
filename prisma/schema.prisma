@@ -27,6 +27,7 @@ model User {
   milestoneUpdates       StudentMilestone[] @relation("MilestoneUpdater")
   milestoneReports     MilestoneReport[] @relation("MilestoneReportGenerator")
   passwordResetTokens  PasswordResetToken[]
+  tutorCheckIns        TutorCheckIn[]    @relation("TutorCheckIns")
 }
 
 model Student {
@@ -151,6 +152,20 @@ model Attendance {
   student    Student          @relation(fields: [studentId], references: [id])
 
   @@unique([studentId, scheduleId])
+}
+
+model TutorCheckIn {
+  id             String   @id @default(cuid())
+  tutorId        String
+  date           String
+  checkedInAt    DateTime @default(now())
+  latitude       Float
+  longitude      Float
+  distanceM      Float
+  isWithinRadius Boolean
+  tutor          User     @relation("TutorCheckIns", fields: [tutorId], references: [id])
+
+  @@unique([tutorId, date])
 }
 
 model ScheduleParticipant {
