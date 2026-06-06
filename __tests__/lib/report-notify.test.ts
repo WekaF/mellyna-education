@@ -7,16 +7,17 @@ describe('buildAdminDailyDigestMessage', () => {
   it('includes report count and class grouping', () => {
     const date = new Date('2026-05-29T00:00:00Z')
     const reports = [
-      { studentName: 'Andi', className: 'Sempoa A', tutorName: 'Tutor X', score: 85 },
+      { studentName: 'Andi', className: 'Sempoa A', tutorName: 'Tutor X', score: 4 },
       { studentName: 'Budi', className: 'Sempoa A', tutorName: 'Tutor X', score: null },
-      { studentName: 'Cici', className: 'Bahasa B', tutorName: 'Tutor Y', score: 90 },
+      { studentName: 'Cici', className: 'Bahasa B', tutorName: 'Tutor Y', score: 5 },
     ]
     const msg = buildAdminDailyDigestMessage(date, reports)
     expect(msg).toContain('3')
     expect(msg).toContain('Sempoa A')
     expect(msg).toContain('Bahasa B')
     expect(msg).toContain('Andi')
-    expect(msg).toContain('85')
+    expect(msg).toContain('⭐⭐⭐⭐☆')
+    expect(msg).toContain('⭐⭐⭐⭐⭐')
   })
 
   it('handles empty report list', () => {
@@ -26,14 +27,14 @@ describe('buildAdminDailyDigestMessage', () => {
 })
 
 describe('buildParentWeeklyDigestMessage', () => {
-  it('includes parent name, student name, and score', () => {
+  it('includes parent name, student name, and star rating', () => {
     const start = new Date('2026-05-25T00:00:00Z')
     const end = new Date('2026-05-31T00:00:00Z')
     const reports = [
       {
         studentName: 'Andi',
         className: 'Sempoa A',
-        score: 85,
+        score: 4,
         content: 'Sudah bisa penjumlahan 3 digit.',
         tutorName: 'Tutor X',
       },
@@ -41,7 +42,7 @@ describe('buildParentWeeklyDigestMessage', () => {
     const msg = buildParentWeeklyDigestMessage('Bunda Sari', start, end, reports)
     expect(msg).toContain('Bunda Sari')
     expect(msg).toContain('Andi')
-    expect(msg).toContain('85')
+    expect(msg).toContain('⭐⭐⭐⭐☆')
     expect(msg).toContain('Sempoa A')
   })
 
