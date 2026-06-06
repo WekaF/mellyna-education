@@ -38,7 +38,7 @@ const PROGRAM_COLORS: Record<string, string> = {
 
 function slotEndTime(start: string): string {
   const [h, m] = start.split(':').map(Number)
-  const totalMins = h * 60 + m + 45
+  const totalMins = h * 60 + m + 60
   const endH = Math.floor(totalMins / 60) % 24
   const endM = totalMins % 60
   return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`
