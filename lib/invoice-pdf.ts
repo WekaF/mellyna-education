@@ -113,17 +113,56 @@ export function generateInvoicePdf(invoice: InvoiceData): Promise<ArrayBuffer> {
       setFill(doc, C.yellow)
       doc.rect(ACC, 82, W - ACC, 6, 'F')
 
-      // ── Brand wordmark (vector, no PNG) ───────────────────────
+      // ── Owl mascot icon (vector, no PNG) ─────────────────────
+      const IX = P        // icon left edge
+      const IY = 10       // icon top edge
+      const IS = 62       // icon size (square)
+
+      setFill(doc, C.yellow)
+      doc.roundedRect(IX, IY, IS, IS, 11, 11, 'F')
+
+      // body
+      setFill(doc, C.primary)
+      doc.ellipse(IX + 31, IY + 44, 20, 21, 'F')
+      // chest
+      setFill(doc, C.primaryLight)
+      doc.ellipse(IX + 31, IY + 51, 11, 12, 'F')
+      // wings (darker blue on each side)
+      setFill(doc, C.slate)
+      doc.ellipse(IX + 13, IY + 50, 7, 10, 'F')
+      doc.ellipse(IX + 49, IY + 50, 7, 10, 'F')
+      // ear tufts
+      setFill(doc, C.primary)
+      doc.triangle(IX + 18, IY + 22, IX + 22, IY + 14, IX + 26, IY + 22, 'F')
+      doc.triangle(IX + 36, IY + 22, IX + 40, IY + 14, IX + 44, IY + 22, 'F')
+      // eyes (yellow)
+      setFill(doc, C.yellow)
+      doc.circle(IX + 21, IY + 29, 9, 'F')
+      doc.circle(IX + 41, IY + 29, 9, 'F')
+      // pupils (dark)
+      setFill(doc, C.primaryDark)
+      doc.circle(IX + 21, IY + 30, 5.5, 'F')
+      doc.circle(IX + 41, IY + 30, 5.5, 'F')
+      // eye highlights
+      setFill(doc, C.yellow)
+      doc.circle(IX + 23, IY + 27, 2, 'F')
+      doc.circle(IX + 43, IY + 27, 2, 'F')
+      // beak
+      setFill(doc, [255, 140, 0] as [number, number, number])
+      doc.triangle(IX + 26, IY + 38, IX + 31, IY + 44, IX + 36, IY + 38, 'F')
+
+      // ── Brand wordmark (right of icon) ───────────────────────
+      const BX = IX + IS + 8  // text starts after icon
       setTextColor(doc, C.white)
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(28)
-      doc.text('mellyna', P, 43)
+      doc.setFontSize(26)
+      doc.text('mellyna', BX, 43)
       setFill(doc, C.yellow)
-      doc.rect(P, 48, 112, 4, 'F')
+      doc.rect(BX, 48, 105, 4, 'F')
       setTextColor(doc, C.yellow)
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(8.5)
-      doc.text('E D U C A T I O N', P, 65)
+      doc.text('E D U C A T I O N', BX, 65)
 
       // INVOICE label (right side of header)
       setTextColor(doc, C.white)

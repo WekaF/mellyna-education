@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { generateInvoicePdf } from '@/lib/invoice-pdf'
-import { sendWhatsAppFile } from '@/lib/waha'
+import { sendWhatsAppFile, sendWhatsApp } from '@/lib/waha'
 import { formatRupiah } from '@/lib/utils'
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -67,6 +67,18 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
     const result = await sendWhatsAppFile(phone, base64, filename, 'application/pdf', caption)
     if (!result.ok) {
+      // Fallback: send text-only if file sending is not supported (WAHA free engine)
+      if (result.error.includes('422') || result.error.toLowerCase().includes('plus')) {
+        const textSent = await sendWhatsApp(phone, caption)
+        if (textSent) {
+          return NextResponse.json({
+            success: true,
+            invoiceNo: invNo,
+            sentTo: phone,
+            note: 'Terkirim sebagai pesan teks (lampiran PDF tidak tersedia, perlu WAHA NOWEB engine)',
+          })
+        }
+      }
       return NextResponse.json({ error: `Gagal mengirim via WhatsApp: ${result.error}` }, { status: 502 })
     }
 
