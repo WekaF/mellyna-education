@@ -148,22 +148,22 @@ export default function DashboardClient({
       </div>
 
       {/* 6 Stats Cards */}
-      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 xl:grid-cols-6">
         {statCards.map((s) => {
           const Icon = s.icon
           return (
             <div
               key={s.label}
-              className="rounded-2xl bg-white p-4 shadow-xs border border-slate-100 flex items-center gap-3"
+              className="rounded-2xl bg-white p-4 shadow-xs border border-slate-100 flex flex-col gap-3"
             >
-              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${s.bg}`}>
+              <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${s.bg}`}>
                 <Icon className={`h-5 w-5 ${s.text}`} />
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 truncate leading-tight">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 leading-tight">
                   {s.label}
                 </p>
-                <p className="mt-0.5 text-xl font-extrabold text-slate-800 truncate">{s.value}</p>
+                <p className="mt-1 text-lg font-extrabold text-slate-800 break-words leading-tight">{s.value}</p>
               </div>
             </div>
           )
