@@ -27,6 +27,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   if (!invoice) return NextResponse.json({ error: 'Not Found' }, { status: 404 })
 
+  if (!invoice.student.parent) {
+    return NextResponse.json({ error: 'Data orang tua tidak ditemukan' }, { status: 422 })
+  }
+
   try {
     const pdfBuffer = await generateInvoicePdf({
       id: invoice.id,
@@ -39,7 +43,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       student: invoice.student,
     })
 
-    return new NextResponse(new Uint8Array(pdfBuffer), {
+    return new NextResponse(pdfBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

@@ -57,7 +57,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     const filename = `${invNo}.pdf`
 
     const caption =
-      `Halo ${invoice.student.parent.name},\n\n` +
+      `Halo ${parent.name},\n\n` +
       `Berikut kami lampirkan invoice tagihan bimbingan belajar untuk ${invoice.student.name}.\n\n` +
       `No. Invoice : ${invNo}\n` +
       `Keterangan  : ${invoice.description}\n` +
