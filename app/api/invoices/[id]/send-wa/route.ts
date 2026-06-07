@@ -65,9 +65,9 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       `Jatuh Tempo : ${new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(invoice.dueDate)}\n\n` +
       `Terima kasih,\nMellyna Education`
 
-    const sent = await sendWhatsAppFile(phone, base64, filename, 'application/pdf', caption)
-    if (!sent) {
-      return NextResponse.json({ error: 'Gagal mengirim via WhatsApp. Periksa koneksi WAHA.' }, { status: 502 })
+    const result = await sendWhatsAppFile(phone, base64, filename, 'application/pdf', caption)
+    if (!result.ok) {
+      return NextResponse.json({ error: `Gagal mengirim via WhatsApp: ${result.error}` }, { status: 502 })
     }
 
     return NextResponse.json({ success: true, invoiceNo: invNo, sentTo: phone })

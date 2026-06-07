@@ -50,7 +50,7 @@ export async function sendWhatsAppFile(
   filename: string,
   mimetype: string,
   caption: string
-): Promise<boolean> {
+): Promise<{ ok: true } | { ok: false; error: string }> {
   const chatId = `${phone.replace(/\D/g, '').replace(/^0/, '62')}@c.us`
   try {
     const res = await fetch(`${WAHA_BASE}/api/sendFile`, {
@@ -62,6 +62,7 @@ export async function sendWhatsAppFile(
         file: {
           data: `data:${mimetype};base64,${base64Data}`,
           filename,
+          mimetype,
         },
         caption,
       }),
@@ -69,11 +70,12 @@ export async function sendWhatsAppFile(
     if (!res.ok) {
       const body = await res.text().catch(() => '(no body)')
       console.error(`[WAHA] sendFile failed ${res.status} for ${chatId}: ${body}`)
-      return false
+      return { ok: false, error: `WAHA ${res.status}: ${body}` }
     }
-    return true
+    return { ok: true }
   } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
     console.error('[WAHA] sendFile network error:', e)
-    return false
+    return { ok: false, error: `Network error: ${msg}` }
   }
 }

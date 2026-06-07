@@ -67,5 +67,5 @@ export async function notifyParentMilestoneReport(
     `Raport ${data.studentName} — ${data.periodLabel}`
   )
 
-  return textSent && fileSent
+  return textSent && fileSent.ok
 }
