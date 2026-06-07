@@ -62,7 +62,17 @@ export function TutorDailyCheckIn({
       },
       (err) => {
         setStatus('error')
-        setErrorMsg(`Gagal mendapatkan GPS: ${err.message}`)
+        if (err.code === 1) {
+          setErrorMsg(
+            'Izin lokasi ditolak. Klik ikon 🔒 di address bar browser → "Izinkan lokasi", lalu coba lagi.',
+          )
+        } else if (err.code === 2) {
+          setErrorMsg('GPS tidak tersedia. Pastikan Location/GPS aktif di pengaturan perangkat Anda.')
+        } else if (err.code === 3) {
+          setErrorMsg('GPS timeout. Pindah ke area lebih terbuka atau periksa sinyal, lalu coba lagi.')
+        } else {
+          setErrorMsg('Gagal mendapatkan lokasi GPS.')
+        }
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 },
     )
