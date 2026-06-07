@@ -73,6 +73,25 @@ function invoiceNumber(invoice: InvoiceData): string {
   return `INV-${y}${m}-${suffix}`
 }
 
+function slug(s: string, max = 20): string {
+  return s.trim().replace(/\s+/g, '_').replace(/[^\w]/g, '').slice(0, max)
+}
+
+export function formatInvoiceFilename(invoice: {
+  createdAt: Date
+  description: string
+  student: { name: string; parent: { name: string } | null }
+}): string {
+  const parentName = slug(invoice.student.parent?.name ?? 'unknown', 20)
+  const studentFirst = slug((invoice.student.name ?? '').split(' ')[0], 15)
+  const desc = slug(invoice.description, 25)
+  const d = invoice.createdAt
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const yyyy = d.getFullYear()
+  return `INV_${parentName}(${studentFirst})_${desc}_${dd}${mm}${yyyy}`
+}
+
 function setFill(doc: jsPDF, color: [number, number, number]) {
   doc.setFillColor(color[0], color[1], color[2])
 }

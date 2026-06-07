@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { generateInvoicePdf } from '@/lib/invoice-pdf'
+import { generateInvoicePdf, formatInvoiceFilename } from '@/lib/invoice-pdf'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions)
@@ -47,7 +47,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="invoice-${id}.pdf"`,
+        'Content-Disposition': `attachment; filename="${formatInvoiceFilename(invoice)}.pdf"`,
         'Content-Length': String(pdfBuffer.byteLength),
       },
     })

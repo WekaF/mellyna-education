@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { generateInvoicePdf } from '@/lib/invoice-pdf'
+import { generateInvoicePdf, formatInvoiceFilename } from '@/lib/invoice-pdf'
 import { sendWhatsAppFile, sendWhatsApp } from '@/lib/waha'
 import { formatRupiah } from '@/lib/utils'
 
@@ -51,10 +51,10 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     })
 
     const base64 = Buffer.from(pdfBuffer).toString('base64')
+    const filename = `${formatInvoiceFilename(invoice)}.pdf`
     const y = invoice.createdAt.getFullYear()
     const m = String(invoice.createdAt.getMonth() + 1).padStart(2, '0')
     const invNo = `INV-${y}${m}-${invoice.id.slice(-6).toUpperCase()}`
-    const filename = `${invNo}.pdf`
 
     const caption =
       `Halo ${parent.name},\n\n` +

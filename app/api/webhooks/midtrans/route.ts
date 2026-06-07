@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
 import { prisma } from '@/lib/db'
-import { generateInvoicePdf } from '@/lib/invoice-pdf'
+import { generateInvoicePdf, formatInvoiceFilename } from '@/lib/invoice-pdf'
 import { sendWhatsAppFile } from '@/lib/waha'
 
 export async function POST(req: NextRequest) {
@@ -110,7 +110,7 @@ async function sendPaidReceipt(invoiceId: string, paidAt: Date): Promise<void> {
     const y = inv.createdAt.getFullYear()
     const mo = String(inv.createdAt.getMonth() + 1).padStart(2, '0')
     const invNo = `INV-${y}${mo}-${inv.id.slice(-6).toUpperCase()}`
-    const filename = `KWITANSI-${invNo}.pdf`
+    const filename = `KWITANSI_${formatInvoiceFilename(inv)}.pdf`
     const base64 = Buffer.from(pdfBuffer).toString('base64')
 
     const fmt = (n: number) =>
