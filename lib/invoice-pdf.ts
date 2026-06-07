@@ -1,6 +1,4 @@
 import { jsPDF } from 'jspdf'
-import fs from 'fs'
-import path from 'path'
 
 export interface InvoiceData {
   id: string
@@ -85,15 +83,6 @@ function setDrawColor(doc: jsPDF, color: [number, number, number]) {
   doc.setDrawColor(color[0], color[1], color[2])
 }
 
-function loadLogoBase64(filename: string): string | null {
-  try {
-    const logoPath = path.join(process.cwd(), 'public', 'icons', filename)
-    return fs.readFileSync(logoPath).toString('base64')
-  } catch {
-    return null
-  }
-}
-
 export function generateInvoicePdf(invoice: InvoiceData): Promise<ArrayBuffer> {
   return new Promise((resolve, reject) => {
     try {
@@ -107,10 +96,6 @@ export function generateInvoicePdf(invoice: InvoiceData): Promise<ArrayBuffer> {
 
       const sc = STATUS_COLORS[invoice.status] ?? STATUS_COLORS['PENDING']
       const invNo = invoiceNumber(invoice)
-
-      // Pre-load logos
-      const logoDark    = loadLogoBase64('mellyna-logo-dark.png')
-      const logoCompact = loadLogoBase64('mellyna-logo-horizontal-compact.png')
 
       // ── White background ─────────────────────────────────────
       setFill(doc, C.white)
@@ -128,19 +113,17 @@ export function generateInvoicePdf(invoice: InvoiceData): Promise<ArrayBuffer> {
       setFill(doc, C.yellow)
       doc.rect(ACC, 82, W - ACC, 6, 'F')
 
-      // Company logo (or text fallback)
-      if (logoDark) {
-        doc.addImage(`data:image/png;base64,${logoDark}`, 'PNG', P, 12, 170, 58)
-      } else {
-        setTextColor(doc, C.white)
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(22)
-        doc.text('MELLYNA EDUCATION', P, 40)
-        setTextColor(doc, C.primaryMid)
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(9)
-        doc.text('Bimbingan Belajar & Kursus Sempoa  •  Yogyakarta', P, 60)
-      }
+      // ── Brand wordmark (vector, no PNG) ───────────────────────
+      setTextColor(doc, C.white)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(28)
+      doc.text('mellyna', P, 43)
+      setFill(doc, C.yellow)
+      doc.rect(P, 48, 112, 4, 'F')
+      setTextColor(doc, C.yellow)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8.5)
+      doc.text('E D U C A T I O N', P, 65)
 
       // INVOICE label (right side of header)
       setTextColor(doc, C.white)
@@ -310,22 +293,25 @@ export function generateInvoicePdf(invoice: InvoiceData): Promise<ArrayBuffer> {
       setFill(doc, C.yellow)
       doc.rect(ACC, footerY, W - ACC, 3, 'F')
 
-      if (logoCompact) {
-        doc.addImage(`data:image/png;base64,${logoCompact}`, 'PNG', P, footerY + 8, 130, 36)
-      } else {
-        setTextColor(doc, C.primary)
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(10)
-        doc.text('MELLYNA EDUCATION', P, footerY + 22)
-      }
+      // ── Footer brand (vector, no PNG) ────────────────────────
+      setTextColor(doc, C.primary)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(13)
+      doc.text('mellyna', P, footerY + 24)
+      setFill(doc, C.yellow)
+      doc.rect(P, footerY + 27, 55, 3, 'F')
+      setTextColor(doc, [255, 140, 0] as [number, number, number])
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(6.5)
+      doc.text('E D U C A T I O N', P, footerY + 38)
 
       setTextColor(doc, C.gray)
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(7.5)
       doc.text(
-        `info@mellynaeducation.id  •  Yogyakarta, Indonesia  •  Diterbitkan otomatis ${formatDate(new Date())}`,
+        `info@mellynaeducation.id  •  Pakong, Pamekasan, Jawa Timur, Indonesia  •  Diterbitkan otomatis ${formatDate(new Date())}`,
         P,
-        footerY + 42,
+        footerY + 48,
       )
 
       // ── Output as ArrayBuffer ─────────────────────────────────

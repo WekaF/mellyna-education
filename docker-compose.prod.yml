@@ -90,6 +90,7 @@ services:
     image: devlikeapro/waha
     restart: unless-stopped
     environment:
+      WHATSAPP_DEFAULT_ENGINE: NOWEB
       WHATSAPP_API_KEY: ${WAHA_API_KEY}
       WHATSAPP_HOOK_URL: http://app:3000/api/webhooks/waha
       WHATSAPP_HOOK_EVENTS: "session.status"
