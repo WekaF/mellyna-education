@@ -79,6 +79,7 @@ export default async function TutorDashboardPage() {
         initialCheckedInAt={todayCheckIn?.checkedInAt.toISOString()}
         initialDistanceM={todayCheckIn ? Math.round(todayCheckIn.distanceM) : undefined}
         hasScheduleToday={!!hasScheduleToday}
+        todayDateKey={today}
       />
 
       <AnnouncementsWidget />
