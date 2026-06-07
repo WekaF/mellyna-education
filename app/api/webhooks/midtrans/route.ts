@@ -111,7 +111,7 @@ async function sendPaidReceipt(invoiceId: string, paidAt: Date): Promise<void> {
     const mo = String(inv.createdAt.getMonth() + 1).padStart(2, '0')
     const invNo = `INV-${y}${mo}-${inv.id.slice(-6).toUpperCase()}`
     const filename = `KWITANSI-${invNo}.pdf`
-    const base64 = pdfBuffer.toString('base64')
+    const base64 = Buffer.from(pdfBuffer).toString('base64')
 
     const fmt = (n: number) =>
       new Intl.NumberFormat('id-ID', {

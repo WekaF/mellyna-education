@@ -48,7 +48,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="invoice-${id}.pdf"`,
-        'Content-Length': String(pdfBuffer.length),
+        'Content-Length': String(pdfBuffer.byteLength),
       },
     })
   } catch (e) {

@@ -50,7 +50,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       student: invoice.student,
     })
 
-    const base64 = pdfBuffer.toString('base64')
+    const base64 = Buffer.from(pdfBuffer).toString('base64')
     const y = invoice.createdAt.getFullYear()
     const m = String(invoice.createdAt.getMonth() + 1).padStart(2, '0')
     const invNo = `INV-${y}${m}-${invoice.id.slice(-6).toUpperCase()}`

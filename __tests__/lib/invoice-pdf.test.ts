@@ -20,22 +20,22 @@ const mockInvoice: InvoiceData = {
 }
 
 describe('generateInvoicePdf', () => {
-  it('returns a non-empty Buffer', async () => {
+  it('returns a non-empty ArrayBuffer', async () => {
     const buf = await generateInvoicePdf(mockInvoice)
-    expect(buf).toBeInstanceOf(Buffer)
-    expect(buf.length).toBeGreaterThan(1000)
+    expect(buf).toBeInstanceOf(ArrayBuffer)
+    expect(buf.byteLength).toBeGreaterThan(1000)
   })
 
   it('PDF starts with %PDF magic bytes', async () => {
     const buf = await generateInvoicePdf(mockInvoice)
-    expect(buf.slice(0, 4).toString('ascii')).toBe('%PDF')
+    expect(Buffer.from(buf).slice(0, 4).toString('ascii')).toBe('%PDF')
   })
 
   it('works for all status values', async () => {
     const statuses: InvoiceData['status'][] = ['PENDING', 'PAID', 'OVERDUE', 'CANCELLED']
     for (const status of statuses) {
       const buf = await generateInvoicePdf({ ...mockInvoice, status, paidAt: null })
-      expect(buf.slice(0, 4).toString('ascii')).toBe('%PDF')
+      expect(Buffer.from(buf).slice(0, 4).toString('ascii')).toBe('%PDF')
     }
   })
 })

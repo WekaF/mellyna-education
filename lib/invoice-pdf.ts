@@ -94,7 +94,7 @@ function loadLogoBase64(filename: string): string | null {
   }
 }
 
-export function generateInvoicePdf(invoice: InvoiceData): Promise<Buffer> {
+export function generateInvoicePdf(invoice: InvoiceData): Promise<ArrayBuffer> {
   return new Promise((resolve, reject) => {
     try {
       const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
@@ -328,9 +328,8 @@ export function generateInvoicePdf(invoice: InvoiceData): Promise<Buffer> {
         footerY + 42,
       )
 
-      // ── Output as Buffer ──────────────────────────────────────
-      const uint8 = doc.output('arraybuffer')
-      resolve(Buffer.from(uint8))
+      // ── Output as ArrayBuffer ─────────────────────────────────
+      resolve(doc.output('arraybuffer'))
     } catch (e) {
       reject(e)
     }
