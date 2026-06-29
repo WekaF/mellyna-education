@@ -72,7 +72,7 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-800">⚙️ Pengaturan &amp; Integrasi</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Status koneksi WAHA (WhatsApp) dan n8n Automation.</p>
+          <p className="text-sm text-slate-500 mt-0.5">Status koneksi WhatDesks (WhatsApp) dan n8n Automation.</p>
         </div>
         <button
           onClick={fetchStatus}
@@ -159,7 +159,7 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
         <div className="flex items-start justify-between">
           <div>
             <h2 className="font-extrabold text-slate-800">⚡ n8n — Workflow Automation</h2>
-            <p className="text-xs text-slate-500 mt-1">Workflow notifikasi jadwal cadangan via n8n → WAHA.</p>
+            <p className="text-xs text-slate-500 mt-1">Workflow notifikasi jadwal cadangan via n8n → WhatDesks.</p>
           </div>
           {status && <StatusBadge status={status.n8n.status} />}
         </div>
@@ -176,7 +176,7 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
           </ol>
 
           <div className="rounded-lg bg-amber-50 border border-amber-100 p-3 text-xs text-amber-700">
-            <strong>Catatan:</strong> n8n adalah fallback — jadwal sudah ter-broadcast langsung via WAHA saat diterbitkan. n8n digunakan untuk workflow tambahan atau retry otomatis.
+            <strong>Catatan:</strong> n8n adalah fallback — jadwal sudah ter-broadcast langsung via WhatDesks saat diterbitkan. n8n digunakan untuk workflow tambahan atau retry otomatis.
           </div>
         </div>
 

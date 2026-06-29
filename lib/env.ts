@@ -8,7 +8,6 @@ const envSchema = z.object({
   MINIO_ACCESS_KEY: z.string().min(1),
   MINIO_SECRET_KEY: z.string().min(8),
   N8N_WEBHOOK_SECRET: z.string().min(8),
-  WAHA_API_KEY: z.string().min(8),
 })
 
 const parsed = envSchema.safeParse(process.env)
