@@ -75,7 +75,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
             success: true,
             invoiceNo: invNo,
             sentTo: phone,
-            note: 'Terkirim sebagai pesan teks (lampiran PDF tidak tersedia, perlu WAHA NOWEB engine)',
+            note: 'Terkirim sebagai pesan teks (lampiran PDF gagal dikirim via WhatDesks)',
           })
         }
       }

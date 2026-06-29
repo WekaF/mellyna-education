@@ -232,7 +232,7 @@ Mellyna Education`
     let message = `${createdCount} jadwal berhasil dibuat.`
     if (skippedCount > 0) message += ` ${skippedCount} dilewati (jadwal sudah ada).`
     if (wahaStatus !== 'WORKING') {
-      message += ` ⚠️ Notifikasi WA tidak terkirim — WAHA ${wahaStatus}.`
+      message += ` ⚠️ Notifikasi WA tidak terkirim — WhatDesks ${wahaStatus}.`
     } else if (createdCount > 0) {
       message += ' Notifikasi WA sedang dikirim.'
     }
