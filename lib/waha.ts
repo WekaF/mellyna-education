@@ -1,38 +1,18 @@
-// WhatsApp adapter — calls whatdesks API instead of Waha.
-// Exports are identical to the original waha.ts so all callers stay unchanged.
+// WhatsApp adapter — calls Waguzz (self-hosted WA gateway) via static API key.
+// Exports are identical to the previous adapter so all 13+ callers stay unchanged.
 
-// Read lazily inside a function to avoid webpack baking undefined at build time
-// (Next.js SSG runs during docker build; ARG/ENV in Dockerfile ensures values are set)
 function cfg() {
   return {
-    base: process.env.WHATDESKS_BASE_URL ?? 'https://whatdesks.mellyna-education.my.id',
-    email: process.env.WHATDESKS_EMAIL ?? '',
-    password: process.env.WHATDESKS_PASSWORD ?? '',
-    deviceId: parseInt(process.env.WHATDESKS_DEVICE_ID ?? '3', 10),
-    deviceUuid: process.env.WHATDESKS_DEVICE_UUID ?? '',
+    base: process.env.WAGUZZ_BASE_URL ?? 'http://localhost:3000',
+    apiKey: process.env.WAGUZZ_API_KEY ?? '',
   }
 }
 
-// JWT token cache — login once, reuse for ~60 hours, refresh before expiry
-let _token: string | null = null
-let _tokenExpiry = 0
-
-async function getToken(): Promise<string> {
-  if (_token && Date.now() < _tokenExpiry) return _token
-  const { base, email, password } = cfg()
-  const res = await fetch(`${base}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  })
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    throw new Error(`[WHATDESKS] login failed ${res.status}: ${body}`)
+function authHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'X-Api-Key': cfg().apiKey,
   }
-  const data = await res.json()
-  _token = data.token as string
-  _tokenExpiry = Date.now() + 60 * 60 * 1000 * 60 // cache 60 h (JWT TTL is 72 h)
-  return _token!
 }
 
 function normalizePhone(phone: string): string {
@@ -49,30 +29,20 @@ export function randomDelay(minMs = 3000, maxMs = 7000): number {
 
 export async function sendWhatsApp(phone: string, message: string): Promise<boolean> {
   try {
-    const token = await getToken()
-    const { base, deviceId } = cfg()
-    const res = await fetch(`${base}/api/messages/send`, {
+    const { base } = cfg()
+    const res = await fetch(`${base}/wa/send-text`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        device_id: deviceId,
-        phone: normalizePhone(phone),
-        message,
-        message_type: 'text',
-      }),
+      headers: authHeaders(),
+      body: JSON.stringify({ phone: normalizePhone(phone), message }),
     })
     if (!res.ok) {
-      if (res.status === 401) _token = null // force re-login next call
-      const body = await res.text().catch(() => '(no body)')
-      console.error(`[WHATDESKS] sendText failed ${res.status} for ${phone}: ${body}`)
+      const body = typeof res.text === 'function' ? await res.text().catch(() => '') : ''
+      console.error(`[WAGUZZ] sendText failed ${res.status} for ${phone}: ${body}`)
       return false
     }
     return true
   } catch (e) {
-    console.error('[WHATDESKS] sendText error:', e)
+    console.error('[WAGUZZ] sendText error:', e)
     return false
   }
 }
@@ -82,86 +52,48 @@ export async function sendWhatsAppFile(
   base64Data: string,
   filename: string,
   mimetype: string,
-  caption: string
+  caption: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    const token = await getToken()
-    const { base, deviceId } = cfg()
-
-    // Step 1: convert base64 → Buffer → multipart upload
-    const binary = Buffer.from(base64Data, 'base64')
-    const blob = new Blob([binary], { type: mimetype })
-    const form = new FormData()
-    form.append('file', blob, filename)
-
-    const uploadRes = await fetch(`${base}/api/messages/upload`, {
+    const { base } = cfg()
+    const res = await fetch(`${base}/wa/send-file`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: form,
-    })
-    if (!uploadRes.ok) {
-      if (uploadRes.status === 401) _token = null
-      const body = await uploadRes.text().catch(() => '(no body)')
-      console.error(`[WHATDESKS] upload failed ${uploadRes.status}: ${body}`)
-      return { ok: false, error: `WHATDESKS upload ${uploadRes.status}: ${body}` }
-    }
-    const { url, message_type } = (await uploadRes.json()) as {
-      url: string
-      message_type: string
-    }
-
-    // Step 2: send message referencing the uploaded file
-    const sendRes = await fetch(`${base}/api/messages/send`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers: authHeaders(),
       body: JSON.stringify({
-        device_id: deviceId,
         phone: normalizePhone(phone),
-        message: caption,
-        message_type,
-        media_url: url,
-        file_name: filename,
+        base64: base64Data,
+        filename,
+        mimetype,
+        caption,
       }),
     })
-    if (!sendRes.ok) {
-      if (sendRes.status === 401) _token = null
-      const body = await sendRes.text().catch(() => '(no body)')
-      console.error(`[WHATDESKS] sendFile failed ${sendRes.status} for ${phone}: ${body}`)
-      return { ok: false, error: `WHATDESKS send ${sendRes.status}: ${body}` }
+    if (!res.ok) {
+      const body = typeof res.text === 'function' ? await res.text().catch(() => '(no body)') : '(no body)'
+      console.error(`[WAGUZZ] sendFile failed ${res.status}: ${body}`)
+      return { ok: false, error: `WAGUZZ ${res.status}: ${body}` }
     }
     return { ok: true }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    console.error('[WHATDESKS] sendFile error:', e)
+    console.error('[WAGUZZ] sendFile error:', e)
     return { ok: false, error: `Network error: ${msg}` }
   }
 }
 
-// Returns WAHA-compatible status strings so callers checking 'WORKING' keep working
 export async function getSessionStatus(): Promise<string> {
   try {
-    const token = await getToken()
-    const { base, deviceUuid } = cfg()
-    const res = await fetch(`${base}/api/devices/${deviceUuid}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const { base, apiKey } = cfg()
+    const res = await fetch(`${base}/wa/status`, {
+      headers: { 'X-Api-Key': apiKey },
     })
     if (!res.ok) {
-      console.error(`[WHATDESKS] getSessionStatus failed ${res.status}`)
+      console.error(`[WAGUZZ] getSessionStatus failed ${res.status}`)
       return 'UNKNOWN'
     }
-    const raw = await res.json()
-    // Handle array response (list endpoint) or direct object
-    const device = Array.isArray(raw) ? raw[0] : raw
-    if (!device) return 'UNKNOWN'
-    // whatdesks statuses: CONNECTED / DISCONNECTED / CONNECTING
-    const status: string = device.status ?? device.link_status ?? ''
-    console.log(`[WHATDESKS] device status: ${status}`)
-    return status === 'CONNECTED' ? 'WORKING' : 'STOPPED'
+    const data = (await res.json()) as { status: string }
+    return data.status === 'CONNECTED' ? 'WORKING' : 'STOPPED'
   } catch (e) {
-    console.error('[WHATDESKS] getSessionStatus error:', e)
+    console.error('[WAGUZZ] getSessionStatus error:', e)
     return 'OFFLINE'
   }
 }
