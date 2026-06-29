@@ -28,3 +28,21 @@ jobs:
             echo ""
             echo "=== CADDY STATUS ==="
             docker inspect mellyna-education-caddy-1 --format "{{.State.Status}}" 2>/dev/null
+            echo ""
+            echo "=== WHATDESKS NETWORK/PORTS ==="
+            docker inspect whatdesks-backend --format "{{.NetworkSettings.Networks}}" 2>/dev/null | tr ',' '\n' | head -20
+            docker port whatdesks-backend 2>/dev/null || echo "no host ports"
+            docker port whatdesks-frontend 2>/dev/null || echo "no host ports"
+            echo ""
+            echo "=== HOST PORTS LISTENING ==="
+            ss -tlnp | grep -E ':8000|:8005|:8080|:3001' || echo "(none)"
+            echo ""
+            echo "=== WHATDESKS CONTAINER IPS ==="
+            docker inspect whatdesks-backend --format "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" 2>/dev/null
+            docker inspect whatdesks-frontend --format "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" 2>/dev/null
+            echo ""
+            echo "=== MELLYNA CADDY NETWORKS ==="
+            docker inspect mellyna-education-caddy-1 --format "{{range .NetworkSettings.Networks}}{{.NetworkID}}:{{.IPAddress}} {{end}}" 2>/dev/null
+            echo ""
+            echo "=== WHATDESKS NETWORKS ==="
+            docker inspect whatdesks-backend --format "{{range .NetworkSettings.Networks}}{{.NetworkID}}:{{.IPAddress}} {{end}}" 2>/dev/null
