@@ -1,0 +1,30 @@
+name: Diagnose Server
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    name: Check Server State
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH Diagnostics
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SUMOPOD_HOST }}
+          username: ${{ secrets.SUMOPOD_USER }}
+          password: ${{ secrets.SUMOPOD_PASSWORD }}
+          script: |
+            cd /opt/mellyna-education
+            echo "=== DOCKER PS ==="
+            docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            echo ""
+            echo "=== APP LOGS (last 80 lines) ==="
+            docker logs mellyna-education-app-1 --tail 80 2>&1
+            echo ""
+            echo "=== .ENV WHATDESKS KEYS ==="
+            grep "^WHATDESKS" .env 2>/dev/null | sed 's/=.*/=***/' || echo "(none)"
+            echo ""
+            echo "=== CADDY STATUS ==="
+            docker inspect mellyna-education-caddy-1 --format "{{.State.Status}}" 2>/dev/null
