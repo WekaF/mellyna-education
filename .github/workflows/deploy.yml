@@ -65,15 +65,24 @@ jobs:
           capture_stdout: true
           script: |
             cd /opt/mellyna-education
+
+            # Inject WhatDesks env vars into server .env
+            inject_env() {
+              local key="$1" val="$2"
+              if grep -q "^${key}=" .env 2>/dev/null; then
+                sed -i "s|^${key}=.*|${key}=${val}|" .env
+              else
+                echo "${key}=${val}" >> .env
+              fi
+            }
+            inject_env WHATDESKS_BASE_URL "${{ secrets.WHATDESKS_BASE_URL }}"
+            inject_env WHATDESKS_EMAIL "${{ secrets.WHATDESKS_EMAIL }}"
+            inject_env WHATDESKS_PASSWORD "${{ secrets.WHATDESKS_PASSWORD }}"
+            inject_env WHATDESKS_DEVICE_ID "${{ secrets.WHATDESKS_DEVICE_ID }}"
+            inject_env WHATDESKS_DEVICE_UUID "${{ secrets.WHATDESKS_DEVICE_UUID }}"
+
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose -f docker-compose.prod.yml pull app
             docker compose -f docker-compose.prod.yml up -d --no-deps --force-recreate app
             docker image prune -f
             echo "✅ Mellyna Education deployed successfully"
-            WAHA_KEY=$(grep "^WAHA_API_KEY=" /opt/mellyna-education/.env | cut -d= -f2- | tr -d '"' | tr -d "'" | tr -d '\r' | xargs)
-            echo "WAHA_KEY length: ${#WAHA_KEY}"
-            WA_RESP=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "http://localhost:3001/api/sendText" \
-              -H "Content-Type: application/json" \
-              -H "X-Api-Key: $WAHA_KEY" \
-              -d "{\"chatId\":\"${{ secrets.NOTIFY_WA_NUMBER }}@c.us\",\"text\":\"✅ *Deploy Sukses!*\n\nApp: mellyna-education\nCommit: ${{ github.sha }}\nBy: ${{ github.actor }}\n\nApp: https://mellyna-education.my.id\",\"session\":\"default\"}" 2>&1 || true)
-            echo "WA response: $WA_RESP"
