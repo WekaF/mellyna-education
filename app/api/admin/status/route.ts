@@ -22,7 +22,7 @@ export async function GET(_req: NextRequest) {
   }
 
   return NextResponse.json({
-    waha: {
+    whatdesks: {
       status: wahaStatus,
       dashboardUrl: process.env.WHATDESKS_BASE_URL ?? 'http://localhost:8000',
     },

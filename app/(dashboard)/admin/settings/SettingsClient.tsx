@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { ExternalLink, RefreshCw, Wifi, WifiOff, Bell, BellOff } from 'lucide-react'
 
 interface IntegrationStatus {
-  waha: {
+  whatdesks: {
     status: string
     dashboardUrl: string
   }
@@ -120,14 +120,14 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
         </div>
       </div>
 
-      {/* WAHA Section */}
+      {/* WhatDesks Section */}
       <div className="rounded-2xl bg-white border border-slate-100 shadow-xs p-6 space-y-5">
         <div className="flex items-start justify-between">
           <div>
             <h2 className="font-extrabold text-slate-800">📱 WhatDesks — WhatsApp</h2>
             <p className="text-xs text-slate-500 mt-1">Layanan notifikasi WhatsApp otomatis ke orang tua siswa via WhatDesks.</p>
           </div>
-          {status && <StatusBadge status={status.waha.status} />}
+          {status && <StatusBadge status={status.whatdesks.status} />}
         </div>
 
         <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 space-y-3">
@@ -143,7 +143,7 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
 
         {status && (
           <a
-            href={status.waha.dashboardUrl}
+            href={status.whatdesks.dashboardUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
