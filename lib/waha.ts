@@ -1,11 +1,17 @@
 // WhatsApp adapter — calls whatdesks API instead of Waha.
 // Exports are identical to the original waha.ts so all callers stay unchanged.
 
-const BASE = process.env.WHATDESKS_BASE_URL ?? 'http://localhost:8000'
-const EMAIL = process.env.WHATDESKS_EMAIL ?? ''
-const PASSWORD = process.env.WHATDESKS_PASSWORD ?? ''
-const DEVICE_ID = parseInt(process.env.WHATDESKS_DEVICE_ID ?? '1', 10)
-const DEVICE_UUID = process.env.WHATDESKS_DEVICE_UUID ?? ''
+// Read lazily inside a function to avoid webpack baking undefined at build time
+// (Next.js SSG runs during docker build; ARG/ENV in Dockerfile ensures values are set)
+function cfg() {
+  return {
+    base: process.env.WHATDESKS_BASE_URL ?? 'https://whatdesks.mellyna-education.my.id',
+    email: process.env.WHATDESKS_EMAIL ?? '',
+    password: process.env.WHATDESKS_PASSWORD ?? '',
+    deviceId: parseInt(process.env.WHATDESKS_DEVICE_ID ?? '3', 10),
+    deviceUuid: process.env.WHATDESKS_DEVICE_UUID ?? '',
+  }
+}
 
 // JWT token cache — login once, reuse for ~60 hours, refresh before expiry
 let _token: string | null = null
@@ -13,10 +19,11 @@ let _tokenExpiry = 0
 
 async function getToken(): Promise<string> {
   if (_token && Date.now() < _tokenExpiry) return _token
-  const res = await fetch(`${BASE}/auth/login`, {
+  const { base, email, password } = cfg()
+  const res = await fetch(`${base}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: EMAIL, password: PASSWORD }),
+    body: JSON.stringify({ email, password }),
   })
   if (!res.ok) {
     const body = await res.text().catch(() => '')
@@ -43,14 +50,15 @@ export function randomDelay(minMs = 3000, maxMs = 7000): number {
 export async function sendWhatsApp(phone: string, message: string): Promise<boolean> {
   try {
     const token = await getToken()
-    const res = await fetch(`${BASE}/api/messages/send`, {
+    const { base, deviceId } = cfg()
+    const res = await fetch(`${base}/api/messages/send`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        device_id: DEVICE_ID,
+        device_id: deviceId,
         phone: normalizePhone(phone),
         message,
         message_type: 'text',
@@ -78,6 +86,7 @@ export async function sendWhatsAppFile(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     const token = await getToken()
+    const { base, deviceId } = cfg()
 
     // Step 1: convert base64 → Buffer → multipart upload
     const binary = Buffer.from(base64Data, 'base64')
@@ -85,7 +94,7 @@ export async function sendWhatsAppFile(
     const form = new FormData()
     form.append('file', blob, filename)
 
-    const uploadRes = await fetch(`${BASE}/api/messages/upload`, {
+    const uploadRes = await fetch(`${base}/api/messages/upload`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: form,
@@ -102,14 +111,14 @@ export async function sendWhatsAppFile(
     }
 
     // Step 2: send message referencing the uploaded file
-    const sendRes = await fetch(`${BASE}/api/messages/send`, {
+    const sendRes = await fetch(`${base}/api/messages/send`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        device_id: DEVICE_ID,
+        device_id: deviceId,
         phone: normalizePhone(phone),
         message: caption,
         message_type,
@@ -135,7 +144,8 @@ export async function sendWhatsAppFile(
 export async function getSessionStatus(): Promise<string> {
   try {
     const token = await getToken()
-    const res = await fetch(`${BASE}/api/devices/${DEVICE_UUID}`, {
+    const { base, deviceUuid } = cfg()
+    const res = await fetch(`${base}/api/devices/${deviceUuid}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!res.ok) {
