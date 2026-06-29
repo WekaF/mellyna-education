@@ -18,16 +18,19 @@ jobs:
           script: |
             cd /opt/mellyna-education
             echo "=== DOCKER PS ==="
-            docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            docker ps --format "table {{.Names}}\t{{.Status}}" --filter "name=mellyna"
             echo ""
-            echo "=== APP LOGS (last 80 lines) ==="
-            docker logs mellyna-education-app-1 --tail 80 2>&1
+            echo "=== APP WHATDESKS_BASE_URL ==="
+            docker exec mellyna-education-app-1 sh -c 'echo $WHATDESKS_BASE_URL' 2>/dev/null || echo "exec failed"
             echo ""
-            echo "=== .ENV WHATDESKS KEYS ==="
-            grep "^WHATDESKS" .env 2>/dev/null | sed 's/=.*/=***/' || echo "(none)"
+            echo "=== TEST LOGIN FROM APP CONTAINER ==="
+            docker exec mellyna-education-app-1 sh -c 'wget -qO- --method=POST --header="Content-Type: application/json" --body-data="{\"email\":\"admin@whatapps.com\",\"password\":\"adminpassword\"}" http://whatdesks-backend:8080/auth/login 2>&1 | head -c 400' 2>/dev/null || echo "exec failed"
             echo ""
-            echo "=== CADDY STATUS ==="
-            docker inspect mellyna-education-caddy-1 --format "{{.State.Status}}" 2>/dev/null
+            echo "=== APP NETWORKS ==="
+            docker inspect mellyna-education-app-1 --format "{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}" 2>/dev/null
+            echo ""
+            echo "=== CADDY NETWORKS ==="
+            docker inspect mellyna-education-caddy-1 --format "{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}" 2>/dev/null
             echo ""
             echo "=== WHATDESKS NETWORK/PORTS ==="
             docker inspect whatdesks-backend --format "{{.NetworkSettings.Networks}}" 2>/dev/null | tr ',' '\n' | head -20
