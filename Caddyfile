@@ -14,10 +14,6 @@ n8n.mellyna-education.my.id {
     reverse_proxy n8n:5678
 }
 
-waha.mellyna-education.my.id {
-    reverse_proxy waha:3000
-}
-
 media.mellyna-education.my.id {
     reverse_proxy minio:9000
 }
