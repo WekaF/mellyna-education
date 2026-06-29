@@ -1,46 +1,71 @@
-const WAHA_BASE = process.env.WAHA_BASE_URL ?? 'http://localhost:3001'
-const WAHA_KEY = process.env.WAHA_API_KEY ?? ''
-const WAHA_SESSION = process.env.WAHA_SESSION ?? 'default'
+// WhatsApp adapter — calls whatdesks API instead of Waha.
+// Exports are identical to the original waha.ts so all callers stay unchanged.
+
+const BASE = process.env.WHATDESKS_BASE_URL ?? 'http://localhost:8000'
+const EMAIL = process.env.WHATDESKS_EMAIL ?? ''
+const PASSWORD = process.env.WHATDESKS_PASSWORD ?? ''
+const DEVICE_ID = parseInt(process.env.WHATDESKS_DEVICE_ID ?? '1', 10)
+const DEVICE_UUID = process.env.WHATDESKS_DEVICE_UUID ?? ''
+
+// JWT token cache — login once, reuse for ~60 hours, refresh before expiry
+let _token: string | null = null
+let _tokenExpiry = 0
+
+async function getToken(): Promise<string> {
+  if (_token && Date.now() < _tokenExpiry) return _token
+  const res = await fetch(`${BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: EMAIL, password: PASSWORD }),
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`[WHATDESKS] login failed ${res.status}: ${body}`)
+  }
+  const data = await res.json()
+  _token = data.token as string
+  _tokenExpiry = Date.now() + 60 * 60 * 1000 * 60 // cache 60 h (JWT TTL is 72 h)
+  return _token!
+}
+
+function normalizePhone(phone: string): string {
+  return phone.replace(/\D/g, '').replace(/^0/, '62')
+}
 
 export function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-// Returns random ms between min and max (inclusive)
 export function randomDelay(minMs = 3000, maxMs = 7000): number {
   return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs
 }
 
 export async function sendWhatsApp(phone: string, message: string): Promise<boolean> {
-  const chatId = `${phone.replace(/\D/g, '').replace(/^0/, '62')}@c.us`
   try {
-    const res = await fetch(`${WAHA_BASE}/api/sendText`, {
+    const token = await getToken()
+    const res = await fetch(`${BASE}/api/messages/send`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_KEY },
-      body: JSON.stringify({ session: WAHA_SESSION, chatId, text: message }),
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        device_id: DEVICE_ID,
+        phone: normalizePhone(phone),
+        message,
+        message_type: 'text',
+      }),
     })
     if (!res.ok) {
+      if (res.status === 401) _token = null // force re-login next call
       const body = await res.text().catch(() => '(no body)')
-      console.error(`[WAHA] sendText failed ${res.status} for ${chatId}: ${body}`)
+      console.error(`[WHATDESKS] sendText failed ${res.status} for ${phone}: ${body}`)
       return false
     }
     return true
   } catch (e) {
-    console.error('[WAHA] sendText network error:', e)
+    console.error('[WHATDESKS] sendText error:', e)
     return false
-  }
-}
-
-export async function getSessionStatus(): Promise<string> {
-  try {
-    const res = await fetch(`${WAHA_BASE}/api/sessions/${WAHA_SESSION}`, {
-      headers: { 'X-Api-Key': WAHA_KEY },
-    })
-    if (!res.ok) return 'UNKNOWN'
-    const data = await res.json()
-    return data.status ?? 'UNKNOWN'
-  } catch {
-    return 'OFFLINE'
   }
 }
 
@@ -51,31 +76,82 @@ export async function sendWhatsAppFile(
   mimetype: string,
   caption: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const chatId = `${phone.replace(/\D/g, '').replace(/^0/, '62')}@c.us`
   try {
-    const res = await fetch(`${WAHA_BASE}/api/sendFile`, {
+    const token = await getToken()
+
+    // Step 1: convert base64 → Buffer → multipart upload
+    const binary = Buffer.from(base64Data, 'base64')
+    const blob = new Blob([binary], { type: mimetype })
+    const form = new FormData()
+    form.append('file', blob, filename)
+
+    const uploadRes = await fetch(`${BASE}/api/messages/upload`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_KEY },
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    })
+    if (!uploadRes.ok) {
+      if (uploadRes.status === 401) _token = null
+      const body = await uploadRes.text().catch(() => '(no body)')
+      console.error(`[WHATDESKS] upload failed ${uploadRes.status}: ${body}`)
+      return { ok: false, error: `WHATDESKS upload ${uploadRes.status}: ${body}` }
+    }
+    const { url, message_type } = (await uploadRes.json()) as {
+      url: string
+      message_type: string
+    }
+
+    // Step 2: send message referencing the uploaded file
+    const sendRes = await fetch(`${BASE}/api/messages/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({
-        session: WAHA_SESSION,
-        chatId,
-        file: {
-          data: `data:${mimetype};base64,${base64Data}`,
-          filename,
-          mimetype,
-        },
-        caption,
+        device_id: DEVICE_ID,
+        phone: normalizePhone(phone),
+        message: caption,
+        message_type,
+        media_url: url,
+        file_name: filename,
       }),
     })
-    if (!res.ok) {
-      const body = await res.text().catch(() => '(no body)')
-      console.error(`[WAHA] sendFile failed ${res.status} for ${chatId}: ${body}`)
-      return { ok: false, error: `WAHA ${res.status}: ${body}` }
+    if (!sendRes.ok) {
+      if (sendRes.status === 401) _token = null
+      const body = await sendRes.text().catch(() => '(no body)')
+      console.error(`[WHATDESKS] sendFile failed ${sendRes.status} for ${phone}: ${body}`)
+      return { ok: false, error: `WHATDESKS send ${sendRes.status}: ${body}` }
     }
     return { ok: true }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    console.error('[WAHA] sendFile network error:', e)
+    console.error('[WHATDESKS] sendFile error:', e)
     return { ok: false, error: `Network error: ${msg}` }
+  }
+}
+
+// Returns WAHA-compatible status strings so callers checking 'WORKING' keep working
+export async function getSessionStatus(): Promise<string> {
+  try {
+    const token = await getToken()
+    const res = await fetch(`${BASE}/api/devices/${DEVICE_UUID}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) {
+      console.error(`[WHATDESKS] getSessionStatus failed ${res.status}`)
+      return 'UNKNOWN'
+    }
+    const raw = await res.json()
+    // Handle array response (list endpoint) or direct object
+    const device = Array.isArray(raw) ? raw[0] : raw
+    if (!device) return 'UNKNOWN'
+    // whatdesks statuses: CONNECTED / DISCONNECTED / CONNECTING
+    const status: string = device.status ?? device.link_status ?? ''
+    console.log(`[WHATDESKS] device status: ${status}`)
+    return status === 'CONNECTED' ? 'WORKING' : 'STOPPED'
+  } catch (e) {
+    console.error('[WHATDESKS] getSessionStatus error:', e)
+    return 'OFFLINE'
   }
 }
