@@ -43,6 +43,7 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
   const [savingBroadcast, setSavingBroadcast] = useState(false)
   const [testingWa, setTestingWa] = useState(false)
   const [testWaResults, setTestWaResults] = useState<Array<{ label: string; phone: string; success: boolean; error?: string }> | null>(null)
+  const [testWaDiag, setTestWaDiag] = useState<Record<string, string> | null>(null)
 
   const fetchStatus = async () => {
     setLoading(true)
@@ -72,10 +73,12 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
   const handleTestWa = async () => {
     setTestingWa(true)
     setTestWaResults(null)
+    setTestWaDiag(null)
     try {
       const res = await fetch('/api/admin/test-wa', { method: 'POST' })
       const data = await res.json()
       setTestWaResults(data.results ?? [])
+      if (data.diagnostics) setTestWaDiag(data.diagnostics)
     } catch {
       setTestWaResults([{ label: 'Error', phone: '-', success: false, error: 'Gagal menghubungi server' }])
     } finally {
@@ -195,6 +198,18 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
                 {r.error && <span className="text-rose-500 text-xs">— {r.error}</span>}
               </div>
             ))}
+            {testWaDiag && (
+              <details className="mt-2">
+                <summary className="text-xs text-slate-400 cursor-pointer">Diagnostik</summary>
+                <div className="mt-1 space-y-1">
+                  {Object.entries(testWaDiag).map(([k, v]) => (
+                    <div key={k} className="text-xs font-mono text-slate-500">
+                      <span className="text-slate-400">{k}:</span> {v || '(kosong)'}
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
           </div>
         )}
       </div>
