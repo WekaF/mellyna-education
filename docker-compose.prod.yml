@@ -44,8 +44,6 @@ services:
       N8N_WEBHOOK_BASE_URL: ${N8N_WEBHOOK_BASE_URL}
       N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET}
       NEXT_PUBLIC_APP_NAME: "Mellyna Education"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
