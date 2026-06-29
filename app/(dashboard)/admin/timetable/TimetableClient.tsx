@@ -500,7 +500,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
 
       setShowGenerateModal(false)
       if (data.wahaStatus !== 'WORKING') {
-        setError(`⚠️ WAHA ${data.wahaStatus}: ${data.message}`)
+        setError(`⚠️ WhatDesks ${data.wahaStatus}: ${data.message}`)
       } else {
         setSuccessMsg(data.message || 'Jadwal berhasil diterbitkan dan WhatsApp broadcast disiarkan!')
         setTimeout(() => setSuccessMsg(null), 8000)
@@ -1114,7 +1114,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
               <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40 p-4 text-amber-800 dark:text-amber-300 text-xs space-y-2">
                 <div className="flex gap-2 font-bold items-center">
                   <Info className="h-4.5 w-4.5 text-amber-600 shrink-0" />
-                  PENTING &amp; OTOMATISASI WAHA
+                  PENTING &amp; OTOMATISASI WHATDESKS
                 </div>
                 <p className="leading-relaxed">
                   Tindakan ini akan membaca semua Sesi Kelas tetap yang ada di Timetable ini, menghitung tanggal riilnya berdasarkan Senin yang dipilih, dan membuat jadwal di database.
