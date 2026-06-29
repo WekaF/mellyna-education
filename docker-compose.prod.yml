@@ -15,6 +15,9 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    networks:
+      - default
+      - whatdesks_internal
     depends_on:
       - app
       - n8n
@@ -24,10 +27,14 @@ services:
     image: ghcr.io/wekaf/mellyna-education:latest
     pull_policy: missing
     restart: unless-stopped
+    networks:
+      - default
+      - whatdesks_internal
     env_file:
       - .env
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      WHATDESKS_BASE_URL: "http://whatdesks-backend:8080"
       NEXTAUTH_URL: ${NEXTAUTH_URL}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       MIDTRANS_IS_PRODUCTION: ${MIDTRANS_IS_PRODUCTION}
@@ -104,3 +111,9 @@ volumes:
   n8n_data:
   caddy_data:
   caddy_config:
+
+networks:
+  default:
+    driver: bridge
+  whatdesks_internal:
+    external: true

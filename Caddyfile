@@ -15,7 +15,7 @@ n8n.mellyna-education.my.id {
 }
 
 whatdesks.mellyna-education.my.id {
-    reverse_proxy localhost:8000
+    reverse_proxy whatdesks-frontend:80
 }
 
 media.mellyna-education.my.id {
