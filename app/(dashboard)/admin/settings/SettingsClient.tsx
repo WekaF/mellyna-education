@@ -7,7 +7,6 @@ interface IntegrationStatus {
   waha: {
     status: string
     dashboardUrl: string
-    session: string
   }
   n8n: {
     status: string
@@ -125,8 +124,8 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
       <div className="rounded-2xl bg-white border border-slate-100 shadow-xs p-6 space-y-5">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="font-extrabold text-slate-800">📱 WAHA — WhatsApp HTTP API</h2>
-            <p className="text-xs text-slate-500 mt-1">Layanan notifikasi WhatsApp otomatis ke orang tua siswa.</p>
+            <h2 className="font-extrabold text-slate-800">📱 WhatDesks — WhatsApp</h2>
+            <p className="text-xs text-slate-500 mt-1">Layanan notifikasi WhatsApp otomatis ke orang tua siswa via WhatDesks.</p>
           </div>
           {status && <StatusBadge status={status.waha.status} />}
         </div>
@@ -134,11 +133,11 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
         <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 space-y-3">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cara Setup Sesi WhatsApp</p>
           <ol className="text-sm text-slate-700 space-y-2 list-decimal list-inside">
-            <li>Jalankan <code className="bg-slate-200 px-1.5 py-0.5 rounded text-xs">docker compose up -d waha</code></li>
-            <li>Buka dashboard WAHA di tombol di bawah</li>
-            <li>Login dengan username <strong>admin</strong> dan password <strong>mellyna-waha-secret</strong></li>
-            <li>Klik sesi <strong>{status?.waha.session ?? 'default'}</strong> → Start → Scan QR code dengan WhatsApp</li>
-            <li>Status akan berubah menjadi <strong>WORKING</strong> setelah QR berhasil di-scan</li>
+            <li>Pastikan WhatDesks sudah berjalan di server (port 8000)</li>
+            <li>Buka dashboard WhatDesks di tombol di bawah</li>
+            <li>Login dengan akun WhatDesks yang sudah didaftarkan</li>
+            <li>Pilih device → pastikan status <strong>CONNECTED</strong></li>
+            <li>Status di sini akan berubah menjadi <strong>WORKING</strong> setelah device terhubung</li>
           </ol>
         </div>
 
@@ -150,7 +149,7 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
             className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
           >
             <ExternalLink className="h-4 w-4" />
-            Buka Dashboard WAHA
+            Buka Dashboard WhatDesks
           </a>
         )}
       </div>
@@ -207,9 +206,11 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
             </thead>
             <tbody className="divide-y divide-slate-50 text-slate-600">
               {[
-                ['WAHA_BASE_URL', 'URL WAHA service (default: http://localhost:3001)'],
-                ['WAHA_API_KEY', 'API key WAHA — harus cocok dengan WHATSAPP_API_KEY di docker-compose'],
-                ['WAHA_SESSION', 'Nama sesi WhatsApp (default: default)'],
+                ['WHATDESKS_BASE_URL', 'URL WhatDesks service (default: http://localhost:8000)'],
+                ['WHATDESKS_EMAIL', 'Email akun WhatDesks'],
+                ['WHATDESKS_PASSWORD', 'Password akun WhatDesks'],
+                ['WHATDESKS_DEVICE_ID', 'ID numerik device di WhatDesks'],
+                ['WHATDESKS_DEVICE_UUID', 'UUID device di WhatDesks (dari dashboard)'],
                 ['N8N_WEBHOOK_BASE_URL', 'Base URL webhook n8n (default: http://localhost:5678/webhook)'],
                 ['N8N_WEBHOOK_SECRET', 'Secret untuk autentikasi internal endpoint ke n8n'],
               ].map(([key, desc]) => (
