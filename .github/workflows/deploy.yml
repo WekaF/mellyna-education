@@ -65,6 +65,7 @@ jobs:
           capture_stdout: true
           script: |
             cd /opt/mellyna-education
+            git pull origin main
 
             # Inject WhatDesks env vars into server .env
             inject_env() {
@@ -83,6 +84,6 @@ jobs:
 
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose -f docker-compose.prod.yml pull app
-            docker compose -f docker-compose.prod.yml up -d --no-deps --force-recreate app
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans --force-recreate app
             docker image prune -f
             echo "✅ Mellyna Education deployed successfully"
