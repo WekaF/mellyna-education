@@ -76,7 +76,6 @@ jobs:
                 echo "${key}=${val}" >> .env
               fi
             }
-            inject_env WHATDESKS_BASE_URL "${{ secrets.WHATDESKS_BASE_URL }}"
             inject_env WHATDESKS_EMAIL "${{ secrets.WHATDESKS_EMAIL }}"
             inject_env WHATDESKS_PASSWORD "${{ secrets.WHATDESKS_PASSWORD }}"
             inject_env WHATDESKS_DEVICE_ID "${{ secrets.WHATDESKS_DEVICE_ID }}"
