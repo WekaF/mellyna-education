@@ -22,8 +22,7 @@ export default async function AdminSettingsPage() {
   const initialStatus = {
     waha: {
       status: wahaStatus,
-      dashboardUrl: process.env.WAHA_BASE_URL ?? 'http://localhost:3001',
-      session: process.env.WAHA_SESSION ?? 'default',
+      dashboardUrl: process.env.WHATDESKS_BASE_URL ?? 'http://localhost:8000',
     },
     n8n: {
       status: n8nStatus,
