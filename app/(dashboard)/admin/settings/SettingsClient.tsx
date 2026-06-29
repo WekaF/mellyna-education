@@ -149,7 +149,7 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
         <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 space-y-3">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cara Setup Sesi WhatsApp</p>
           <ol className="text-sm text-slate-700 space-y-2 list-decimal list-inside">
-            <li>Pastikan WhatDesks sudah berjalan di server (port 8000)</li>
+            <li>Pastikan WhatDesks sudah berjalan di server</li>
             <li>Buka dashboard WhatDesks di tombol di bawah</li>
             <li>Login dengan akun WhatDesks yang sudah didaftarkan</li>
             <li>Pilih device → pastikan status <strong>CONNECTED</strong></li>
@@ -251,7 +251,7 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
             </thead>
             <tbody className="divide-y divide-slate-50 text-slate-600">
               {[
-                ['WHATDESKS_BASE_URL', 'URL WhatDesks service (default: http://localhost:8000)'],
+                ['WHATDESKS_BASE_URL', 'URL WhatDesks service (default: https://whatdesks.mellyna-education.my.id)'],
                 ['WHATDESKS_EMAIL', 'Email akun WhatDesks'],
                 ['WHATDESKS_PASSWORD', 'Password akun WhatDesks'],
                 ['WHATDESKS_DEVICE_ID', 'ID numerik device di WhatDesks'],

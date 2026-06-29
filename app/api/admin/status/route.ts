@@ -24,7 +24,7 @@ export async function GET(_req: NextRequest) {
   return NextResponse.json({
     whatdesks: {
       status: wahaStatus,
-      dashboardUrl: process.env.WHATDESKS_BASE_URL ?? 'http://localhost:8000',
+      dashboardUrl: process.env.WHATDESKS_BASE_URL ?? 'https://whatdesks.mellyna-education.my.id',
     },
     n8n: {
       status: n8nStatus,
