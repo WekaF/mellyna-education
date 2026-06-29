@@ -41,6 +41,8 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
   const [loading, setLoading] = useState(false)
   const [autoBroadcast, setAutoBroadcast] = useState(initialAutoBroadcast)
   const [savingBroadcast, setSavingBroadcast] = useState(false)
+  const [testingWa, setTestingWa] = useState(false)
+  const [testWaResults, setTestWaResults] = useState<Array<{ label: string; phone: string; success: boolean; error?: string }> | null>(null)
 
   const fetchStatus = async () => {
     setLoading(true)
@@ -64,6 +66,20 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
       if (res.ok) setAutoBroadcast(next)
     } finally {
       setSavingBroadcast(false)
+    }
+  }
+
+  const handleTestWa = async () => {
+    setTestingWa(true)
+    setTestWaResults(null)
+    try {
+      const res = await fetch('/api/admin/test-wa', { method: 'POST' })
+      const data = await res.json()
+      setTestWaResults(data.results ?? [])
+    } catch {
+      setTestWaResults([{ label: 'Error', phone: '-', success: false, error: 'Gagal menghubungi server' }])
+    } finally {
+      setTestingWa(false)
     }
   }
 
@@ -142,15 +158,44 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
         </div>
 
         {status && (
-          <a
-            href={status.whatdesks.dashboardUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Buka Dashboard WhatDesks
-          </a>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href={status.whatdesks.dashboardUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Buka Dashboard WhatDesks
+            </a>
+            <button
+              onClick={handleTestWa}
+              disabled={testingWa}
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
+            >
+              {testingWa ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Wifi className="h-4 w-4" />
+              )}
+              {testingWa ? 'Mengirim...' : 'Test Kirim WA'}
+            </button>
+          </div>
+        )}
+        {testWaResults && (
+          <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-2">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Hasil Test WA</p>
+            {testWaResults.map((r, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm">
+                <span className={r.success ? 'text-emerald-600' : 'text-rose-600'}>
+                  {r.success ? '✅' : '❌'}
+                </span>
+                <span className="font-medium text-slate-700">{r.label}</span>
+                <span className="text-slate-400 text-xs">{r.phone}</span>
+                {r.error && <span className="text-rose-500 text-xs">— {r.error}</span>}
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
