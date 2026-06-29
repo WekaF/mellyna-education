@@ -24,6 +24,8 @@ services:
     image: ghcr.io/wekaf/mellyna-education:latest
     pull_policy: missing
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       DATABASE_URL: ${DATABASE_URL}
       NEXTAUTH_URL: ${NEXTAUTH_URL}
@@ -41,11 +43,6 @@ services:
       MINIO_PUBLIC_URL: https://media.mellyna-education.my.id
       N8N_WEBHOOK_BASE_URL: ${N8N_WEBHOOK_BASE_URL}
       N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET}
-      WHATDESKS_BASE_URL: ${WHATDESKS_BASE_URL}
-      WHATDESKS_EMAIL: ${WHATDESKS_EMAIL}
-      WHATDESKS_PASSWORD: ${WHATDESKS_PASSWORD}
-      WHATDESKS_DEVICE_ID: ${WHATDESKS_DEVICE_ID}
-      WHATDESKS_DEVICE_UUID: ${WHATDESKS_DEVICE_UUID}
       NEXT_PUBLIC_APP_NAME: "Mellyna Education"
     extra_hosts:
       - "host.docker.internal:host-gateway"
