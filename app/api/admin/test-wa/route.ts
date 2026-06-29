@@ -11,18 +11,29 @@ export async function POST(_req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  // KEY DIAGNOSTIC: does process.env have WHATDESKS keys at runtime?
+  const whatdesksKeysInEnv = Object.keys(process.env).filter(k => k.startsWith('WHATDESKS'))
+  // Indirect read to bypass potential webpack static analysis
+  const envCopy = { ...process.env } as Record<string, string | undefined>
+  const baseUrlIndirect = envCopy['WHATDESKS_BASE_URL'] ?? '(not set via indirect)'
+
   const baseUrl = process.env.WHATDESKS_BASE_URL ?? '(not set)'
   const email = process.env.WHATDESKS_EMAIL ?? '(not set)'
   const deviceId = process.env.WHATDESKS_DEVICE_ID ?? '(not set)'
+  const nodeEnv = process.env.NODE_ENV  // baked into Dockerfile — should always show
 
-  // Raw login test — diagnose actual error
+  // Raw login test using indirect baseUrl (bypasses webpack inlining)
+  const effectiveUrl = baseUrlIndirect !== '(not set via indirect)' ? baseUrlIndirect : baseUrl
   let loginStatus = 'unknown'
   let loginError = ''
   try {
-    const loginRes = await fetch(`${baseUrl}/auth/login`, {
+    const loginRes = await fetch(`${effectiveUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: process.env.WHATDESKS_PASSWORD }),
+      body: JSON.stringify({
+        email: envCopy['WHATDESKS_EMAIL'] ?? email,
+        password: envCopy['WHATDESKS_PASSWORD'] ?? process.env.WHATDESKS_PASSWORD,
+      }),
     })
     loginStatus = `${loginRes.status}`
     if (!loginRes.ok) loginError = await loginRes.text().catch(() => '')
@@ -31,7 +42,17 @@ export async function POST(_req: NextRequest) {
     loginError = e instanceof Error ? e.message : String(e)
   }
 
-  const diagnostics = { baseUrl, email, deviceId, loginStatus, loginError }
+  const diagnostics = {
+    baseUrl,
+    baseUrlIndirect,
+    effectiveUrl,
+    email,
+    deviceId,
+    nodeEnv,
+    whatdesksKeysFound: whatdesksKeysInEnv.join(',') || '(none)',
+    loginStatus,
+    loginError,
+  }
 
   const now = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })
   const message = `🧪 *Test WhatDesks — Mellyna Education*\n\nPesan uji coba untuk memverifikasi koneksi WhatsApp via WhatDesks berjalan dengan baik.\n\nWaktu: ${now}`
