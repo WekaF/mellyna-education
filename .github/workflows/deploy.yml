@@ -68,7 +68,7 @@ jobs:
             git rm --cached .env 2>/dev/null || true
             git pull origin main
 
-            # Inject Waguzz env vars into server .env
+            # Inject WhatDesks env vars into server .env
             inject_env() {
               local key="$1" val="$2"
               local escaped_val
@@ -79,8 +79,10 @@ jobs:
                 echo "${key}=${val}" >> .env
               fi
             }
-            inject_env WAGUZZ_BASE_URL "${{ secrets.WAGUZZ_BASE_URL }}"
-            inject_env WAGUZZ_API_KEY "${{ secrets.WAGUZZ_API_KEY }}"
+            inject_env WHATDESKS_EMAIL "${{ secrets.WHATDESKS_EMAIL }}"
+            inject_env WHATDESKS_PASSWORD "${{ secrets.WHATDESKS_PASSWORD }}"
+            inject_env WHATDESKS_DEVICE_ID "${{ secrets.WHATDESKS_DEVICE_ID }}"
+            inject_env WHATDESKS_DEVICE_UUID "${{ secrets.WHATDESKS_DEVICE_UUID }}"
 
             # Find the actual postgres container name (may differ based on when stack was first started)
             PG_CONTAINER=$(docker ps --format "{{.Names}}" | grep -E "(mellyna|education).*postgres|postgres.*(mellyna|education)" | head -1)

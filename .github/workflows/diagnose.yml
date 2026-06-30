@@ -48,19 +48,20 @@ jobs:
               done
             fi
             echo ""
-            echo "=== APP ENV VARS (Waguzz) ==="
-            docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep WAGUZZ
+            echo "=== APP ENV VARS (WhatDesks) ==="
+            docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep WHATDESKS
             echo ""
             echo "=== APP NETWORKS ==="
             docker inspect mellyna-education-app-1 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); nets=list(d[0]['NetworkSettings']['Networks'].keys()) if d else ['(container not running)']; print('\n'.join(nets))"
             echo ""
-            echo "=== TEST CURL WAGUZZ (from app container) ==="
-            WAGUZZ_URL=$(docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep "^WAGUZZ_BASE_URL=" | cut -d= -f2)
-            echo "Waguzz URL: $WAGUZZ_URL"
-            if [ -z "$WAGUZZ_URL" ]; then
-              echo "ERROR: WAGUZZ_BASE_URL not set in container — check server .env and docker-compose.prod.yml"
+            echo "=== TEST WHATDESKS CONNECTIVITY (from app container) ==="
+            WHATDESKS_URL=$(docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep "^WHATDESKS_BASE_URL=" | cut -d= -f2)
+            echo "WhatDesks URL: $WHATDESKS_URL"
+            if [ -z "$WHATDESKS_URL" ]; then
+              echo "ERROR: WHATDESKS_BASE_URL not set in container — check docker-compose.prod.yml"
             else
-              docker exec mellyna-education-app-1 wget -qO- --timeout=5 "$WAGUZZ_URL/health" 2>&1 | head -c 200 || echo "Waguzz health check failed or /health not available"
+              docker exec mellyna-education-app-1 wget -qO- --timeout=5 "$WHATDESKS_URL/health" 2>&1 | head -c 200 || echo "WhatDesks health check (trying /api/devices next)"
+              docker exec mellyna-education-app-1 wget -qO- --timeout=5 "$WHATDESKS_URL/api/devices" 2>&1 | head -c 200 || echo "WhatDesks /api/devices also failed"
             fi
             echo ""
             echo "=== APP RECENT LOGS ==="

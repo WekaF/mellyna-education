@@ -17,6 +17,7 @@ services:
       - caddy_config:/config
     networks:
       - default
+      - whatdesks_internal
     depends_on:
       - app
       - n8n
@@ -28,12 +29,16 @@ services:
     restart: unless-stopped
     networks:
       - default
+      - whatdesks_internal
     env_file:
       - .env
     environment:
       DATABASE_URL: ${DATABASE_URL}
-      WAGUZZ_BASE_URL: ${WAGUZZ_BASE_URL}
-      WAGUZZ_API_KEY: ${WAGUZZ_API_KEY}
+      WHATDESKS_BASE_URL: "http://whatdesks-backend:8080"
+      WHATDESKS_EMAIL: ${WHATDESKS_EMAIL}
+      WHATDESKS_PASSWORD: ${WHATDESKS_PASSWORD}
+      WHATDESKS_DEVICE_ID: ${WHATDESKS_DEVICE_ID}
+      WHATDESKS_DEVICE_UUID: ${WHATDESKS_DEVICE_UUID}
       NEXTAUTH_URL: ${NEXTAUTH_URL}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       MIDTRANS_IS_PRODUCTION: ${MIDTRANS_IS_PRODUCTION}
@@ -114,3 +119,5 @@ volumes:
 networks:
   default:
     driver: bridge
+  whatdesks_internal:
+    external: true
