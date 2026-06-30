@@ -1,0 +1,44 @@
+name: Fix DB Auth (one-shot)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    name: Reset postgres password to match .env
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fix via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SUMOPOD_HOST }}
+          username: ${{ secrets.SUMOPOD_USER }}
+          password: ${{ secrets.SUMOPOD_PASSWORD }}
+          script: |
+            cd /opt/mellyna-education
+
+            # Read the POSTGRES_PASSWORD from current .env
+            PGPASS=$(grep "^POSTGRES_PASSWORD=" .env | cut -d= -f2 | tr -d '"')
+            PGUSER=$(grep "^POSTGRES_USER=" .env | cut -d= -f2 | tr -d '"')
+            echo "=== .env POSTGRES_USER=$PGUSER ==="
+            echo "=== .env POSTGRES_PASSWORD length: ${#PGPASS} chars ==="
+
+            # Reset the password in postgres (socket = no-password trust auth)
+            docker exec mellyna-education-postgres-1 psql -U postgres -c "ALTER USER \"$PGUSER\" WITH PASSWORD '$PGPASS';" 2>&1
+            echo "=== Password reset result above ==="
+
+            # Also ensure the DB user exists (in case POSTGRES_USER != postgres)
+            if [ "$PGUSER" != "postgres" ]; then
+              docker exec mellyna-education-postgres-1 psql -U postgres -c "CREATE USER \"$PGUSER\" WITH PASSWORD '$PGPASS';" 2>/dev/null || true
+              docker exec mellyna-education-postgres-1 psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE mellyna_db TO \"$PGUSER\";" 2>&1
+            fi
+
+            # Restart the app so it retries migration with correct credentials
+            docker compose -f docker-compose.prod.yml restart app
+            echo "=== App restarted, waiting 15s ==="
+            sleep 15
+
+            # Check if app is now running
+            docker ps --format "table {{.Names}}\t{{.Status}}" | grep mellyna-education-app
+            docker logs mellyna-education-app-1 --tail 10 2>&1
