@@ -23,17 +23,17 @@ jobs:
             echo "=== .ENV EXISTS ==="
             ls -la .env 2>/dev/null || echo ".env MISSING"
             echo ""
-            echo "=== .ENV KEY NAMES ONLY ==="
-            grep "^[A-Z]" .env 2>/dev/null | sed 's/=.*//' || echo "(no .env)"
+            echo "=== .ENV CONTENT (values masked) ==="
+            cat .env 2>/dev/null | sed 's/=.*/=***/' | head -40 || echo ".env MISSING"
             echo ""
-            echo "=== DATABASE_URL FROM CONTAINER ==="
-            docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep "^DATABASE_URL" | sed 's/:\/\/.*/=***hidden***/'
+            echo "=== POSTGRES CONTAINER ENV ==="
+            docker inspect mellyna-education-postgres-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep -E "^POSTGRES_"
             echo ""
-            echo "=== POSTGRES CREDENTIALS ==="
-            docker inspect mellyna-education-postgres-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep -E "^POSTGRES_" | sed 's/PASSWORD=.*/PASSWORD=***/'
+            echo "=== APP CONTAINER DATABASE_URL ==="
+            docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep "^DATABASE_URL"
             echo ""
-            echo "=== DOCKER-COMPOSE KEY SECTION ==="
-            grep -A3 "whatdesks_internal\|WHATDESKS_BASE_URL\|DATABASE_URL" docker-compose.prod.yml 2>/dev/null | head -20
+            echo "=== APP CONTAINER ALL VARS (key=*** masked) ==="
+            docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | sed 's/=.*/=***/' | head -40
             echo ""
             echo "=== WHATDESKS NETWORK/PORTS ==="
             docker inspect whatdesks-backend --format "{{.NetworkSettings.Networks}}" 2>/dev/null | tr ',' '\n' | head -20
