@@ -71,8 +71,10 @@ jobs:
             # Inject Waguzz env vars into server .env
             inject_env() {
               local key="$1" val="$2"
+              local escaped_val
+              escaped_val=$(printf '%s\n' "$val" | sed -e 's/[|&/\]/\\&/g')
               if grep -q "^${key}=" .env 2>/dev/null; then
-                sed -i "s|^${key}=.*|${key}=${val}|" .env
+                sed -i "s|^${key}=.*|${key}=${escaped_val}|" .env
               else
                 echo "${key}=${val}" >> .env
               fi

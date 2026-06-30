@@ -27,7 +27,7 @@ jobs:
             docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep WAGUZZ
             echo ""
             echo "=== APP NETWORKS ==="
-            docker inspect mellyna-education-app-1 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); nets=list(d[0]['NetworkSettings']['Networks'].keys()); print('\n'.join(nets))"
+            docker inspect mellyna-education-app-1 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); nets=list(d[0]['NetworkSettings']['Networks'].keys()) if d else ['(container not running)']; print('\n'.join(nets))"
             echo ""
             echo "=== TEST CURL WAGUZZ (from app container) ==="
             WAGUZZ_URL=$(docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep "^WAGUZZ_BASE_URL=" | cut -d= -f2)
