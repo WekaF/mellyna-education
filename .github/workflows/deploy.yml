@@ -49,7 +49,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            WHATDESKS_BASE_URL=https://whatdesks.mellyna-education.my.id
+            WHATDESKS_BASE_URL=http://whatdesks-backend:8080
             WHATDESKS_EMAIL=${{ secrets.WHATDESKS_EMAIL }}
             WHATDESKS_PASSWORD=${{ secrets.WHATDESKS_PASSWORD }}
             WHATDESKS_DEVICE_ID=${{ secrets.WHATDESKS_DEVICE_ID }}
@@ -71,6 +71,7 @@ jobs:
           capture_stdout: true
           script: |
             cd /opt/mellyna-education
+            git rm --cached .env 2>/dev/null || true
             git pull origin main
 
             # Inject WhatDesks env vars into server .env
@@ -82,7 +83,7 @@ jobs:
                 echo "${key}=${val}" >> .env
               fi
             }
-            inject_env WHATDESKS_BASE_URL "https://whatdesks.mellyna-education.my.id"
+            inject_env WHATDESKS_BASE_URL "http://whatdesks-backend:8080"
             inject_env WHATDESKS_EMAIL "${{ secrets.WHATDESKS_EMAIL }}"
             inject_env WHATDESKS_PASSWORD "${{ secrets.WHATDESKS_PASSWORD }}"
             inject_env WHATDESKS_DEVICE_ID "${{ secrets.WHATDESKS_DEVICE_ID }}"
