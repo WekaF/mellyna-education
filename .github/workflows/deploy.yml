@@ -80,6 +80,24 @@ jobs:
             inject_env WAGUZZ_BASE_URL "${{ secrets.WAGUZZ_BASE_URL }}"
             inject_env WAGUZZ_API_KEY "${{ secrets.WAGUZZ_API_KEY }}"
 
+            # Auto-repair DATABASE_URL if it uses wrong dev credentials
+            if grep -qE "DATABASE_URL=.*weka|DATABASE_URL=.*localhost" .env 2>/dev/null; then
+              echo "🔧 DATABASE_URL has dev credentials, auto-repairing..."
+              real_user=$(docker exec mellyna-education-postgres-1 psql -U postgres -t -c "SELECT usename FROM pg_user WHERE usename != 'postgres' ORDER BY usename LIMIT 1" 2>/dev/null | tr -d ' \n')
+              real_db=$(docker exec mellyna-education-postgres-1 psql -U postgres -t -c "SELECT datname FROM pg_database WHERE datname NOT IN ('template0','template1','postgres') ORDER BY datname LIMIT 1" 2>/dev/null | tr -d ' \n')
+              if [ -n "$real_user" ] && [ -n "$real_db" ]; then
+                new_pass="$(openssl rand -hex 16)"
+                docker exec mellyna-education-postgres-1 psql -U postgres -c "ALTER USER \"$real_user\" WITH PASSWORD '$new_pass'" 2>/dev/null
+                inject_env DATABASE_URL "postgresql://$real_user:$new_pass@postgres:5432/$real_db"
+                inject_env POSTGRES_USER "$real_user"
+                inject_env POSTGRES_PASSWORD "$new_pass"
+                inject_env POSTGRES_DB "$real_db"
+                echo "✅ DATABASE_URL fixed for user=$real_user db=$real_db"
+              else
+                echo "⚠️ Could not find DB user in postgres — manual fix needed"
+              fi
+            fi
+
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose -f docker-compose.prod.yml pull app
             docker compose -f docker-compose.prod.yml up -d --remove-orphans --force-recreate app caddy
