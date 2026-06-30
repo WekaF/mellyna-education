@@ -93,9 +93,10 @@ jobs:
             # Local unix socket connections use 'trust' auth in postgres docker image
             current_db_user=$(grep "^DATABASE_URL=" .env 2>/dev/null | sed -E 's|.*://([^:@]+)[^@]*@.*|\1|')
             echo "🔍 Current DB user: ${current_db_user:-<none>}"
+            # psql defaults to DB name = username; must specify -d postgres explicitly
             db_ok=0
             if [ -n "$PG_CONTAINER" ] && [ -n "$current_db_user" ]; then
-              if docker exec "$PG_CONTAINER" psql -U "$current_db_user" -c "SELECT 1" >/dev/null 2>&1; then
+              if docker exec "$PG_CONTAINER" psql -U "$current_db_user" -d postgres -c "SELECT 1" >/dev/null 2>&1; then
                 db_ok=1
               fi
             fi
@@ -108,7 +109,7 @@ jobs:
               # Try known candidates — mellyna is the original POSTGRES_USER from initialization
               real_user=""
               for candidate in mellyna mellyna_user admin ubuntu app postgres; do
-                if docker exec "$PG_CONTAINER" psql -U "$candidate" -c "SELECT 1" >/dev/null 2>&1; then
+                if docker exec "$PG_CONTAINER" psql -U "$candidate" -d postgres -c "SELECT 1" >/dev/null 2>&1; then
                   real_user="$candidate"
                   echo "✅ Found working DB user: $candidate"
                   break
@@ -116,18 +117,18 @@ jobs:
               done
               if [ -z "$real_user" ]; then
                 echo "❌ Cannot find working postgres superuser — trying verbose test..."
-                docker exec "$PG_CONTAINER" psql -U mellyna -c "SELECT 1" 2>&1 | head -5
+                docker exec "$PG_CONTAINER" psql -U mellyna -d postgres -c "SELECT 1" 2>&1 | head -5
                 exit 1
               fi
-              real_db=$(docker exec "$PG_CONTAINER" psql -U "$real_user" -t -c \
+              real_db=$(docker exec "$PG_CONTAINER" psql -U "$real_user" -d postgres -t -c \
                 "SELECT datname FROM pg_database WHERE datname NOT IN ('template0','template1','postgres') ORDER BY datname LIMIT 1" \
                 2>/dev/null | tr -d ' \n')
               if [ -z "$real_db" ]; then
                 real_db="mellyna_db"
-                docker exec "$PG_CONTAINER" psql -U "$real_user" -c "CREATE DATABASE mellyna_db" 2>/dev/null || true
+                docker exec "$PG_CONTAINER" psql -U "$real_user" -d postgres -c "CREATE DATABASE mellyna_db" 2>/dev/null || true
               fi
               new_pass="$(openssl rand -hex 16)"
-              docker exec "$PG_CONTAINER" psql -U "$real_user" -c "ALTER USER \"$real_user\" WITH PASSWORD '$new_pass'"
+              docker exec "$PG_CONTAINER" psql -U "$real_user" -d postgres -c "ALTER USER \"$real_user\" WITH PASSWORD '$new_pass'"
               inject_env DATABASE_URL "postgresql://$real_user:$new_pass@postgres:5432/$real_db"
               inject_env POSTGRES_USER "$real_user"
               inject_env POSTGRES_PASSWORD "$new_pass"

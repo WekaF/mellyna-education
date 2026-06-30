@@ -33,13 +33,13 @@ jobs:
             current_db_user=$(grep "^DATABASE_URL=" /opt/mellyna-education/.env 2>/dev/null | sed -E 's|.*://([^:@]+)[^@]*@.*|\1|')
             echo "DB user in .env: ${current_db_user:-<none>}"
             if [ -n "$PG_CONTAINER" ]; then
-              docker exec "$PG_CONTAINER" psql -U "$current_db_user" -c "SELECT 1" 2>&1 || echo "AUTH FAILED for user $current_db_user"
+              docker exec "$PG_CONTAINER" psql -U "$current_db_user" -d postgres -c "SELECT 1" 2>&1 || echo "AUTH FAILED for user $current_db_user"
             fi
             echo ""
             echo "=== POSTGRES ROLES (which users can connect) ==="
             if [ -n "$PG_CONTAINER" ]; then
               for candidate in mellyna mellyna_user admin ubuntu app postgres; do
-                result=$(docker exec "$PG_CONTAINER" psql -U "$candidate" -c "SELECT 1" 2>&1)
+                result=$(docker exec "$PG_CONTAINER" psql -U "$candidate" -d postgres -c "SELECT 1" 2>&1)
                 if echo "$result" | grep -q "1 row"; then
                   echo "WORKING: $candidate"
                 else
