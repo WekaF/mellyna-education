@@ -14,56 +14,64 @@ jobs:
           host: ${{ secrets.SUMOPOD_HOST }}
           username: ${{ secrets.SUMOPOD_USER }}
           password: ${{ secrets.SUMOPOD_PASSWORD }}
-          capture_stdout: true
           script: |
             cd /opt/mellyna-education
+            OUT=/tmp/db-fix-$$.txt
 
-            echo "=== LIST ALL POSTGRES USERS (as postgres OS user) ==="
-            docker exec --user postgres mellyna-education-postgres-1 psql -c "\du" 2>&1
+            {
+              echo "=== PG USERS ==="
+              docker exec --user postgres mellyna-education-postgres-1 psql -t -c "SELECT usename, usesuper FROM pg_user ORDER BY usename;" 2>&1 || echo "psql failed"
 
-            echo "=== pg_hba.conf ==="
-            docker exec mellyna-education-postgres-1 cat /var/lib/postgresql/data/pg_hba.conf 2>&1 | head -30
+              echo "=== pg_hba.conf first 20 lines ==="
+              docker exec mellyna-education-postgres-1 cat /var/lib/postgresql/data/pg_hba.conf 2>&1 | head -20 || echo "failed"
 
-            echo "=== .env DATABASE_URL (masked) ==="
-            grep "^DATABASE_URL=" .env | sed 's|postgresql://[^:]*:[^@]*@|postgresql://***:***@|'
+              echo "=== .env key vars ==="
+              grep -E "^(DATABASE_URL|POSTGRES_USER|POSTGRES_DB|POSTGRES_PASSWORD)" .env \
+                | sed 's|postgresql://[^:]*:[^@]*@|postgresql://***:***@|' \
+                | sed 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=***/'
+            } > "$OUT" 2>&1
+            echo "=== DIAG OUTPUT ==="
+            cat "$OUT"
+            echo "=== END DIAG ==="
 
-            echo "=== .env POSTGRES_USER and POSTGRES_DB ==="
-            grep -E "^(POSTGRES_USER|POSTGRES_DB)=" .env
-
-            echo "=== DATABASES IN POSTGRES ==="
-            docker exec --user postgres mellyna-education-postgres-1 psql -c "\l" 2>&1
-
-            echo "=== FIX: reset password for ALL non-system users to match .env ==="
+            # Read vars
             PGPASS=$(grep "^POSTGRES_PASSWORD=" .env | cut -d= -f2 | tr -d '"')
             PGUSER=$(grep "^POSTGRES_USER=" .env | cut -d= -f2 | tr -d '"')
             PGDB=$(grep "^POSTGRES_DB=" .env | cut -d= -f2 | tr -d '"')
 
-            # Try to find the real app user (not postgres, not pg_*)
-            REAL_USER=$(docker exec --user postgres mellyna-education-postgres-1 psql -t -c "SELECT usename FROM pg_user WHERE usename NOT LIKE 'pg_%' ORDER BY usename;" 2>/dev/null | tr -d ' \n')
-            echo "Real DB users found: $REAL_USER"
+            # Find all real users (excluding pg_* system users)
+            REAL_USERS=$(docker exec --user postgres mellyna-education-postgres-1 \
+              psql -t -c "SELECT usename FROM pg_user WHERE usename NOT LIKE 'pg_%' ORDER BY usename;" 2>&1 \
+              | tr -d ' ' | grep -v '^$') || REAL_USERS=""
 
-            # Reset password for each found user
-            for U in $REAL_USER; do
-              echo "Resetting password for user: $U"
-              docker exec --user postgres mellyna-education-postgres-1 psql -c "ALTER USER \"$U\" WITH PASSWORD '$PGPASS';" 2>&1
-            done
+            echo "=== REAL USERS: $(echo "$REAL_USERS" | tr '\n' ',') ==="
 
-            # If the env POSTGRES_USER doesn't match, update the DATABASE_URL in .env
-            if [ -n "$REAL_USER" ] && [ "$REAL_USER" != "$PGUSER" ]; then
-              echo "=== UPDATING DATABASE_URL to use real user: $REAL_USER ==="
-              # Update DATABASE_URL to use the real user with current PGPASS
-              PGHOST=$(grep "^DATABASE_URL=" .env | sed 's|postgresql://[^:]*:[^@]*@||' | sed 's|/.*||')
-              NEW_URL="postgresql://$REAL_USER:$PGPASS@$PGHOST/$PGDB"
+            # Reset password for every found user using current PGPASS
+            while IFS= read -r U; do
+              [ -z "$U" ] && continue
+              echo "Resetting password for: $U"
+              docker exec --user postgres mellyna-education-postgres-1 \
+                psql -c "ALTER USER \"$U\" WITH PASSWORD '$PGPASS';" 2>&1 || echo "ALTER FAILED for $U"
+            done <<< "$REAL_USERS"
+
+            # If POSTGRES_USER in .env differs from the real DB user, fix DATABASE_URL
+            SINGLE=$(echo "$REAL_USERS" | grep -v '^$' | head -1)
+            if [ -n "$SINGLE" ] && [ "$SINGLE" != "$PGUSER" ]; then
+              echo "Fixing: .env POSTGRES_USER=$PGUSER but DB has user=$SINGLE"
+              sed -i "s|^POSTGRES_USER=.*|POSTGRES_USER=$SINGLE|" .env
+              NEW_URL="postgresql://$SINGLE:$PGPASS@postgres:5432/$PGDB"
               sed -i "s|^DATABASE_URL=.*|DATABASE_URL=$NEW_URL|" .env
-              echo "DATABASE_URL updated (masked): postgresql://$REAL_USER:***@$PGHOST/$PGDB"
+              echo "DATABASE_URL updated to use user: $SINGLE"
             fi
 
             echo "=== RESTART APP ==="
             docker compose -f docker-compose.prod.yml restart app
-            sleep 20
+            sleep 25
 
             echo "=== APP STATUS ==="
-            docker ps --format "table {{.Names}}\t{{.Status}}" | grep mellyna-education-app
+            docker ps --format "table {{.Names}}\t{{.Status}}" | grep mellyna-education-app || echo "not found"
 
-            echo "=== APP LOGS ==="
-            docker logs mellyna-education-app-1 --tail 15 2>&1
+            echo "=== APP LOGS (last 20) ==="
+            docker logs mellyna-education-app-1 --tail 20 2>&1 || echo "no logs"
+
+            rm -f "$OUT"
