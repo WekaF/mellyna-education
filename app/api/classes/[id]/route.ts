@@ -78,9 +78,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         })
       }
     }
+    const updateData: typeof classData & { mainProgram?: Program } = { ...classData }
+    if (programs && !updateData.mainProgram) {
+      updateData.mainProgram = programs[0]
+    }
+
     return tx.class.update({
       where: { id },
-      data: classData,
+      data: updateData,
       include: classDetailInclude,
     })
   })

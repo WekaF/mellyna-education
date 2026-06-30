@@ -879,6 +879,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                       onChange={(e) => setClassForm({ ...classForm, tutorId: e.target.value })}
                       className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-800 dark:text-white text-sm focus:outline-none focus:border-indigo-500 bg-white"
                     >
+                      <option value="">-- Pilih Tutor --</option>
                       {tutors.map(t => (
                         <option key={t.id} value={t.id}>{t.name}</option>
                       ))}

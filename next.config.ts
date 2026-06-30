@@ -25,6 +25,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  outputFileTracingRoot: process.cwd(),
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
   images: {

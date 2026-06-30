@@ -23,7 +23,7 @@ const classListInclude = {
 
 const createClassSchema = z.object({
   name: z.string().min(1),
-  mainProgram: z.nativeEnum(Program),
+  mainProgram: z.nativeEnum(Program).optional(),
   programs: z.array(z.nativeEnum(Program)).min(1),
   description: z.string().optional(),
   tutorId: z.string().min(1),
@@ -73,10 +73,13 @@ export async function POST(req: NextRequest) {
   }
 
   const { programs, additionalTutorIds, ...classData } = parsed.data
+  const mainProgram = classData.mainProgram || programs[0]
+
   const kelas = await prisma.$transaction(async (tx) => {
     const created = await tx.class.create({
       data: {
         ...classData,
+        mainProgram,
         programs: {
           create: programs.map(program => ({ program })),
         },

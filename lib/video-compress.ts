@@ -4,6 +4,14 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { writeFile, readFile, unlink } from 'fs/promises'
 import { randomUUID } from 'crypto'
+import fs from 'fs'
+
+function getFfmpegPath(): string {
+  if (ffmpegStatic && fs.existsSync(ffmpegStatic)) {
+    return ffmpegStatic
+  }
+  return 'ffmpeg'
+}
 
 export async function compressVideo(
   inputBuffer: Buffer,
@@ -15,6 +23,8 @@ export async function compressVideo(
   const outputPath = join(tmpdir(), `${id}-out.mp4`)
 
   await writeFile(inputPath, inputBuffer)
+
+  const ffmpegPath = getFfmpegPath()
 
   try {
     await new Promise<void>((resolve, reject) => {
@@ -30,7 +40,7 @@ export async function compressVideo(
         '-y',
         outputPath,
       ]
-      const proc = spawn(ffmpegStatic as string, args)
+      const proc = spawn(ffmpegPath, args)
       const timeout = setTimeout(() => {
         proc.kill('SIGKILL')
         reject(new Error('ffmpeg timeout after 8 minutes'))
