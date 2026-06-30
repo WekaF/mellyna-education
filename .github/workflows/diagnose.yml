@@ -18,52 +18,24 @@ jobs:
           script: |
             cd /opt/mellyna-education
             echo "=== DOCKER PS ==="
-            docker ps --format "table {{.Names}}\t{{.Status}}" 2>/dev/null | grep -E "mellyna|whatdesk"
+            docker ps --format "table {{.Names}}\t{{.Status}}" 2>/dev/null | grep -E "mellyna"
             echo ""
-            echo "=== .ENV EXISTS ==="
-            ls -la .env 2>/dev/null || echo ".env MISSING"
+            echo "=== DOCKER NETWORKS ==="
+            docker network ls --format "{{.Name}}" 2>/dev/null | grep "mellyna"
             echo ""
-            echo "=== .ENV CONTENT (values masked) ==="
-            cat .env 2>/dev/null | sed 's/=.*/=***/' | head -40 || echo ".env MISSING"
+            echo "=== APP ENV VARS (Waguzz) ==="
+            docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep WAGUZZ
             echo ""
-            echo "=== POSTGRES CONTAINER ENV ==="
-            docker inspect mellyna-education-postgres-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep -E "^POSTGRES_"
+            echo "=== APP NETWORKS ==="
+            docker inspect mellyna-education-app-1 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); nets=list(d[0]['NetworkSettings']['Networks'].keys()); print('\n'.join(nets))"
             echo ""
-            echo "=== APP CONTAINER DATABASE_URL HOST ==="
-            docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep "^DATABASE_URL" | sed 's|postgresql://[^:]*:[^@]*@||' | sed 's/=postgresql:.*@/=postgresql:\/\/***:***@/'
+            echo "=== TEST CURL WAGUZZ (from app container) ==="
+            WAGUZZ_URL=$(docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep WAGUZZ_BASE_URL | cut -d= -f2)
+            echo "Waguzz URL: $WAGUZZ_URL"
+            docker exec mellyna-education-app-1 wget -qO- --timeout=5 "$WAGUZZ_URL/health" 2>&1 | head -c 200 || echo "Waguzz health check failed or /health not available"
             echo ""
-            echo "=== APP CONTAINER ENV KEYS ==="
-            docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | cut -d= -f1 | sort | head -40
+            echo "=== APP RECENT LOGS ==="
+            docker logs mellyna-education-app-1 --tail 30 2>&1
             echo ""
-            echo "=== APP CONTAINER LOGS (last 30 lines) ==="
-            docker logs mellyna-education-app-1 --tail 30 2>&1 | head -40
-            echo ""
-            echo "=== WHATDESKS NETWORK/PORTS ==="
-            docker inspect whatdesks-backend --format "{{.NetworkSettings.Networks}}" 2>/dev/null | tr ',' '\n' | head -20
-            docker port whatdesks-backend 2>/dev/null || echo "no host ports"
-            docker port whatdesks-frontend 2>/dev/null || echo "no host ports"
-            echo ""
-            echo "=== HOST PORTS LISTENING ==="
-            ss -tlnp | grep -E ':8000|:8005|:8080|:3001' || echo "(none)"
-            echo ""
-            echo "=== WHATDESKS CONTAINER IPS ==="
-            docker inspect whatdesks-backend --format "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" 2>/dev/null
-            docker inspect whatdesks-frontend --format "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" 2>/dev/null
-            echo ""
-            echo "=== MELLYNA CADDY NETWORKS ==="
-            docker inspect mellyna-education-caddy-1 --format "{{range .NetworkSettings.Networks}}{{.NetworkID}}:{{.IPAddress}} {{end}}" 2>/dev/null
-            echo ""
-            echo "=== WHATDESKS NETWORKS ==="
-            docker inspect whatdesks-backend --format "{{range .NetworkSettings.Networks}}{{.NetworkID}}:{{.IPAddress}} {{end}}" 2>/dev/null
-            echo ""
-            echo "=== WHATDESKS BACKEND LISTENING PORTS ==="
-            docker exec whatdesks-backend ss -tlnp 2>/dev/null || docker exec whatdesks-backend netstat -tlnp 2>/dev/null || echo "cannot check"
-            echo ""
-            echo "=== TEST CURL WHATDESKS BACKEND (8080) ==="
-            docker run --rm --network whatdesks_internal curlimages/curl:latest -s -o /dev/null -w "%{http_code}" http://whatdesks-backend:8080/auth/login -X POST -H "Content-Type: application/json" -d '{"email":"test","password":"test"}' --max-time 5 2>/dev/null || echo "curl failed"
-            echo ""
-            echo "=== TEST CURL WHATDESKS BACKEND (8000) ==="
-            docker run --rm --network whatdesks_internal curlimages/curl:latest -s -o /dev/null -w "%{http_code}" http://whatdesks-backend:8000/auth/login -X POST -H "Content-Type: application/json" -d '{"email":"test","password":"test"}' --max-time 5 2>/dev/null || echo "curl failed"
-            echo ""
-            echo "=== TEST CURL WHATDESKS BACKEND (80) ==="
-            docker run --rm --network whatdesks_internal curlimages/curl:latest -s -o /dev/null -w "%{http_code}" http://whatdesks-backend:80/auth/login -X POST -H "Content-Type: application/json" -d '{"email":"test","password":"test"}' --max-time 5 2>/dev/null || echo "curl failed"
+            echo "=== CADDY RECENT LOGS ==="
+            docker logs mellyna-education-caddy-1 --tail 10 2>&1
