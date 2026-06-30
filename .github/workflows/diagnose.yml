@@ -29,11 +29,14 @@ jobs:
             echo "=== POSTGRES CONTAINER ENV ==="
             docker inspect mellyna-education-postgres-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep -E "^POSTGRES_"
             echo ""
-            echo "=== APP CONTAINER DATABASE_URL ==="
-            docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep "^DATABASE_URL"
+            echo "=== APP CONTAINER DATABASE_URL HOST ==="
+            docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep "^DATABASE_URL" | sed 's|postgresql://[^:]*:[^@]*@||' | sed 's/=postgresql:.*@/=postgresql:\/\/***:***@/'
             echo ""
-            echo "=== APP CONTAINER ALL VARS (key=*** masked) ==="
-            docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | sed 's/=.*/=***/' | head -40
+            echo "=== APP CONTAINER ENV KEYS ==="
+            docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | cut -d= -f1 | sort | head -40
+            echo ""
+            echo "=== APP CONTAINER LOGS (last 30 lines) ==="
+            docker logs mellyna-education-app-1 --tail 30 2>&1 | head -40
             echo ""
             echo "=== WHATDESKS NETWORK/PORTS ==="
             docker inspect whatdesks-backend --format "{{.NetworkSettings.Networks}}" 2>/dev/null | tr ',' '\n' | head -20
