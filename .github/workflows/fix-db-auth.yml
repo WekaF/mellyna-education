@@ -5,9 +5,8 @@ on:
 
 jobs:
   fix:
-    name: Reset postgres password to match .env
+    name: Find DB user and fix credentials
     runs-on: ubuntu-latest
-
     steps:
       - name: Fix via SSH
         uses: appleboy/ssh-action@v1
@@ -18,27 +17,52 @@ jobs:
           script: |
             cd /opt/mellyna-education
 
-            # Read the POSTGRES_PASSWORD from current .env
+            echo "=== LIST ALL POSTGRES USERS (as postgres OS user) ==="
+            docker exec --user postgres mellyna-education-postgres-1 psql -c "\du" 2>&1
+
+            echo "=== pg_hba.conf ==="
+            docker exec mellyna-education-postgres-1 cat /var/lib/postgresql/data/pg_hba.conf 2>&1 | head -30
+
+            echo "=== .env DATABASE_URL (masked) ==="
+            grep "^DATABASE_URL=" .env | sed 's|postgresql://[^:]*:[^@]*@|postgresql://***:***@|'
+
+            echo "=== .env POSTGRES_USER and POSTGRES_DB ==="
+            grep -E "^(POSTGRES_USER|POSTGRES_DB)=" .env
+
+            echo "=== DATABASES IN POSTGRES ==="
+            docker exec --user postgres mellyna-education-postgres-1 psql -c "\l" 2>&1
+
+            echo "=== FIX: reset password for ALL non-system users to match .env ==="
             PGPASS=$(grep "^POSTGRES_PASSWORD=" .env | cut -d= -f2 | tr -d '"')
             PGUSER=$(grep "^POSTGRES_USER=" .env | cut -d= -f2 | tr -d '"')
-            echo "=== .env POSTGRES_USER=$PGUSER ==="
-            echo "=== .env POSTGRES_PASSWORD length: ${#PGPASS} chars ==="
+            PGDB=$(grep "^POSTGRES_DB=" .env | cut -d= -f2 | tr -d '"')
 
-            # Reset the password in postgres (socket = no-password trust auth)
-            docker exec mellyna-education-postgres-1 psql -U postgres -c "ALTER USER \"$PGUSER\" WITH PASSWORD '$PGPASS';" 2>&1
-            echo "=== Password reset result above ==="
+            # Try to find the real app user (not postgres, not pg_*)
+            REAL_USER=$(docker exec --user postgres mellyna-education-postgres-1 psql -t -c "SELECT usename FROM pg_user WHERE usename NOT LIKE 'pg_%' ORDER BY usename;" 2>/dev/null | tr -d ' \n')
+            echo "Real DB users found: $REAL_USER"
 
-            # Also ensure the DB user exists (in case POSTGRES_USER != postgres)
-            if [ "$PGUSER" != "postgres" ]; then
-              docker exec mellyna-education-postgres-1 psql -U postgres -c "CREATE USER \"$PGUSER\" WITH PASSWORD '$PGPASS';" 2>/dev/null || true
-              docker exec mellyna-education-postgres-1 psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE mellyna_db TO \"$PGUSER\";" 2>&1
+            # Reset password for each found user
+            for U in $REAL_USER; do
+              echo "Resetting password for user: $U"
+              docker exec --user postgres mellyna-education-postgres-1 psql -c "ALTER USER \"$U\" WITH PASSWORD '$PGPASS';" 2>&1
+            done
+
+            # If the env POSTGRES_USER doesn't match, update the DATABASE_URL in .env
+            if [ -n "$REAL_USER" ] && [ "$REAL_USER" != "$PGUSER" ]; then
+              echo "=== UPDATING DATABASE_URL to use real user: $REAL_USER ==="
+              # Update DATABASE_URL to use the real user with current PGPASS
+              PGHOST=$(grep "^DATABASE_URL=" .env | sed 's|postgresql://[^:]*:[^@]*@||' | sed 's|/.*||')
+              NEW_URL="postgresql://$REAL_USER:$PGPASS@$PGHOST/$PGDB"
+              sed -i "s|^DATABASE_URL=.*|DATABASE_URL=$NEW_URL|" .env
+              echo "DATABASE_URL updated (masked): postgresql://$REAL_USER:***@$PGHOST/$PGDB"
             fi
 
-            # Restart the app so it retries migration with correct credentials
+            echo "=== RESTART APP ==="
             docker compose -f docker-compose.prod.yml restart app
-            echo "=== App restarted, waiting 15s ==="
-            sleep 15
+            sleep 20
 
-            # Check if app is now running
+            echo "=== APP STATUS ==="
             docker ps --format "table {{.Names}}\t{{.Status}}" | grep mellyna-education-app
-            docker logs mellyna-education-app-1 --tail 10 2>&1
+
+            echo "=== APP LOGS ==="
+            docker logs mellyna-education-app-1 --tail 15 2>&1
