@@ -20,20 +20,20 @@ jobs:
             echo "=== DOCKER PS ==="
             docker ps --format "table {{.Names}}\t{{.Status}}" 2>/dev/null | grep -E "mellyna|whatdesk"
             echo ""
-            echo "=== DOCKER NETWORKS ==="
-            docker network ls --format "{{.Name}}" 2>/dev/null | grep -E "mellyna|whatdesk"
+            echo "=== .ENV EXISTS ==="
+            ls -la .env 2>/dev/null || echo ".env MISSING"
             echo ""
-            echo "=== APP ENV VARS ==="
-            docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep WHATDESKS
+            echo "=== .ENV KEY NAMES ONLY ==="
+            grep "^[A-Z]" .env 2>/dev/null | sed 's/=.*//' || echo "(no .env)"
             echo ""
-            echo "=== APP NETWORKS (inspect) ==="
-            docker inspect mellyna-education-app-1 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); nets=list(d[0]['NetworkSettings']['Networks'].keys()); print('\n'.join(nets))"
+            echo "=== DATABASE_URL FROM CONTAINER ==="
+            docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep "^DATABASE_URL" | sed 's/:\/\/.*/=***hidden***/'
             echo ""
-            echo "=== TEST CURL LOGIN FROM whatdesks_internal ==="
-            docker run --rm --network whatdesks_internal alpine/curl:latest -s -m 10 -X POST -H "Content-Type: application/json" -d '{"email":"admin@whatapps.com","password":"adminpassword"}' http://whatdesks-backend:8080/auth/login 2>&1 | head -c 500
+            echo "=== POSTGRES CREDENTIALS ==="
+            docker inspect mellyna-education-postgres-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep -E "^POSTGRES_" | sed 's/PASSWORD=.*/PASSWORD=***/'
             echo ""
-            echo "=== APP RECENT LOGS ==="
-            docker logs mellyna-education-app-1 --tail 20 2>&1
+            echo "=== DOCKER-COMPOSE KEY SECTION ==="
+            grep -A3 "whatdesks_internal\|WHATDESKS_BASE_URL\|DATABASE_URL" docker-compose.prod.yml 2>/dev/null | head -20
             echo ""
             echo "=== WHATDESKS NETWORK/PORTS ==="
             docker inspect whatdesks-backend --format "{{.NetworkSettings.Networks}}" 2>/dev/null | tr ',' '\n' | head -20
