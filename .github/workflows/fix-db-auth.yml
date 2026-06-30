@@ -14,6 +14,7 @@ jobs:
           host: ${{ secrets.SUMOPOD_HOST }}
           username: ${{ secrets.SUMOPOD_USER }}
           password: ${{ secrets.SUMOPOD_PASSWORD }}
+          capture_stdout: true
           script: |
             cd /opt/mellyna-education
 
