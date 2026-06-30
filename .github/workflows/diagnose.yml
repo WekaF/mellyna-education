@@ -23,17 +23,30 @@ jobs:
             echo "=== DOCKER NETWORKS ==="
             docker network ls --format "{{.Name}}" 2>/dev/null | grep "mellyna"
             echo ""
+            echo "=== ALL CONTAINERS ==="
+            docker ps --format "  {{.Names}} | {{.Status}}" 2>/dev/null
+            echo ""
             echo "=== DB AUTH TEST ==="
+            PG_CONTAINER=$(docker ps --format "{{.Names}}" | grep -E "(mellyna|education).*postgres|postgres.*(mellyna|education)" | head -1)
+            [ -z "$PG_CONTAINER" ] && PG_CONTAINER=$(docker ps --format "{{.Names}}" | grep -E "postgres" | head -1)
+            echo "Postgres container: ${PG_CONTAINER:-NOT FOUND}"
             current_db_user=$(grep "^DATABASE_URL=" /opt/mellyna-education/.env 2>/dev/null | sed -E 's|.*://([^:@]+)[^@]*@.*|\1|')
             echo "DB user in .env: ${current_db_user:-<none>}"
-            docker exec mellyna-education-postgres-1 psql -U "$current_db_user" -c "SELECT 1" 2>&1 || echo "AUTH FAILED for user $current_db_user"
+            if [ -n "$PG_CONTAINER" ]; then
+              docker exec "$PG_CONTAINER" psql -U "$current_db_user" -c "SELECT 1" 2>&1 || echo "AUTH FAILED for user $current_db_user"
+            fi
             echo ""
-            echo "=== POSTGRES ROLES ==="
-            for candidate in mellyna mellyna_user admin ubuntu app postgres; do
-              if docker exec mellyna-education-postgres-1 psql -U "$candidate" -c "SELECT 1" >/dev/null 2>&1; then
-                echo "WORKING: $candidate"
-              fi
-            done
+            echo "=== POSTGRES ROLES (which users can connect) ==="
+            if [ -n "$PG_CONTAINER" ]; then
+              for candidate in mellyna mellyna_user admin ubuntu app postgres; do
+                result=$(docker exec "$PG_CONTAINER" psql -U "$candidate" -c "SELECT 1" 2>&1)
+                if echo "$result" | grep -q "1 row"; then
+                  echo "WORKING: $candidate"
+                else
+                  echo "FAIL: $candidate — $(echo $result | head -c 80)"
+                fi
+              done
+            fi
             echo ""
             echo "=== APP ENV VARS (Waguzz) ==="
             docker inspect mellyna-education-app-1 --format "{{range .Config.Env}}{{.}}\n{{end}}" 2>/dev/null | grep WAGUZZ
