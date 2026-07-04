@@ -24,11 +24,12 @@ interface Report {
 
 interface ReportsClientProps {
   classes: { id: string; name: string }[]
+  apiEndpoint: string
 }
 
 const PAGE_SIZE = 20
 
-export default function ReportsClient({ classes }: ReportsClientProps) {
+export default function ReportsClient({ classes, apiEndpoint }: ReportsClientProps) {
   const [search,   setSearch]   = useState('')
   const [classId,  setClassId]  = useState('')
   const [dateFrom, setDateFrom] = useState('')
@@ -100,7 +101,7 @@ export default function ReportsClient({ classes }: ReportsClientProps) {
     if (dateFrom)        params.set('dateFrom', dateFrom)
     if (dateTo)          params.set('dateTo', dateTo)
 
-    fetch(`/api/admin/reports/list?${params}`)
+    fetch(`${apiEndpoint}?${params}`)
       .then((r) => r.json())
       .then((data) => {
         if (cancelled) return
@@ -114,7 +115,7 @@ export default function ReportsClient({ classes }: ReportsClientProps) {
       })
 
     return () => { cancelled = true }
-  }, [page, debouncedSearch, classId, dateFrom, dateTo])
+  }, [apiEndpoint, page, debouncedSearch, classId, dateFrom, dateTo])
 
   const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
   const rangeEnd   = Math.min(page * PAGE_SIZE, total)

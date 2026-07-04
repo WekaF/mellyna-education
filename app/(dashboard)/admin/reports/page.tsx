@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db'
-import ReportsClient from './ReportsClient'
+import ReportsClient from '@/components/reports/ReportsClient'
 
 export default async function AdminReportsPage() {
   const classes = await prisma.class.findMany({
@@ -7,5 +7,5 @@ export default async function AdminReportsPage() {
     orderBy: { name: 'asc' },
   })
 
-  return <ReportsClient classes={classes} />
+  return <ReportsClient classes={classes} apiEndpoint="/api/admin/reports/list" />
 }
