@@ -43,9 +43,13 @@ export const authOptions: NextAuthOptions = {
       return session
     },
     async redirect({ url, baseUrl }) {
-      if (url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/\\')) return url
+      // Browsers strip ASCII tab/newline/CR before parsing a URL, so check the
+      // stripped form — otherwise "/\t/evil.com" looks relative here but the
+      // browser resolves it to "//evil.com" (protocol-relative, off-origin).
+      const clean = url.replace(/[\t\n\r]/g, '')
+      if (clean.startsWith('/') && !clean.startsWith('//') && !clean.startsWith('/\\')) return clean
       try {
-        if (new URL(url).origin === baseUrl) return url
+        if (new URL(clean).origin === baseUrl) return clean
       } catch {
         // malformed url — fall through to baseUrl
       }
