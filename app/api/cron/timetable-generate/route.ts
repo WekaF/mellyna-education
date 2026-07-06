@@ -177,7 +177,7 @@ async function handleCron(req: NextRequest) {
 
             const message = `Halo Bunda/Ayah ${parent.name},
 
-Berikut adalah jadwal belajar rutin untuk ${p.student.name} besok:
+Berikut adalah jadwal belajar rutin untuk ${p.student.name}:
 🏫 Kelas: ${c.name}
 👨‍🏫 Tutor: ${tutorNames}
 🕐 Waktu: ${dateStr}, ${timeStr}
