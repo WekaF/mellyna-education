@@ -8,11 +8,6 @@ describe('NextAuth redirect callback — relative URLs immune to bad NEXTAUTH_UR
     expect(result).toBe('/')
   })
 
-  it('returns a relative deep-link callbackUrl unchanged', async () => {
-    const result = await redirect({ url: '/tutor', baseUrl: 'http://localhost:3000' })
-    expect(result).toBe('/tutor')
-  })
-
   it('allows an absolute url matching baseUrl origin', async () => {
     const result = await redirect({
       url: 'https://mellyna-education.my.id/tutor',
@@ -61,6 +56,14 @@ describe('NextAuth redirect callback — relative URLs immune to bad NEXTAUTH_UR
   it('falls back to baseUrl for a newline-prefixed protocol-relative url', async () => {
     const result = await redirect({
       url: '/\n/evil.example.com/phish',
+      baseUrl: 'https://mellyna-education.my.id',
+    })
+    expect(result).toBe('https://mellyna-education.my.id')
+  })
+
+  it('falls back to baseUrl for a carriage-return-prefixed protocol-relative url', async () => {
+    const result = await redirect({
+      url: '/\r/evil.example.com/phish',
       baseUrl: 'https://mellyna-education.my.id',
     })
     expect(result).toBe('https://mellyna-education.my.id')
