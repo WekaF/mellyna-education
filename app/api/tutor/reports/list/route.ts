@@ -7,6 +7,14 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const role = (session.user as any).role
+  if (role !== 'TUTOR' && role !== 'SUPER_ADMIN') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  if ((session.user as any).suspended) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const tutorId = (session.user as any).id
 
   const { searchParams } = new URL(req.url)

@@ -47,15 +47,31 @@ describe('tutor reports list — where clause scoping', () => {
 })
 
 describe('tutor reports list — auth', () => {
+  function isAuthorized(session: { user: { role: string; suspended?: boolean } } | null) {
+    if (!session) return false
+    const role = session.user.role
+    if (role !== 'TUTOR' && role !== 'SUPER_ADMIN') return false
+    if (session.user.suspended) return false
+    return true
+  }
+
   it('rejects when there is no session', () => {
-    const session = null
-    const authorized = !!session
-    expect(authorized).toBe(false)
+    expect(isAuthorized(null)).toBe(false)
   })
 
-  it('authorizes any authenticated session (role gating happens in middleware)', () => {
-    const session = { user: { id: 'tutor-1', role: 'TUTOR' } }
-    const authorized = !!session
-    expect(authorized).toBe(true)
+  it('authorizes an active TUTOR session', () => {
+    expect(isAuthorized({ user: { id: 'tutor-1', role: 'TUTOR' } } as any)).toBe(true)
+  })
+
+  it('authorizes a SUPER_ADMIN session', () => {
+    expect(isAuthorized({ user: { id: 'admin-1', role: 'SUPER_ADMIN' } } as any)).toBe(true)
+  })
+
+  it('rejects a PARENT session', () => {
+    expect(isAuthorized({ user: { id: 'parent-1', role: 'PARENT' } } as any)).toBe(false)
+  })
+
+  it('rejects a suspended TUTOR session', () => {
+    expect(isAuthorized({ user: { id: 'tutor-1', role: 'TUTOR', suspended: true } } as any)).toBe(false)
   })
 })
