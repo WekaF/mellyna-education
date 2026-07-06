@@ -142,13 +142,20 @@ export default function SchedulesClient({ initialSchedules, classes }: Props) {
     try {
       const res = await fetch(`/api/schedules/${id}/publish`, { method: 'POST' })
       if (!res.ok) throw new Error()
+      const data = await res.json()
       await fetchSchedules()
+      const broadcast = data.broadcast as { sent: number; failed: string[] } | undefined
+      if (broadcast && broadcast.failed.length > 0) {
+        toast.warning(`${broadcast.sent} WA terkirim, ${broadcast.failed.length} gagal: ${broadcast.failed.join(', ')}`)
+      } else if (broadcast) {
+        toast.success(`${broadcast.sent} WA berhasil terkirim.`)
+      }
     } catch {
       setError('Gagal menerbitkan jadwal.')
     } finally {
       setPublishing(null)
     }
-  }, [fetchSchedules])
+  }, [fetchSchedules, toast])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -266,7 +273,7 @@ export default function SchedulesClient({ initialSchedules, classes }: Props) {
       enableSorting: false,
       cell: ({ row }) => {
         const s = row.original
-        if (s.status !== 'DRAFT') return null
+        if (s.status !== 'DRAFT' && s.status !== 'PUBLISHED') return null
         return (
           <button
             onClick={() => handlePublish(s.id)}
@@ -274,7 +281,7 @@ export default function SchedulesClient({ initialSchedules, classes }: Props) {
             className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg disabled:opacity-50 transition-colors cursor-pointer"
           >
             <Send className="h-3 w-3" />
-            {publishing === s.id ? 'Mengirim...' : 'Terbitkan + WA'}
+            {publishing === s.id ? 'Mengirim...' : s.status === 'DRAFT' ? 'Terbitkan + WA' : 'Kirim Ulang WA'}
           </button>
         )
       },
