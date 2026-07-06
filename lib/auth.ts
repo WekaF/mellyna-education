@@ -42,6 +42,15 @@ export const authOptions: NextAuthOptions = {
       }
       return session
     },
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith('/')) return url
+      try {
+        if (new URL(url).origin === baseUrl) return url
+      } catch {
+        // malformed url — fall through to baseUrl
+      }
+      return baseUrl
+    },
   },
   pages: { signIn: '/login' },
   secret: process.env.NEXTAUTH_SECRET,
