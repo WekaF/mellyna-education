@@ -116,6 +116,7 @@ export default function Sidebar({ user }: SidebarProps) {
       case 'TUTOR':
         return [
           { name: 'Dashboard', href: '/tutor', icon: LayoutDashboard },
+          { name: 'Laporan', href: '/tutor/reports', icon: FileText },
         ]
       case 'PARENT':
         return [
