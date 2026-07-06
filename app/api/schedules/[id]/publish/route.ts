@@ -52,7 +52,8 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     data: { status: 'PUBLISHED', publishedAt: new Date() },
   })
 
-  // 3. Trigger WAHA Direct Broadcast to all session participants' parents
+  // 3. Broadcast to all session participants' parents and tutors — awaited so we
+  // can report real success/failure back to the admin instead of firing blind.
   const dateStr = new Date(scheduleWithDetails.date).toLocaleDateString('id-ID', {
     weekday: 'long',
     day: 'numeric',
@@ -63,21 +64,20 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   const topicStr = scheduleWithDetails.topic ? `\n📚 Topik: ${scheduleWithDetails.topic}` : ''
   const locationStr = `\n📍 Lokasi: ${scheduleWithDetails.location || 'Sempoa Kreatif Pakong'}`
 
-  // Dispatch WA messages asynchronously so it doesn't block the API response
-  Promise.resolve().then(async () => {
-    // Notify all participants' parents
-    const allTutorNames = [
-      scheduleWithDetails.class.tutor.name,
-      ...scheduleWithDetails.class.additionalTutors.map(
-        (at: { tutor: { name: string } }) => at.tutor.name
-      ),
-    ].join(', ')
+  const allTutorNames = [
+    scheduleWithDetails.class.tutor.name,
+    ...scheduleWithDetails.class.additionalTutors.map(
+      (at: { tutor: { name: string } }) => at.tutor.name
+    ),
+  ].join(', ')
 
-    for (const p of scheduleWithDetails.participants) {
-      const parent = p.student.parent
-      if (!parent.phone) continue
+  const results: { name: string; success: boolean }[] = []
 
-      const message = `Halo Bunda/Ayah ${parent.name},
+  for (const p of scheduleWithDetails.participants) {
+    const parent = p.student.parent
+    if (!parent.phone) continue
+
+    const message = `Halo Bunda/Ayah ${parent.name},
 
 Berikut adalah jadwal belajar untuk ${p.student.name}:
 🏫 Kelas: ${scheduleWithDetails.class.name}
@@ -89,30 +89,30 @@ Sistem secara otomatis menjadwalkan ${p.student.name} untuk hadir. Jika berhalan
 Terima kasih,
 Mellyna Education`
 
-      console.log(`[WAHA Broadcast] Sending schedule notification to parent ${parent.name} (${parent.phone})`)
-      const success = await sendWhatsApp(parent.phone, message)
-      if (success) {
-        console.log(`[WAHA Broadcast] Successfully sent schedule notification to parent ${parent.name}`)
-      } else {
-        console.error(`[WAHA Broadcast] Failed to send schedule notification to parent ${parent.name}`)
-      }
-      await sleep(randomDelay(3000, 7000))
+    console.log(`[WAHA Broadcast] Sending schedule notification to parent ${parent.name} (${parent.phone})`)
+    const success = await sendWhatsApp(parent.phone, message)
+    results.push({ name: parent.name, success })
+    if (success) {
+      console.log(`[WAHA Broadcast] Successfully sent schedule notification to parent ${parent.name}`)
+    } else {
+      console.error(`[WAHA Broadcast] Failed to send schedule notification to parent ${parent.name}`)
     }
+    await sleep(randomDelay(3000, 7000))
+  }
 
-    // Notify all tutors (primary + additional)
-    const allTutors = [
-      scheduleWithDetails.class.tutor,
-      ...scheduleWithDetails.class.additionalTutors.map(
-        (at: { tutor: { name: string; phone: string | null } }) => at.tutor
-      ),
-    ]
-    const studentNames = scheduleWithDetails.participants.map(
-      (p: { student: { name: string } }) => p.student.name
-    ).join(', ')
+  const allTutors = [
+    scheduleWithDetails.class.tutor,
+    ...scheduleWithDetails.class.additionalTutors.map(
+      (at: { tutor: { name: string; phone: string | null } }) => at.tutor
+    ),
+  ]
+  const studentNames = scheduleWithDetails.participants.map(
+    (p: { student: { name: string } }) => p.student.name
+  ).join(', ')
 
-    for (const tutorUser of allTutors) {
-      if (!tutorUser.phone) continue
-      const tutorMessage = `Halo ${tutorUser.name},
+  for (const tutorUser of allTutors) {
+    if (!tutorUser.phone) continue
+    const tutorMessage = `Halo ${tutorUser.name},
 
 Anda mendapatkan jadwal mengajar:
 🏫 Kelas: ${scheduleWithDetails.class.name}
@@ -123,19 +123,25 @@ Silakan konfirmasi kehadiran siswa setelah sesi selesai melalui portal tutor.
 
 Mellyna Education`
 
-      console.log(`[WAHA Broadcast] Sending schedule notification to tutor ${tutorUser.name} (${tutorUser.phone})`)
-      const success = await sendWhatsApp(tutorUser.phone, tutorMessage)
-      if (success) {
-        console.log(`[WAHA Broadcast] Successfully sent to tutor ${tutorUser.name}`)
-      } else {
-        console.error(`[WAHA Broadcast] Failed to send to tutor ${tutorUser.name}`)
-      }
-      await sleep(randomDelay(3000, 7000))
+    console.log(`[WAHA Broadcast] Sending schedule notification to tutor ${tutorUser.name} (${tutorUser.phone})`)
+    const success = await sendWhatsApp(tutorUser.phone, tutorMessage)
+    results.push({ name: tutorUser.name, success })
+    if (success) {
+      console.log(`[WAHA Broadcast] Successfully sent to tutor ${tutorUser.name}`)
+    } else {
+      console.error(`[WAHA Broadcast] Failed to send to tutor ${tutorUser.name}`)
     }
-  }).catch(console.error)
+    await sleep(randomDelay(3000, 7000))
+  }
 
   // 4. Trigger n8n webhook as fallback/integration
   triggerSchedulePublished(id).catch(console.error)
 
-  return NextResponse.json(schedule)
+  return NextResponse.json({
+    ...schedule,
+    broadcast: {
+      sent: results.filter(r => r.success).length,
+      failed: results.filter(r => !r.success).map(r => r.name),
+    },
+  })
 }
