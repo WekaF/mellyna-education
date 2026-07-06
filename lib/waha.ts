@@ -48,33 +48,33 @@ export function randomDelay(minMs = 3000, maxMs = 7000): number {
 }
 
 export async function sendWhatsApp(phone: string, message: string): Promise<boolean> {
-  try {
-    const token = await getToken()
-    const { base, deviceId } = cfg()
-    const res = await fetch(`${base}/api/messages/send`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        device_id: deviceId,
-        phone: normalizePhone(phone),
-        message,
-        message_type: 'text',
-      }),
-    })
-    if (!res.ok) {
-      if (res.status === 401) _token = null // force re-login next call
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const token = await getToken()
+      const { base, deviceId } = cfg()
+      const res = await fetch(`${base}/api/messages/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          device_id: deviceId,
+          phone: normalizePhone(phone),
+          message,
+          message_type: 'text',
+        }),
+      })
+      if (res.ok) return true
+      if (res.status === 401) _token = null // force re-login on next attempt
       const body = await res.text().catch(() => '(no body)')
-      console.error(`[WHATDESKS] sendText failed ${res.status} for ${phone}: ${body}`)
-      return false
+      console.error(`[WHATDESKS] sendText failed ${res.status} for ${phone} (attempt ${attempt}/2): ${body}`)
+    } catch (e) {
+      console.error(`[WHATDESKS] sendText error for ${phone} (attempt ${attempt}/2):`, e)
     }
-    return true
-  } catch (e) {
-    console.error('[WHATDESKS] sendText error:', e)
-    return false
+    if (attempt === 1) await sleep(300)
   }
+  return false
 }
 
 export async function sendWhatsAppFile(
