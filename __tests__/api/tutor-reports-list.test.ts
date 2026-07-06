@@ -1,6 +1,13 @@
-describe('tutor reports list — where clause scoping', () => {
+describe('tutor reports list — where clause scoping (class-based: primary tutor OR co-teacher)', () => {
   function buildWhere(tutorId: string, search: string, classId: string, dateFrom: string, dateTo: string) {
-    const scheduleFilter: Record<string, unknown> = {}
+    const scheduleFilter: Record<string, unknown> = {
+      class: {
+        OR: [
+          { tutorId },
+          { additionalTutors: { some: { tutorId } } },
+        ],
+      },
+    }
     if (classId) scheduleFilter.classId = classId
     if (dateFrom || dateTo) {
       scheduleFilter.date = {
@@ -9,37 +16,38 @@ describe('tutor reports list — where clause scoping', () => {
       }
     }
 
-    const where: Record<string, unknown> = { tutorId }
+    const where: Record<string, unknown> = { schedule: scheduleFilter }
     if (search) {
       where.OR = [
         { student: { name: { contains: search, mode: 'insensitive' } } },
         { schedule: { class: { name: { contains: search, mode: 'insensitive' } } } },
       ]
     }
-    if (Object.keys(scheduleFilter).length > 0) {
-      where.schedule = scheduleFilter
-    }
     return where
   }
 
-  it('always scopes to the requesting tutor id', () => {
-    const where = buildWhere('tutor-1', '', '', '', '')
-    expect(where).toEqual({ tutorId: 'tutor-1' })
+  it('scopes by class ownership (primary or co-teacher), not by report author', () => {
+    const where: any = buildWhere('tutor-1', '', '', '', '')
+    expect(where.tutorId).toBeUndefined()
+    expect(where.schedule.class.OR).toEqual([
+      { tutorId: 'tutor-1' },
+      { additionalTutors: { some: { tutorId: 'tutor-1' } } },
+    ])
   })
 
-  it('adds search OR clause without dropping tutorId scope', () => {
+  it('adds search OR clause alongside the class-ownership scope (both apply, AND-ed)', () => {
     const where: any = buildWhere('tutor-1', 'Andi', '', '', '')
-    expect(where.tutorId).toBe('tutor-1')
+    expect(where.schedule.class.OR).toBeDefined()
     expect(where.OR).toHaveLength(2)
   })
 
-  it('adds schedule.classId filter without dropping tutorId scope', () => {
+  it('adds schedule.classId filter without dropping the class-ownership scope', () => {
     const where: any = buildWhere('tutor-1', '', 'class-9', '', '')
-    expect(where.tutorId).toBe('tutor-1')
-    expect(where.schedule).toEqual({ classId: 'class-9' })
+    expect(where.schedule.classId).toBe('class-9')
+    expect(where.schedule.class.OR).toBeDefined()
   })
 
-  it('a different tutor id produces a different scope (no cross-tutor leakage)', () => {
+  it('a different tutor id produces a different scope (still class-based, not global)', () => {
     const whereA = buildWhere('tutor-1', '', '', '', '')
     const whereB = buildWhere('tutor-2', '', '', '', '')
     expect(whereA).not.toEqual(whereB)

@@ -25,7 +25,17 @@ export async function GET(req: NextRequest) {
   const dateFrom = searchParams.get('dateFrom')?.trim() ?? ''
   const dateTo   = searchParams.get('dateTo')?.trim()   ?? ''
 
-  const scheduleFilter: Record<string, unknown> = {}
+  // Scope to classes this tutor teaches, whether as the primary tutor or as
+  // a co-teacher (additionalTutors) — not just reports they personally wrote,
+  // so a primary tutor can see reports co-teachers filed for their shared class.
+  const scheduleFilter: Record<string, unknown> = {
+    class: {
+      OR: [
+        { tutorId },
+        { additionalTutors: { some: { tutorId } } },
+      ],
+    },
+  }
   if (classId) scheduleFilter.classId = classId
   if (dateFrom || dateTo) {
     scheduleFilter.date = {
@@ -34,15 +44,12 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const where: Record<string, unknown> = { tutorId }
+  const where: Record<string, unknown> = { schedule: scheduleFilter }
   if (search) {
     where.OR = [
       { student:  { name:  { contains: search, mode: 'insensitive' } } },
       { schedule: { class: { name: { contains: search, mode: 'insensitive' } } } },
     ]
-  }
-  if (Object.keys(scheduleFilter).length > 0) {
-    where.schedule = scheduleFilter
   }
 
   const [total, rawReports] = await Promise.all([
