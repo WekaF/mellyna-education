@@ -43,7 +43,7 @@ export const authOptions: NextAuthOptions = {
       return session
     },
     async redirect({ url, baseUrl }) {
-      if (url.startsWith('/')) return url
+      if (url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/\\')) return url
       try {
         if (new URL(url).origin === baseUrl) return url
       } catch {

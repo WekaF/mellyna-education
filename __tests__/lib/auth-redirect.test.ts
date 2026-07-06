@@ -1,13 +1,7 @@
+import { authOptions } from '@/lib/auth'
+
 describe('NextAuth redirect callback — relative URLs immune to bad NEXTAUTH_URL', () => {
-  async function redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
-    if (url.startsWith('/')) return url
-    try {
-      if (new URL(url).origin === baseUrl) return url
-    } catch {
-      // malformed url — fall through to baseUrl
-    }
-    return baseUrl
-  }
+  const redirect = authOptions.callbacks!.redirect! as (params: { url: string; baseUrl: string }) => Promise<string>
 
   it('returns a relative callbackUrl unchanged, even when baseUrl is wrong', async () => {
     const result = await redirect({ url: '/', baseUrl: 'http://localhost:3000' })
@@ -37,6 +31,22 @@ describe('NextAuth redirect callback — relative URLs immune to bad NEXTAUTH_UR
 
   it('falls back to baseUrl for a malformed url instead of throwing', async () => {
     const result = await redirect({ url: 'not a url', baseUrl: 'https://mellyna-education.my.id' })
+    expect(result).toBe('https://mellyna-education.my.id')
+  })
+
+  it('falls back to baseUrl for a protocol-relative url (//evil.com), not treated as relative', async () => {
+    const result = await redirect({
+      url: '//evil.example.com/phish',
+      baseUrl: 'https://mellyna-education.my.id',
+    })
+    expect(result).toBe('https://mellyna-education.my.id')
+  })
+
+  it('falls back to baseUrl for a backslash-relative url (/\\evil.com), browser-normalized to //', async () => {
+    const result = await redirect({
+      url: '/\\evil.example.com/phish',
+      baseUrl: 'https://mellyna-education.my.id',
+    })
     expect(result).toBe('https://mellyna-education.my.id')
   })
 })
