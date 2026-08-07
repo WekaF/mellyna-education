@@ -454,3 +454,4 @@ model SystemSetting {
   value     String
   updatedAt DateTime @updatedAt
 }
+

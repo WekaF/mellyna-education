@@ -30,6 +30,7 @@ interface Props {
   initialClassList: { id: string; name: string }[]
   defaultMonth: string
   defaultYear: string
+  initialTotalExpenses: number
 }
 
 const statusConfig = {
@@ -62,13 +63,14 @@ function SummaryCard({
   )
 }
 
-export default function FinancialReportClient({ initialInvoices, initialSummary, initialClassList, defaultMonth, defaultYear }: Props) {
+export default function FinancialReportClient({ initialInvoices, initialSummary, initialClassList, defaultMonth, defaultYear, initialTotalExpenses }: Props) {
   const [month, setMonth] = useState(defaultMonth)
   const [year, setYear] = useState(defaultYear)
   const [classId, setClassId] = useState('')
   const [classList] = useState<{ id: string; name: string }[]>(initialClassList)
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices)
   const [summary, setSummary] = useState<Summary | null>(initialSummary)
+  const [totalExpenses, setTotalExpenses] = useState<number>(initialTotalExpenses)
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
 
@@ -82,16 +84,19 @@ export default function FinancialReportClient({ initialInvoices, initialSummary,
     setLoading(true)
     const qs = buildParams()
     try {
-      const [invRes, sumRes] = await Promise.all([
+      const [invRes, sumRes, expRes] = await Promise.all([
         fetch(`/api/invoices?${qs}`),
         fetch(`/api/admin/financial-report/summary?${qs}`),
+        fetch(`/api/expenses?month=${month}&year=${year}`),
       ])
       setInvoices(await invRes.json())
       setSummary(await sumRes.json())
+      const exps: { amount: number }[] = await expRes.json()
+      setTotalExpenses(exps.reduce((s, e) => s + e.amount, 0))
     } finally {
       setLoading(false)
     }
-  }, [buildParams])
+  }, [buildParams, month, year])
 
   // Only re-fetch when filters change (skip initial render since we have SSR data)
   const isFirstRender = useMemo(() => ({ current: true }), [])
@@ -244,11 +249,31 @@ export default function FinancialReportClient({ initialInvoices, initialSummary,
 
       {/* Summary cards */}
       {summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <SummaryCard label="Total Tagihan"  count={summary.total.count}   amount={summary.total.amount}   colorClass="bg-slate-50 border-slate-200 text-slate-800" />
-          <SummaryCard label="Terbayar"       count={summary.paid.count}    amount={summary.paid.amount}    colorClass="bg-emerald-50 border-emerald-100 text-emerald-800" />
-          <SummaryCard label="Belum Lunas"    count={summary.pending.count} amount={summary.pending.amount} colorClass="bg-amber-50 border-amber-100 text-amber-800" />
-          <SummaryCard label="Terlambat"      count={summary.overdue.count} amount={summary.overdue.amount} colorClass="bg-rose-50 border-rose-100 text-rose-800" />
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <SummaryCard label="Total Tagihan"  count={summary.total.count}   amount={summary.total.amount}   colorClass="bg-slate-50 border-slate-200 text-slate-800" />
+            <SummaryCard label="Terbayar"       count={summary.paid.count}    amount={summary.paid.amount}    colorClass="bg-emerald-50 border-emerald-100 text-emerald-800" />
+            <SummaryCard label="Belum Lunas"    count={summary.pending.count} amount={summary.pending.amount} colorClass="bg-amber-50 border-amber-100 text-amber-800" />
+            <SummaryCard label="Terlambat"      count={summary.overdue.count} amount={summary.overdue.amount} colorClass="bg-rose-50 border-rose-100 text-rose-800" />
+          </div>
+
+          {/* Net Total row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded-2xl p-4 sm:p-5 border shadow-xs bg-rose-50 border-rose-200 text-rose-800">
+              <p className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">Total Pengeluaran</p>
+              <p className="text-base sm:text-2xl font-extrabold leading-tight">{formatRupiah(totalExpenses)}</p>
+              <p className="text-xs mt-1 opacity-60">periode ini</p>
+            </div>
+            <div className={`rounded-2xl p-4 sm:p-5 border shadow-xs col-span-1 sm:col-span-2 ${
+              summary.paid.amount - totalExpenses >= 0
+                ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200 text-emerald-900'
+                : 'bg-gradient-to-r from-rose-50 to-orange-50 border-rose-200 text-rose-900'
+            }`}>
+              <p className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">Net Total (Pendapatan Bersih)</p>
+              <p className="text-xl sm:text-3xl font-extrabold leading-tight">{formatRupiah(summary.paid.amount - totalExpenses)}</p>
+              <p className="text-xs mt-1 opacity-60">Terbayar {formatRupiah(summary.paid.amount)} − Pengeluaran {formatRupiah(totalExpenses)}</p>
+            </div>
+          </div>
         </div>
       )}
 

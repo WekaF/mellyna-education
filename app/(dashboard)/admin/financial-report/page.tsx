@@ -23,7 +23,14 @@ export default async function FinancialReportPage() {
     },
   }
 
-  const [invoicesData, summaryInvoices, classesData] = await Promise.all([
+  const expenseDateFilter = {
+    date: {
+      gte: new Date(year, month - 1, 1),
+      lt: new Date(year, month, 1),
+    },
+  }
+
+  const [invoicesData, summaryInvoices, classesData, expensesAggregate] = await Promise.all([
     prisma.invoice.findMany({
       where: dateFilter,
       include: { student: { select: { name: true } } },
@@ -37,6 +44,10 @@ export default async function FinancialReportPage() {
     prisma.class.findMany({
       select: { id: true, name: true },
       orderBy: { createdAt: 'desc' },
+    }),
+    prisma.expense.aggregate({
+      where: expenseDateFilter,
+      _sum: { amount: true },
     }),
   ])
 
@@ -60,6 +71,8 @@ export default async function FinancialReportPage() {
     cancelled: { count: summaryInvoices.filter(i => i.status === 'CANCELLED').length, amount: summaryInvoices.filter(i => i.status === 'CANCELLED').reduce((s, i) => s + i.amount, 0) },
   }
 
+  const totalExpenses = expensesAggregate._sum.amount ?? 0
+
   return (
     <FinancialReportClient
       initialInvoices={invoices}
@@ -67,6 +80,7 @@ export default async function FinancialReportPage() {
       initialClassList={classesData}
       defaultMonth={defaultMonth}
       defaultYear={defaultYear}
+      initialTotalExpenses={totalExpenses}
     />
   )
 }
