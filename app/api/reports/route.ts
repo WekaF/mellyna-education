@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
   } else if (role === 'TUTOR') {
     where = { tutorId: userId }
     if (studentId) where = { ...where, studentId }
-  } else if (role === 'SUPER_ADMIN') {
+  } else if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
     if (studentId) where = { studentId }
   } else {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
   const role = (session.user as any).role
   const userId = (session.user as any).id
 
-  if (role !== 'SUPER_ADMIN' && role !== 'TUTOR') {
+  if (role !== 'SUPER_ADMIN' && role !== 'ADMIN' && role !== 'TUTOR') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

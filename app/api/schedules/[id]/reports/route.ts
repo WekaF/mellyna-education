@@ -13,7 +13,7 @@ export async function POST(
   const role = (session.user as any).role
   const userId = (session.user as any).id
 
-  if (role !== 'TUTOR' && role !== 'SUPER_ADMIN') {
+  if (role !== 'TUTOR' && role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
