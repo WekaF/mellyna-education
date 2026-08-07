@@ -50,6 +50,7 @@ type ScheduleItem = {
 }
 
 type Props = {
+  role: 'SUPER_ADMIN' | 'ADMIN'
   stats: Stats
   revenueByMonth: MonthRevenue[]
   invoiceDistribution: InvoiceStatusItem[]
@@ -84,6 +85,7 @@ function shortCurrency(value: number) {
 }
 
 export default function DashboardClient({
+  role,
   stats,
   revenueByMonth,
   invoiceDistribution,
@@ -135,7 +137,7 @@ export default function DashboardClient({
       bg: 'bg-sky-50',
       text: 'text-sky-600',
     },
-  ]
+  ].filter((s) => role !== 'ADMIN' || s.label !== 'Pendapatan Bulan Ini')
 
   return (
     <div className="space-y-8">
@@ -171,7 +173,8 @@ export default function DashboardClient({
       </div>
 
       {/* Charts Row 1: Revenue + Invoice Status Donut */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className={role === 'ADMIN' ? 'grid gap-6' : 'grid gap-6 lg:grid-cols-2'}>
+        {role !== 'ADMIN' && (
         <div className="rounded-2xl bg-white border border-slate-100 shadow-xs p-6">
           <h2 className="font-bold text-slate-800 mb-4">📈 Pendapatan 6 Bulan Terakhir</h2>
           <ResponsiveContainer width="100%" height={220}>
@@ -187,6 +190,7 @@ export default function DashboardClient({
             </BarChart>
           </ResponsiveContainer>
         </div>
+        )}
 
         <div className="rounded-2xl bg-white border border-slate-100 shadow-xs p-6">
           <h2 className="font-bold text-slate-800 mb-4">💰 Status Tagihan (Semua)</h2>

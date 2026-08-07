@@ -7,6 +7,7 @@ import DashboardClient from './DashboardClient'
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions)
   if (!session) redirect('/login')
+  const role = (session.user as any).role as 'SUPER_ADMIN' | 'ADMIN'
 
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -197,6 +198,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <DashboardClient
+      role={role}
       stats={{
         totalStudents,
         totalClasses,
