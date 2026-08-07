@@ -48,6 +48,18 @@ describe('PATCH /api/expenses/[id]', () => {
     expect(res.status).toBe(400)
   })
 
+  it('accepts an empty body as a no-op update', async () => {
+    ;(prisma.expense.update as jest.Mock).mockResolvedValue({ id: 'e1' })
+    const res = await PATCH(makeReq({}), makeParams())
+    expect(res.status).toBe(200)
+    expect(prisma.expense.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'e1' },
+        data: { date: undefined, amount: undefined, description: undefined, categoryId: undefined },
+      })
+    )
+  })
+
   it('updates fields without touching category when none given', async () => {
     ;(prisma.expense.update as jest.Mock).mockResolvedValue({ id: 'e1', amount: 15000 })
     const res = await PATCH(makeReq({ amount: 15000 }), makeParams())
