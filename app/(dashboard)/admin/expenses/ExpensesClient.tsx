@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import CreatableSelect from 'react-select/creatable'
+import { StylesConfig } from 'react-select'
 import { Plus, Pencil, Trash2, Wallet } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useConfirm } from '@/lib/hooks/use-confirm'
@@ -30,6 +31,39 @@ const MONTHS = [
 ]
 
 const emptyForm = { date: new Date().toISOString().slice(0, 10), amount: 0, description: '' }
+
+const categorySelectStyles: StylesConfig<CategoryOption, false> = {
+  control: (base, state) => ({
+    ...base,
+    borderRadius: '0.75rem',
+    borderColor: state.isFocused ? '#f43f5e' : '#e2e8f0',
+    boxShadow: state.isFocused ? '0 0 0 2px rgba(244, 63, 94, 0.1)' : 'none',
+    '&:hover': { borderColor: '#f43f5e' },
+    fontSize: '0.875rem',
+    minHeight: '42px',
+    backgroundColor: 'white',
+  }),
+  menu: (base) => ({
+    ...base,
+    borderRadius: '0.75rem',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
+    zIndex: 50,
+    overflow: 'hidden',
+  }),
+  menuList: (base) => ({ ...base, padding: '4px' }),
+  option: (base, state) => ({
+    ...base,
+    borderRadius: '0.5rem',
+    backgroundColor: state.isSelected ? '#e11d48' : state.isFocused ? '#fff1f2' : 'white',
+    color: state.isSelected ? 'white' : '#1e293b',
+    fontSize: '0.875rem',
+    cursor: 'pointer',
+    padding: '8px 12px',
+  }),
+  singleValue: (base) => ({ ...base, color: '#1e293b', fontSize: '0.875rem' }),
+  placeholder: (base) => ({ ...base, color: '#94a3b8', fontSize: '0.875rem' }),
+  noOptionsMessage: (base) => ({ ...base, fontSize: '0.875rem', color: '#94a3b8' }),
+}
 
 export default function ExpensesClient({
   initialExpenses,
@@ -62,11 +96,14 @@ export default function ExpensesClient({
     setLoading(true)
     try {
       const res = await fetch(`/api/expenses?month=${m}&year=${y}`)
+      if (!res.ok) throw new Error('Gagal memuat data pengeluaran')
       setExpenses(await res.json())
+    } catch (e: any) {
+      toast.error(e.message)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [toast])
 
   const handleFilterChange = (m: string, y: string) => {
     setMonth(m)
@@ -102,7 +139,15 @@ export default function ExpensesClient({
       : { categoryId: selectedCategory.value }
     const payload = { date: form.date, amount: form.amount, description: form.description, ...categoryField }
 
+    // an expense only belongs on the current page if it falls in the selected month/year filter
+    const inSelectedPeriod = (dateStr: string) => {
+      const d = new Date(dateStr)
+      return d.getMonth() + 1 === Number(month) && d.getFullYear() === Number(year)
+    }
+    const byDateDesc = (a: Expense, b: Expense) => new Date(b.date).getTime() - new Date(a.date).getTime()
+
     try {
+      let saved: Expense
       if (editTarget) {
         const res = await fetch(`/api/expenses/${editTarget.id}`, {
           method: 'PATCH',
@@ -110,6 +155,11 @@ export default function ExpensesClient({
           body: JSON.stringify(payload),
         })
         if (!res.ok) throw new Error('Gagal memperbarui pengeluaran')
+        saved = await res.json()
+        setExpenses((prev) => {
+          const withoutOld = prev.filter((e) => e.id !== saved.id)
+          return inSelectedPeriod(saved.date) ? [...withoutOld, saved].sort(byDateDesc) : withoutOld
+        })
       } else {
         const res = await fetch('/api/expenses', {
           method: 'POST',
@@ -117,20 +167,24 @@ export default function ExpensesClient({
           body: JSON.stringify(payload),
         })
         if (!res.ok) throw new Error('Gagal mencatat pengeluaran')
+        saved = await res.json()
+        setExpenses((prev) => (inSelectedPeriod(saved.date) ? [...prev, saved].sort(byDateDesc) : prev))
       }
       if (selectedCategory.isNew) {
-        const catRes = await fetch('/api/expense-categories')
-        setCategories(await catRes.json())
+        setCategories((prev) =>
+          prev.some((c) => c.id === saved.category.id)
+            ? prev
+            : [...prev, saved.category].sort((a, b) => a.name.localeCompare(b.name))
+        )
       }
       setShowForm(false)
-      await fetchExpenses(month, year)
       router.refresh()
     } catch (e: any) {
       setError(e.message)
     } finally {
       setLoading(false)
     }
-  }, [form, selectedCategory, editTarget, month, year, fetchExpenses, router])
+  }, [form, selectedCategory, editTarget, month, year, router])
 
   const handleDelete = useCallback(async (id: string) => {
     const ok = await confirm({
@@ -272,6 +326,7 @@ export default function ExpensesClient({
                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Kategori *</label>
                 <CreatableSelect<CategoryOption>
                   className="mt-1.5"
+                  styles={categorySelectStyles}
                   value={selectedCategory}
                   onChange={(opt) => setSelectedCategory(opt)}
                   options={categoryOptions}
