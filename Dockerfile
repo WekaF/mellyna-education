@@ -1,5 +1,4 @@
 FROM node:20-alpine AS base
-RUN npm install -g npm@latest
 RUN apk add --no-cache ffmpeg
 
 # Stage 1: Install dependencies
