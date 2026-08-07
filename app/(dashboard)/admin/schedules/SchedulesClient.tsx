@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import { Plus, Send, CalendarPlus, X, Info, Trash2 } from 'lucide-react'
+import Link from 'next/link'
+import { Plus, Send, CalendarPlus, X, Info, Trash2, FileText } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
 import { useToastNotification } from '@/lib/hooks/use-toast-notification'
@@ -273,16 +274,28 @@ export default function SchedulesClient({ initialSchedules, classes }: Props) {
       enableSorting: false,
       cell: ({ row }) => {
         const s = row.original
-        if (s.status !== 'DRAFT' && s.status !== 'PUBLISHED') return null
         return (
-          <button
-            onClick={() => handlePublish(s.id)}
-            disabled={publishing === s.id}
-            className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg disabled:opacity-50 transition-colors cursor-pointer"
-          >
-            <Send className="h-3 w-3" />
-            {publishing === s.id ? 'Mengirim...' : s.status === 'DRAFT' ? 'Terbitkan + WA' : 'Kirim Ulang WA'}
-          </button>
+          <div className="flex items-center gap-2">
+            {(s.status === 'PUBLISHED' || s.status === 'COMPLETED') && (
+              <Link
+                href={`/admin/reports/${s.id}`}
+                className="flex items-center gap-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <FileText className="h-3 w-3" />
+                Isi Laporan
+              </Link>
+            )}
+            {(s.status === 'DRAFT' || s.status === 'PUBLISHED') && (
+              <button
+                onClick={() => handlePublish(s.id)}
+                disabled={publishing === s.id}
+                className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                <Send className="h-3 w-3" />
+                {publishing === s.id ? 'Mengirim...' : s.status === 'DRAFT' ? 'Terbitkan + WA' : 'Kirim Ulang WA'}
+              </button>
+            )}
+          </div>
         )
       },
     },
