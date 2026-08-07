@@ -6,7 +6,7 @@ import { prisma } from '@/lib/db'
 
 const createExpenseSchema = z
   .object({
-    date: z.string().min(1),
+    date: z.string().refine((v) => !isNaN(Date.parse(v)), { message: 'Invalid date' }),
     amount: z.number().int().positive(),
     description: z.string().min(1),
     categoryId: z.string().optional(),
@@ -24,8 +24,10 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url)
-  const month = searchParams.get('month') ? parseInt(searchParams.get('month')!) : null
-  const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : null
+  const monthRaw = searchParams.get('month') ? parseInt(searchParams.get('month')!) : null
+  const yearRaw = searchParams.get('year') ? parseInt(searchParams.get('year')!) : null
+  const month = monthRaw !== null && !isNaN(monthRaw) ? monthRaw : null
+  const year = yearRaw !== null && !isNaN(yearRaw) ? yearRaw : null
 
   const dateFilter =
     month !== null && year !== null

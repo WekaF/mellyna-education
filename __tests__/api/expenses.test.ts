@@ -65,6 +65,17 @@ describe('GET /api/expenses', () => {
     await GET(makeGetReq())
     expect(prisma.expense.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: {} }))
   })
+
+  it('treats a non-numeric month as absent and falls back to year-only filtering', async () => {
+    ;(getServerSession as jest.Mock).mockResolvedValue({ user: { role: 'SUPER_ADMIN' } })
+    ;(prisma.expense.findMany as jest.Mock).mockResolvedValue([])
+    await GET(makeGetReq('?month=foo&year=2026'))
+    expect(prisma.expense.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { date: { gte: new Date(2026, 0, 1), lt: new Date(2027, 0, 1) } },
+      })
+    )
+  })
 })
 
 describe('POST /api/expenses', () => {
@@ -104,6 +115,13 @@ describe('POST /api/expenses', () => {
 
   it('returns 400 for empty description', async () => {
     const res = await POST(makePostReq({ date: '2026-08-01', amount: 10000, description: '', categoryId: 'c1' }))
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 for an unparseable date', async () => {
+    const res = await POST(
+      makePostReq({ date: 'not-a-date', amount: 10000, description: 'Test', categoryId: 'c1' })
+    )
     expect(res.status).toBe(400)
   })
 
