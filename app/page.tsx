@@ -10,6 +10,7 @@ export default async function Home() {
 
   const role = (session.user as any).role
   if (role === 'SUPER_ADMIN') redirect('/admin')
+  if (role === 'ADMIN') redirect('/admin')
   if (role === 'TUTOR') redirect('/tutor')
   redirect('/parent')
 }

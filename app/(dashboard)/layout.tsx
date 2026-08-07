@@ -21,7 +21,7 @@ export default async function DashboardLayout({
   const user = {
     name: session.user.name,
     email: session.user.email,
-    role: (session.user as any).role as 'SUPER_ADMIN' | 'TUTOR' | 'PARENT',
+    role: (session.user as any).role as 'SUPER_ADMIN' | 'ADMIN' | 'TUTOR' | 'PARENT',
   }
 
   return (
