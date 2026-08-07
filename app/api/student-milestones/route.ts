@@ -53,7 +53,7 @@ export async function PATCH(req: NextRequest) {
   const role = (session.user as any).role
   const updaterId = (session.user as any).id
 
-  if (role !== 'SUPER_ADMIN') {
+  if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
