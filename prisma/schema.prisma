@@ -8,26 +8,27 @@ datasource db {
 }
 
 model User {
-  id                     String             @id @default(cuid())
+  id                     String               @id @default(cuid())
   name                   String
-  email                  String             @unique
+  email                  String               @unique
   emailVerified          DateTime?
   password               String?
   phone                  String?
-  role                   Role               @default(PARENT)
-  createdAt              DateTime           @default(now())
-  updatedAt              DateTime           @updatedAt
-  suspended              Boolean            @default(false)
+  role                   Role                 @default(PARENT)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  suspended              Boolean              @default(false)
   accounts               Account[]
-  tutorClasses           Class[]            @relation("TutorClasses")
-  additionalTutorClasses ClassTutor[]       @relation("AdditionalTutorClasses")
+  tutorClasses           Class[]              @relation("TutorClasses")
+  additionalTutorClasses ClassTutor[]         @relation("AdditionalTutorClasses")
   reports                LearningReport[]
   sessions               Session[]
-  children               Student[]          @relation("ParentStudents")
-  milestoneUpdates       StudentMilestone[] @relation("MilestoneUpdater")
-  milestoneReports     MilestoneReport[] @relation("MilestoneReportGenerator")
-  passwordResetTokens  PasswordResetToken[]
-  tutorCheckIns        TutorCheckIn[]    @relation("TutorCheckIns")
+  children               Student[]            @relation("ParentStudents")
+  milestoneUpdates       StudentMilestone[]   @relation("MilestoneUpdater")
+  milestoneReports       MilestoneReport[]    @relation("MilestoneReportGenerator")
+  passwordResetTokens    PasswordResetToken[]
+  tutorCheckIns          TutorCheckIn[]       @relation("TutorCheckIns")
+  expenses               Expense[]
 }
 
 model Student {
@@ -91,15 +92,15 @@ model Enrollment {
 }
 
 model ProgramEnrollment {
-  id          String                  @id @default(cuid())
-  studentId   String
-  program     Program
-  status      ProgramEnrollmentStatus @default(ACTIVE)
-  startedAt   DateTime                @default(now())
-  endedAt     DateTime?
-  notes       String?
-  createdAt   DateTime                @default(now())
-  updatedAt   DateTime                @updatedAt
+  id        String                  @id @default(cuid())
+  studentId String
+  program   Program
+  status    ProgramEnrollmentStatus @default(ACTIVE)
+  startedAt DateTime                @default(now())
+  endedAt   DateTime?
+  notes     String?
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
 
   student     Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   enrollments Enrollment[]
@@ -345,6 +346,28 @@ model MilestoneReport {
   generatedBy User    @relation("MilestoneReportGenerator", fields: [generatedById], references: [id])
 
   @@index([studentId, createdAt])
+}
+
+model ExpenseCategory {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  expenses  Expense[]
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  categoryId  String
+  amount      Int
+  description String
+  date        DateTime
+  createdById String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  category    ExpenseCategory @relation(fields: [categoryId], references: [id])
+  createdBy   User            @relation(fields: [createdById], references: [id])
+
+  @@index([date])
 }
 
 enum Role {
