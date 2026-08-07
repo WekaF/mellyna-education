@@ -1,8 +1,14 @@
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 import { getSessionStatus } from '@/lib/waha'
 import { prisma } from '@/lib/db'
 import SettingsClient from './SettingsClient'
 
 export default async function AdminSettingsPage() {
+  const session = await getServerSession(authOptions)
+  if (!session || (session.user as any).role !== 'SUPER_ADMIN') redirect('/admin')
+
   const wahaStatus = await getSessionStatus()
 
   let n8nStatus = 'OFFLINE'

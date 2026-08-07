@@ -1,8 +1,14 @@
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { Role } from '@prisma/client'
 import AnalyticsClient from './AnalyticsClient'
 
 export default async function AdminAnalyticsPage() {
+  const session = await getServerSession(authOptions)
+  if (!session || (session.user as any).role !== 'SUPER_ADMIN') redirect('/admin')
+
   const [attendanceStudents, tutorUsers, studentProgress] = await Promise.all([
     // attendance/route.ts GET query
     prisma.student.findMany({

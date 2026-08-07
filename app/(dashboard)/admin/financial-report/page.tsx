@@ -1,7 +1,13 @@
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import FinancialReportClient from './FinancialReportClient'
 
 export default async function FinancialReportPage() {
+  const session = await getServerSession(authOptions)
+  if (!session || (session.user as any).role !== 'SUPER_ADMIN') redirect('/admin')
+
   const now = new Date()
   const defaultMonth = String(now.getMonth() + 1)
   const defaultYear = String(now.getFullYear())
