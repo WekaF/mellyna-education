@@ -48,7 +48,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const role = (session.user as any).role
   const userId = (session.user as any).id
 
-  if (role !== 'SUPER_ADMIN' && role !== 'TUTOR') {
+  if (role !== 'SUPER_ADMIN' && role !== 'ADMIN' && role !== 'TUTOR') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -83,7 +83,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { date, ...rest } = parsed.data
 
   const updateData =
-    role === 'SUPER_ADMIN'
+    role === 'SUPER_ADMIN' || role === 'ADMIN'
       ? { ...rest, ...(date ? { date: new Date(date) } : {}) }
       : { topic: rest.topic, location: rest.location }
 
@@ -100,7 +100,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const role = (session.user as any).role
-  if (role !== 'SUPER_ADMIN') {
+  if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
