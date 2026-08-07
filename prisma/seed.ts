@@ -37,6 +37,18 @@ async function main() {
     },
   })
 
+  // 1b. Create Admin (restricted staff role)
+  const staffAdminPassword = await hash('staffadmin123')
+  await prisma.user.create({
+    data: {
+      name: 'Admin Keuangan',
+      email: 'staff@mellyna.id',
+      password: staffAdminPassword,
+      role: Role.ADMIN,
+      phone: '6281234567899',
+    },
+  })
+
   // 2. Create 3 Tutors
   const tutorPassword = await hash('tutor123')
   const tutors = []
