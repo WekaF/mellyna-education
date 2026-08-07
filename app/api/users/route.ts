@@ -17,7 +17,7 @@ const createUserSchema = z.object({
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if ((session.user as any).role !== 'SUPER_ADMIN') {
+  if ((session.user as any).role !== 'SUPER_ADMIN' && (session.user as any).role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if ((session.user as any).role !== 'SUPER_ADMIN') {
+  if ((session.user as any).role !== 'SUPER_ADMIN' && (session.user as any).role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
