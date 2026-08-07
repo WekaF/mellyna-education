@@ -10,7 +10,7 @@ export default withAuth(
     if (token?.suspended && pathname.startsWith('/tutor'))
       return NextResponse.redirect(new URL('/suspended', req.url))
 
-    if (pathname.startsWith('/admin') && role !== 'SUPER_ADMIN')
+    if (pathname.startsWith('/admin') && role !== 'SUPER_ADMIN' && role !== 'ADMIN')
       return NextResponse.redirect(new URL('/login', req.url))
 
     if (pathname.startsWith('/tutor') && role !== 'TUTOR' && role !== 'SUPER_ADMIN')
