@@ -97,10 +97,10 @@ export default function Sidebar({ user }: SidebarProps) {
             subItems: [
               { name: 'Tagihan', href: '/admin/billing', icon: CreditCard },
               { name: 'Laporan Keuangan', href: '/admin/financial-report', icon: BarChart3 },
-              { name: 'Pencatatan Pengeluaran', href: '/admin/expenses', icon: Wallet },
               { name: 'Paket Harga', href: '/admin/pricing', icon: Tag },
             ],
           },
+          { name: 'Pengeluaran', href: '/admin/expenses', icon: Wallet },
           { name: 'Laporan', href: '/admin/reports', icon: FileText },
           {
             name: 'Kurikulum',
@@ -155,6 +155,7 @@ export default function Sidebar({ user }: SidebarProps) {
               { name: 'Raport', href: '/admin/milestones/reports', icon: Scroll },
             ],
           },
+          { name: 'Pengumuman', href: '/admin/announcements', icon: Megaphone },
         ]
       case 'TUTOR':
         return [

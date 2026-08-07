@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   const role = (session.user as any).role
 
   const announcements = await prisma.announcement.findMany({
-    where: role === 'SUPER_ADMIN' ? {} : { published: true },
+    where: role === 'SUPER_ADMIN' || role === 'ADMIN' ? {} : { published: true },
     orderBy: { createdAt: 'desc' },
   })
 
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   const role = (session.user as any).role
   const userId = (session.user as any).id
-  if (role !== 'SUPER_ADMIN') {
+  if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
