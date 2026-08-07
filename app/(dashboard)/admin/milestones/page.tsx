@@ -9,7 +9,7 @@ export default async function AdminMilestonesPage() {
   if (!session) redirect('/login')
 
   const role = (session.user as any).role
-  if (role !== 'SUPER_ADMIN') redirect('/admin')
+  if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') redirect('/admin')
 
   const milestones = await prisma.milestone.findMany({
     orderBy: [{ program: 'asc' }, { order: 'asc' }],

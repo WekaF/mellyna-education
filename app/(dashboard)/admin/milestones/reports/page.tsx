@@ -8,7 +8,7 @@ export default async function AdminMilestoneReportsPage() {
   const session = await getServerSession(authOptions)
   if (!session) redirect('/login')
   const role = (session.user as any).role
-  if (role !== 'SUPER_ADMIN') redirect('/admin')
+  if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') redirect('/admin')
 
   const [students, reports] = await Promise.all([
     prisma.student.findMany({
