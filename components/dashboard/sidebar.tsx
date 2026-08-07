@@ -36,7 +36,7 @@ interface SidebarProps {
   user: {
     name?: string | null
     email?: string | null
-    role: 'SUPER_ADMIN' | 'TUTOR' | 'PARENT'
+    role: 'SUPER_ADMIN' | 'ADMIN' | 'TUTOR' | 'PARENT'
   }
 }
 
@@ -113,6 +113,47 @@ export default function Sidebar({ user }: SidebarProps) {
           { name: 'Pengumuman', href: '/admin/announcements', icon: Megaphone },
           { name: 'Pengaturan', href: '/admin/settings', icon: Settings },
         ]
+      case 'ADMIN':
+        return [
+          { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+          {
+            name: 'User',
+            icon: Users,
+            subItems: [
+              { name: 'Siswa', href: '/admin/students', icon: GraduationCap },
+              { name: 'Tutor', href: '/admin/tutors', icon: Users },
+              { name: 'Wali Murid / Parent', href: '/admin/parents', icon: UsersRound },
+            ],
+          },
+          {
+            name: 'Schedule',
+            icon: Calendar,
+            subItems: [
+              { name: 'Kelas', href: '/admin/classes', icon: BookOpen },
+              { name: 'Jadwal', href: '/admin/schedules', icon: Calendar },
+              { name: 'Timetable', href: '/admin/timetable', icon: Grid3x3 },
+            ],
+          },
+          {
+            name: 'Billing',
+            icon: CreditCard,
+            subItems: [
+              { name: 'Tagihan', href: '/admin/billing', icon: CreditCard },
+              { name: 'Paket Harga', href: '/admin/pricing', icon: Tag },
+            ],
+          },
+          { name: 'Laporan', href: '/admin/reports', icon: FileText },
+          {
+            name: 'Kurikulum',
+            icon: Trophy,
+            subItems: [
+              { name: 'Master Program', href: '/admin/programs', icon: BookOpen },
+              { name: 'Milestone', href: '/admin/milestones', icon: BookMarked },
+              { name: 'Progress Siswa', href: '/admin/milestones/progress', icon: TrendingUp },
+              { name: 'Raport', href: '/admin/milestones/reports', icon: Scroll },
+            ],
+          },
+        ]
       case 'TUTOR':
         return [
           { name: 'Dashboard', href: '/tutor', icon: LayoutDashboard },
@@ -151,6 +192,8 @@ export default function Sidebar({ user }: SidebarProps) {
         return 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white'
       case 'PARENT':
         return 'bg-gradient-to-r from-violet-500 to-indigo-500 text-white'
+      case 'ADMIN':
+        return 'bg-gradient-to-r from-sky-500 to-blue-500 text-white'
       default:
         return 'bg-slate-500 text-white'
     }
@@ -164,6 +207,8 @@ export default function Sidebar({ user }: SidebarProps) {
         return 'Tutor'
       case 'PARENT':
         return 'Orang Tua'
+      case 'ADMIN':
+        return 'Admin'
       default:
         return role
     }
