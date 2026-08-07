@@ -204,10 +204,10 @@ export default async function AdminDashboardPage() {
         totalClasses,
         schedulesToday,
         overdueCount,
-        revenueThisMonth: revenueThisMonth._sum.amount ?? 0,
+        revenueThisMonth: role === 'ADMIN' ? 0 : (revenueThisMonth._sum.amount ?? 0),
         attendanceRateThisMonth,
       }}
-      revenueByMonth={revenueByMonth}
+      revenueByMonth={role === 'ADMIN' ? [] : revenueByMonth}
       invoiceDistribution={invoiceDistribution}
       programDistribution={programDistribution}
       attendanceTrend={attendanceTrend}
