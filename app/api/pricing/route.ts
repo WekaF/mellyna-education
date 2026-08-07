@@ -19,7 +19,7 @@ export async function GET() {
 export async function PATCH(req: NextRequest) {
   const session = await getServerSession(authOptions)
   const role = (session?.user as any)?.role
-  if (role !== 'SUPER_ADMIN') {
+  if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
