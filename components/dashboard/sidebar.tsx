@@ -29,6 +29,7 @@ import {
   BookMarked,
   Scroll,
   UserCheck,
+  Wallet,
 } from 'lucide-react'
 import { ThemeToggleButton } from '../common/ThemeToggleButton'
 
@@ -96,6 +97,7 @@ export default function Sidebar({ user }: SidebarProps) {
             subItems: [
               { name: 'Tagihan', href: '/admin/billing', icon: CreditCard },
               { name: 'Laporan Keuangan', href: '/admin/financial-report', icon: BarChart3 },
+              { name: 'Pencatatan Pengeluaran', href: '/admin/expenses', icon: Wallet },
               { name: 'Paket Harga', href: '/admin/pricing', icon: Tag },
             ],
           },
