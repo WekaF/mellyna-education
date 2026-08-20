@@ -11,13 +11,6 @@ const partners = [
     href: 'https://sempoakreatif.com/',
     bg: 'bg-white',
   },
-  {
-    name: 'AHE Pusat',
-    description: 'Mitra resmi program Baca Anak Asyik & Menyenangkan',
-    logo: 'https://ahe.education/logo.png',
-    href: 'https://ahe.education/',
-    bg: 'bg-white',
-  },
 ]
 
 export default function PartnersSection() {
@@ -39,7 +32,7 @@ export default function PartnersSection() {
           </h2>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 max-w-sm mx-auto">
           {partners.map((partner, index) => (
             <motion.a
               key={partner.name}
@@ -84,7 +77,7 @@ export default function PartnersSection() {
           transition={{ delay: 0.3, duration: 0.5 }}
           className="text-center text-xs text-slate-400 mt-8"
         >
-          Mellyna Education adalah mitra terdaftar dan tersertifikasi dari kedua platform di atas.
+          Mellyna Education adalah mitra terdaftar dan tersertifikasi dari platform di atas.
         </motion.p>
       </div>
     </section>
