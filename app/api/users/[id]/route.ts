@@ -4,6 +4,7 @@ import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { canManageUser } from '@/lib/user-permissions'
 
 const updateUserSchema = z.object({
   name: z.string().min(1).optional(),
@@ -37,6 +38,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const { id } = await params
+  const target = await prisma.user.findUnique({ where: { id }, select: { role: true } })
+  if (!target) return NextResponse.json({ error: 'User tidak ditemukan.' }, { status: 404 })
+  if (!canManageUser((session.user as any).role, target.role)) {
+    return NextResponse.json({ error: 'Tidak berhak mengubah akun ini.' }, { status: 403 })
+  }
+
   const body = await req.json()
   const parsed = updateUserSchema.safeParse(body)
   if (!parsed.success) {
@@ -44,6 +51,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const { name, email, password, phone } = parsed.data
+  if (password && password.trim().length < 6) {
+    return NextResponse.json({ error: 'Password minimal 6 karakter (tidak boleh hanya spasi).' }, { status: 400 })
+  }
 
   // Check email uniqueness if email is changed
   if (email) {
@@ -62,7 +72,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (name !== undefined) updateData.name = name
   if (email !== undefined) updateData.email = email
   if (phone !== undefined) updateData.phone = phone
-  if (password && password.trim().length >= 6) {
+  if (password) {
     updateData.password = await bcrypt.hash(password, 12)
   }
 
@@ -96,6 +106,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     if (targetUser.role === 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Tidak dapat menghapus Super Admin.' }, { status: 400 })
     }
+    if (!canManageUser((session.user as any).role, targetUser.role)) {
+      return NextResponse.json({ error: 'Tidak berhak menghapus akun ini.' }, { status: 403 })
+    }
 
     const studentIds = targetUser.children.map((s) => s.id)
 
@@ -120,6 +133,13 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
+    // P2003 = FK violation: tutor/admin masih punya kelas, laporan, check-in, atau pengeluaran.
+    if (error?.code === 'P2003') {
+      return NextResponse.json(
+        { error: 'User masih memiliki data terkait (kelas, laporan, pengeluaran). Tangguhkan akun sebagai gantinya.' },
+        { status: 409 }
+      )
+    }
     return NextResponse.json({ error: error.message || 'Gagal menghapus user.' }, { status: 500 })
   }
 }

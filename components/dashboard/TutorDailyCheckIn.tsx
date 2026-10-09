@@ -1,7 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MapPin, CheckCircle2, AlertTriangle, Loader2, X, CalendarCheck } from 'lucide-react'
+import { MapPin, CheckCircle2, AlertTriangle, Loader2, X, CalendarCheck, ShieldAlert } from 'lucide-react'
+import { getLocationPermission, type LocationPermission } from '@/lib/location-permission'
+
+const DENIED_MSG = 'Izin lokasi diblokir. Buka izin lokasi untuk situs ini, lalu tekan "Coba Lagi".'
 
 interface Props {
   todayLabel: string
@@ -29,6 +32,7 @@ export function TutorDailyCheckIn({
   const [distanceM, setDistanceM] = useState<number | null>(initialDistanceM ?? null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
+  const [permission, setPermission] = useState<LocationPermission | null>(null)
 
   const dismissedKey = `checkin-modal-dismissed-${todayDateKey}`
 
@@ -40,6 +44,26 @@ export function TutorDailyCheckIn({
       }
     }
   }, [hasScheduleToday, initialCheckedIn, dismissedKey])
+
+  useEffect(() => {
+    let cancelled = false
+    let ps: PermissionStatus | null = null
+    getLocationPermission().then((p) => {
+      if (!cancelled) setPermission(p)
+    })
+    navigator.permissions
+      ?.query({ name: 'geolocation' })
+      .then((s) => {
+        if (cancelled) return
+        ps = s
+        s.onchange = () => setPermission(s.state)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+      if (ps) ps.onchange = null
+    }
+  }, [])
 
   const handleDismissModal = () => {
     sessionStorage.setItem(dismissedKey, '1')
@@ -60,6 +84,7 @@ export function TutorDailyCheckIn({
     setStatus('locating')
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
+        setPermission('granted')
         setStatus('sending')
         try {
           const res = await fetch('/api/tutor-checkin', {
@@ -87,9 +112,9 @@ export function TutorDailyCheckIn({
       (err) => {
         setStatus('error')
         if (err.code === 1) {
-          setErrorMsg(
-            'Izin lokasi ditolak. Klik ikon 🔒 di address bar browser → "Izinkan lokasi", lalu coba lagi.',
-          )
+          setErrorMsg(DENIED_MSG)
+          setPermission('denied')
+          setShowModal(true)
         } else if (err.code === 2) {
           setErrorMsg('GPS tidak tersedia. Pastikan Location/GPS aktif di pengaturan perangkat Anda.')
         } else if (err.code === 3) {
@@ -124,21 +149,55 @@ export function TutorDailyCheckIn({
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="px-6 py-5">
-              <p className="text-sm text-slate-600 leading-relaxed">
-                Kamu belum absen hari ini. Harap lakukan absensi sebelum mengajar agar kehadiranmu tercatat.
-              </p>
-              <p className="text-xs text-slate-400 mt-2">
-                📍 Absensi hanya berlaku dalam radius 500m dari lokasi bimbel.
-              </p>
-            </div>
+            {permission === 'denied' ? (
+              <div className="px-6 py-5 space-y-3">
+                <div className="flex items-start gap-2 rounded-xl bg-rose-50 border border-rose-100 p-3">
+                  <ShieldAlert className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
+                  <p className="text-sm text-rose-700">
+                    Izin lokasi untuk situs ini diblokir, jadi absensi tidak bisa dilakukan.
+                  </p>
+                </div>
+                <div className="text-xs text-slate-600 space-y-2 leading-relaxed">
+                  <p>
+                    <span className="font-semibold">Android (Chrome):</span> ketuk ikon 🔒 / ⓘ di sebelah alamat
+                    situs → <em>Izin</em> → <em>Lokasi</em> → <em>Izinkan</em>.
+                  </p>
+                  <p>
+                    <span className="font-semibold">Aplikasi terpasang (PWA):</span> tahan ikon aplikasi →{' '}
+                    <em>Info aplikasi</em> → <em>Izin</em> → <em>Lokasi</em> → <em>Izinkan</em>.
+                  </p>
+                  <p>
+                    <span className="font-semibold">iPhone (Safari):</span> <em>Pengaturan</em> →{' '}
+                    <em>Privasi &amp; Keamanan</em> → <em>Layanan Lokasi</em> (aktifkan) → <em>Situs Web Safari</em>{' '}
+                    → <em>Saat Menggunakan App</em>. Lalu di Safari ketuk <em>aA</em> → <em>Pengaturan Situs Web</em>{' '}
+                    → <em>Lokasi</em> → <em>Izinkan</em>.
+                  </p>
+                  <p>Pastikan juga GPS/Lokasi di perangkat menyala.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="px-6 py-5">
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Kamu belum absen hari ini. Harap lakukan absensi sebelum mengajar agar kehadiranmu tercatat.
+                </p>
+                {permission === 'prompt' && (
+                  <p className="text-sm text-slate-600 leading-relaxed mt-2">
+                    Absensi memakai lokasi GPS. Setelah menekan tombol di bawah, browser akan meminta izin lokasi —
+                    pilih <span className="font-semibold">Izinkan</span>.
+                  </p>
+                )}
+                <p className="text-xs text-slate-400 mt-2">
+                  📍 Absensi hanya berlaku dalam radius 500m dari lokasi bimbel.
+                </p>
+              </div>
+            )}
             <div className="px-6 pb-6 flex gap-3">
               <button
                 onClick={handleAbsenFromModal}
                 className="flex-1 flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors cursor-pointer"
               >
                 <MapPin className="h-4 w-4" />
-                Absen Sekarang
+                {permission === 'denied' ? 'Coba Lagi' : permission === 'prompt' ? 'Izinkan & Absen' : 'Absen Sekarang'}
               </button>
               <button
                 onClick={handleDismissModal}

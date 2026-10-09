@@ -30,6 +30,7 @@ import {
   Scroll,
   UserCheck,
   Wallet,
+  UserCog,
 } from 'lucide-react'
 import { ThemeToggleButton } from '../common/ThemeToggleButton'
 
@@ -80,6 +81,7 @@ export default function Sidebar({ user }: SidebarProps) {
               { name: 'Siswa', href: '/admin/students', icon: GraduationCap },
               { name: 'Tutor', href: '/admin/tutors', icon: Users },
               { name: 'Wali Murid / Parent', href: '/admin/parents', icon: UsersRound },
+              { name: 'Manajemen Akun', href: '/admin/users', icon: UserCog },
             ],
           },
           {
