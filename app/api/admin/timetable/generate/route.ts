@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { sendWhatsApp, sleep, randomDelay, getSessionStatus } from '@/lib/waha'
 import { DayOfWeek, ScheduleStatus } from '@prisma/client'
+import { sessionTopic } from '@/lib/main-program'
 
 const DAY_OFFSETS: Record<DayOfWeek, number> = {
   MONDAY: 0,
@@ -139,7 +140,7 @@ export async function POST(req: NextRequest) {
           date: scheduleDate,
           startTime: start,
           endTime: end,
-          topic: `Sesi Belajar ${c.programs.map((p: { program: string }) => p.program).join(' + ')} - Rutin`,
+          topic: sessionTopic(c),
           location: 'Sempoa Kreatif Pakong',
           status: ScheduleStatus.PUBLISHED,
           publishedAt: new Date(),

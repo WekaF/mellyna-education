@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { sendWhatsApp, sleep, randomDelay } from '@/lib/waha'
 import { DayOfWeek, ScheduleStatus } from '@prisma/client'
+import { sessionTopic } from '@/lib/main-program'
 
 const DAY_OFFSETS: Record<DayOfWeek, number> = {
   MONDAY: 0,
@@ -130,7 +131,7 @@ async function handleCron(req: NextRequest) {
           date: scheduleDate,
           startTime: start,
           endTime: end,
-          topic: `Sesi Belajar ${c.programs.map((p: { program: string }) => p.program).join(' + ')} - Rutin`,
+          topic: sessionTopic(c),
           location: 'Sempoa Kreatif Pakong',
           status: ScheduleStatus.PUBLISHED,
           publishedAt: new Date(),
