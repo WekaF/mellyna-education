@@ -87,6 +87,7 @@ export default function Sidebar({ user }: SidebarProps) {
             icon: Calendar,
             subItems: [
               { name: 'Kelas', href: '/admin/classes', icon: BookOpen },
+              { name: 'Program Utama', href: '/admin/main-programs', icon: BookMarked },
               { name: 'Jadwal', href: '/admin/schedules', icon: Calendar },
               { name: 'Timetable', href: '/admin/timetable', icon: Grid3x3 },
             ],
