@@ -30,6 +30,23 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
     }
+    const classPrograms = await prisma.classProgram.findMany({
+      where: { classId: parsed.data.classId },
+      select: { program: true },
+    })
+    const classProgramList = classPrograms.map((cp) => cp.program)
+
+    // Custom main program class (no enum programs): free enrollment, no program link
+    if (classProgramList.length === 0) {
+      const { studentId, classId } = parsed.data
+      const enrollment = await prisma.enrollment.upsert({
+        where: { studentId_classId: { studentId, classId } },
+        update: { programEnrollmentId: null },
+        create: { studentId, classId, programEnrollmentId: null },
+      })
+      return NextResponse.json(enrollment, { status: 201 })
+    }
+
     // Get ALL active program enrollments for this student
     const activeProgramEnrollments = await prisma.programEnrollment.findMany({
       where: { studentId: parsed.data.studentId, status: 'ACTIVE' },
@@ -41,12 +58,6 @@ export async function POST(req: NextRequest) {
         { status: 422 }
       )
     }
-
-    const classPrograms = await prisma.classProgram.findMany({
-      where: { classId: parsed.data.classId },
-      select: { program: true },
-    })
-    const classProgramList = classPrograms.map((cp) => cp.program)
 
     // Find the first active program enrollment that matches any of the class programs
     const matchingEnrollment = activeProgramEnrollments.find((pe) =>
