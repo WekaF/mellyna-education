@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { DayOfWeek, Program } from '@prisma/client'
+import { resolveMainProgram } from '@/lib/main-program'
 
 const classListInclude = {
   tutor: { select: { id: true, name: true, email: true } },
@@ -23,8 +24,8 @@ const classListInclude = {
 
 const createClassSchema = z.object({
   name: z.string().min(1),
-  mainProgram: z.nativeEnum(Program).optional(),
-  programs: z.array(z.nativeEnum(Program)).min(1),
+  mainProgram: z.string().min(1).nullish(),
+  programs: z.array(z.nativeEnum(Program)).default([]),
   description: z.string().optional(),
   tutorId: z.string().min(1),
   additionalTutorIds: z.array(z.string()).optional(),
@@ -72,8 +73,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { programs, additionalTutorIds, ...classData } = parsed.data
-  const mainProgram = classData.mainProgram || programs[0]
+  const { programs, additionalTutorIds, mainProgram: requestedMain, ...classData } = parsed.data
+  const mainProgram = await resolveMainProgram(requestedMain, programs)
+  if (mainProgram === undefined) {
+    return NextResponse.json({ error: 'Program utama tidak ditemukan.' }, { status: 400 })
+  }
+  if (!mainProgram && programs.length === 0) {
+    return NextResponse.json({ error: 'Pilih program utama atau minimal satu program.' }, { status: 400 })
+  }
 
   const kelas = await prisma.$transaction(async (tx) => {
     const created = await tx.class.create({

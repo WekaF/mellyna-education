@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { DayOfWeek, Program } from '@prisma/client'
+import { resolveMainProgram } from '@/lib/main-program'
 
 const classDetailInclude = {
   tutor: { select: { id: true, name: true, email: true } },
@@ -20,8 +21,8 @@ const classDetailInclude = {
 
 const updateClassSchema = z.object({
   name: z.string().min(1).optional(),
-  mainProgram: z.nativeEnum(Program).optional(),
-  programs: z.array(z.nativeEnum(Program)).min(1).optional(),
+  mainProgram: z.string().min(1).nullish(),
+  programs: z.array(z.nativeEnum(Program)).optional(),
   description: z.string().optional(),
   tutorId: z.string().optional(),
   additionalTutorIds: z.array(z.string()).optional(),
@@ -56,7 +57,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { programs, additionalTutorIds, ...classData } = parsed.data
+  const { programs, additionalTutorIds, mainProgram: requestedMain, ...classData } = parsed.data
+  let mainProgram: string | undefined
+  if (requestedMain) {
+    const resolved = await resolveMainProgram(requestedMain, [])
+    if (!resolved) return NextResponse.json({ error: 'Program utama tidak ditemukan.' }, { status: 400 })
+    mainProgram = resolved
+  }
 
   const kelas = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     if (programs) {
@@ -78,14 +85,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         })
       }
     }
-    const updateData: typeof classData & { mainProgram?: Program } = { ...classData }
-    if (programs && !updateData.mainProgram) {
-      updateData.mainProgram = programs[0]
-    }
-
     return tx.class.update({
       where: { id },
-      data: updateData,
+      data: { ...classData, ...(mainProgram ? { mainProgram } : {}) },
       include: classDetailInclude,
     })
   })
