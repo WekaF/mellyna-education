@@ -260,13 +260,15 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
     )
     const grouped: Record<string, ClassModel[]> = {}
     for (const m of mainPrograms) {
-      grouped[m.name] = filtered.filter(c => c.mainProgram === m.code)
+      grouped[m.code] = filtered.filter(c => c.mainProgram === m.code)
     }
     const known = new Set(mainPrograms.map(m => m.code))
     const other = filtered.filter(c => !c.mainProgram || !known.has(c.mainProgram))
-    if (other.length > 0) grouped['LAINNYA'] = other
+    if (other.length > 0) grouped['__OTHER__'] = other
     return grouped
   }, [classes, classSearch, mainPrograms])
+
+  const mainProgramName = useMemo(() => new Map(mainPrograms.map(m => [m.code, m.name])), [mainPrograms])
 
   // Class Form Handlers
   const handleOpenAddModal = (day: DayOfWeek, slot: string) => {
@@ -796,7 +798,7 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
                       {Object.entries(filteredGroupedClasses).map(([prog, groupClasses]) => {
                         if (groupClasses.length === 0) return null
                         return (
-                          <optgroup key={prog} label={`── ${prog} (${groupClasses.length}) ──`}>
+                          <optgroup key={prog} label={`── ${prog === '__OTHER__' ? 'LAINNYA' : (mainProgramName.get(prog) ?? prog)} (${groupClasses.length}) ──`}>
                             {groupClasses.map(c => (
                               <option key={c.id} value={c.id}>
                                 {c.name}
