@@ -64,6 +64,14 @@ describe('PUT /api/users/[id]', () => {
     )
   })
 
+  it('password hanya spasi ditolak 400, tidak di-update', async () => {
+    asRole('SUPER_ADMIN')
+    target('ADMIN')
+    const res = await PUT(putReq({ password: '      ' }), params)
+    expect(res.status).toBe(400)
+    expect(prisma.user.update).not.toHaveBeenCalled()
+  })
+
   it('404 kalau user tidak ada', async () => {
     asRole('SUPER_ADMIN')
     ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(null)

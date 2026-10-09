@@ -51,6 +51,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const { name, email, password, phone } = parsed.data
+  if (password && password.trim().length < 6) {
+    return NextResponse.json({ error: 'Password minimal 6 karakter (tidak boleh hanya spasi).' }, { status: 400 })
+  }
 
   // Check email uniqueness if email is changed
   if (email) {
@@ -69,7 +72,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (name !== undefined) updateData.name = name
   if (email !== undefined) updateData.email = email
   if (phone !== undefined) updateData.phone = phone
-  if (password && password.trim().length >= 6) {
+  if (password) {
     updateData.password = await bcrypt.hash(password, 12)
   }
 
