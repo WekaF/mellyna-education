@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Plus, Users, Pencil, Info, Trash2 } from 'lucide-react'
+import Link from 'next/link'
+import { Plus, Users, Pencil, Info, Trash2, Settings2 } from 'lucide-react'
 import { useConfirm } from '@/lib/hooks/use-confirm'
+import { isEnumProgram } from '@/lib/program-config'
 
 const PROGRAMS = ['SEMPOA', 'AHE', 'EFK', 'EYL', 'EFE', 'CALISTUNG', 'ENGLISH'] as const
 type ProgramValue = typeof PROGRAMS[number]
 
-const MAIN_PROGRAMS: ProgramValue[] = ['SEMPOA', 'CALISTUNG', 'ENGLISH']
 const SUB_PROGRAMS: ProgramValue[] = ['AHE', 'EFK', 'EYL', 'EFE']
 
 const PROGRAM_COLORS: Record<ProgramValue, string> = {
@@ -20,12 +21,17 @@ const PROGRAM_COLORS: Record<ProgramValue, string> = {
   ENGLISH:   'bg-blue-100 text-blue-700 border border-blue-200',
 }
 
+const mainColor = (code: string) =>
+  PROGRAM_COLORS[code as ProgramValue] ?? 'bg-slate-100 text-slate-700 border border-slate-200'
+
+interface MainProgramOption { code: string; name: string; isActive: boolean }
+
 interface ClassProgram { program: ProgramValue }
 
 interface Class {
   id: string
   name: string
-  mainProgram: ProgramValue | null
+  mainProgram: string | null
   programs: ClassProgram[]
   description: string | null
   tutor: { name: string; email: string }
@@ -73,7 +79,7 @@ function ProgramToggle({
   )
 }
 
-const makeEmptyForm = () => ({ name: '', mainProgram: '' as ProgramValue | '', programs: [] as ProgramValue[], description: '', tutorId: '' })
+const makeEmptyForm = () => ({ name: '', mainProgram: '', programs: [] as ProgramValue[], description: '', tutorId: '' })
 
 interface ClassCardProps {
   cls: Class
@@ -146,10 +152,14 @@ interface ClassesClientProps {
   initialClasses: Class[]
   initialTutors: TutorOption[]
   initialStudents: StudentOption[]
+  mainPrograms: MainProgramOption[]
+  canManageMainPrograms: boolean
 }
 
-export default function ClassesClient({ initialClasses, initialTutors, initialStudents }: ClassesClientProps) {
+export default function ClassesClient({ initialClasses, initialTutors, initialStudents, mainPrograms, canManageMainPrograms }: ClassesClientProps) {
   const confirm = useConfirm()
+  const activeMainPrograms = mainPrograms.filter(m => m.isActive)
+  const knownMain = new Set(mainPrograms.map(m => m.code))
   const [classes, setClasses] = useState<Class[]>(initialClasses)
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -187,15 +197,19 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
     setSaving(true)
     setError(null)
     try {
-      const allPrograms = form.mainProgram
-        ? [form.mainProgram as ProgramValue, ...form.programs.filter(p => p !== form.mainProgram)]
-        : form.programs
+      const allPrograms = [
+        ...(isEnumProgram(form.mainProgram) ? [form.mainProgram] : []),
+        ...form.programs.filter(p => p !== form.mainProgram),
+      ]
       const res = await fetch('/api/classes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, programs: allPrograms }),
       })
-      if (!res.ok) throw new Error('Gagal menyimpan kelas.')
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(typeof body.error === 'string' ? body.error : 'Gagal menyimpan kelas.')
+      }
       await fetchClasses()
       setShowForm(false)
       setForm(makeEmptyForm())
@@ -213,9 +227,10 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
     setEditSaving(true)
     setError(null)
     try {
-      const allPrograms = editForm.mainProgram
-        ? [editForm.mainProgram as ProgramValue, ...editForm.programs.filter(p => p !== editForm.mainProgram)]
-        : editForm.programs
+      const allPrograms = [
+        ...(isEnumProgram(editForm.mainProgram) ? [editForm.mainProgram] : []),
+        ...editForm.programs.filter(p => p !== editForm.mainProgram),
+      ]
       const payload: Record<string, unknown> = {
         name: editForm.name,
         mainProgram: editForm.mainProgram,
@@ -325,12 +340,22 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
           <h1 className="text-2xl font-extrabold text-slate-800">🏫 Data Kelas & Tutor</h1>
           <p className="text-sm text-slate-500 mt-0.5">Kelola kelas bimbingan belajar dan penugasan tutor.</p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
-        >
-          <Plus className="h-4 w-4" /> Buat Kelas Baru
-        </button>
+        <div className="flex gap-2">
+          {canManageMainPrograms && (
+            <Link
+              href="/admin/main-programs"
+              className="flex items-center gap-2 bg-white border border-slate-200 hover:border-indigo-300 text-slate-700 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+            >
+              <Settings2 className="h-4 w-4" /> Kelola Program Utama
+            </Link>
+          )}
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
+          >
+            <Plus className="h-4 w-4" /> Buat Kelas Baru
+          </button>
+        </div>
       </div>
 
       {/* Program info box */}
@@ -338,7 +363,7 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
         <Info className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
         <div>
           <span className="font-bold">Program Utama vs Program Tambahan: </span>
-          <strong>Program Utama</strong> adalah jenis kelas (SEMPOA, CALISTUNG, ENGLISH). <strong>Program Tambahan</strong> adalah sub-level dalam program utama (contoh: AHE, EYL dalam SEMPOA).
+          <strong>Program Utama</strong> adalah jenis kelas ({activeMainPrograms.map(m => m.name).join(', ')}). <strong>Program Tambahan</strong> adalah sub-level dalam program utama (contoh: AHE, EYL dalam SEMPOA).
         </div>
       </div>
 
@@ -383,18 +408,18 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
                 Program Utama <span className="text-red-400">*</span>
               </label>
               <div className="flex flex-wrap gap-1.5">
-                {MAIN_PROGRAMS.map(p => (
+                {activeMainPrograms.map(m => (
                   <button
-                    key={p}
+                    key={m.code}
                     type="button"
-                    onClick={() => setForm(f => ({ ...f, mainProgram: p, programs: [] }))}
+                    onClick={() => setForm(f => ({ ...f, mainProgram: m.code, programs: [] }))}
                     className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all border cursor-pointer ${
-                      form.mainProgram === p
-                        ? `${PROGRAM_COLORS[p]} shadow-sm`
+                      form.mainProgram === m.code
+                        ? `${mainColor(m.code)} shadow-sm`
                         : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
                     }`}
                   >
-                    {p}
+                    {m.name}
                   </button>
                 ))}
               </div>
@@ -438,13 +463,13 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
         </div>
       ) : (
         <div className="space-y-8">
-          {MAIN_PROGRAMS.map(prog => {
-            const group = classes.filter(c => c.mainProgram === prog)
+          {mainPrograms.map(m => {
+            const group = classes.filter(c => c.mainProgram === m.code)
             if (group.length === 0) return null
             return (
-              <div key={prog}>
+              <div key={m.code}>
                 <div className="flex items-center gap-2 mb-3">
-                  <span className={`text-xs font-bold px-3 py-1 rounded-full ${PROGRAM_COLORS[prog]}`}>{prog}</span>
+                  <span className={`text-xs font-bold px-3 py-1 rounded-full ${mainColor(m.code)}`}>{m.name}</span>
                   <span className="text-xs text-slate-400">{group.length} kelas</span>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -456,7 +481,7 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
             )
           })}
           {(() => {
-            const ungrouped = classes.filter(c => !c.mainProgram || !MAIN_PROGRAMS.includes(c.mainProgram as ProgramValue))
+            const ungrouped = classes.filter(c => !c.mainProgram || !knownMain.has(c.mainProgram))
             if (ungrouped.length === 0) return null
             return (
               <div>
@@ -513,18 +538,18 @@ export default function ClassesClient({ initialClasses, initialTutors, initialSt
                   Program Utama <span className="text-red-400">*</span>
                 </label>
                 <div className="flex flex-wrap gap-1.5">
-                  {MAIN_PROGRAMS.map(p => (
+                  {mainPrograms.filter(m => m.isActive || m.code === editForm.mainProgram).map(m => (
                     <button
-                      key={p}
+                      key={m.code}
                       type="button"
-                      onClick={() => setEditForm(f => ({ ...f, mainProgram: p, programs: [] }))}
+                      onClick={() => setEditForm(f => ({ ...f, mainProgram: m.code, programs: [] }))}
                       className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all border cursor-pointer ${
-                        editForm.mainProgram === p
-                          ? `${PROGRAM_COLORS[p]} shadow-sm`
+                        editForm.mainProgram === m.code
+                          ? `${mainColor(m.code)} shadow-sm`
                           : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
                       }`}
                     >
-                      {p}
+                      {m.name}
                     </button>
                   ))}
                 </div>

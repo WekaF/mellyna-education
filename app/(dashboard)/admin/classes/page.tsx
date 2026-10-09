@@ -1,8 +1,11 @@
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import ClassesClient from './ClassesClient'
 
 export default async function AdminClassesPage() {
-  const [rawClasses, tutors, students] = await Promise.all([
+  const session = await getServerSession(authOptions)
+  const [rawClasses, tutors, students, mainPrograms] = await Promise.all([
     prisma.class.findMany({
       include: {
         tutor: { select: { name: true, email: true } },
@@ -25,6 +28,10 @@ export default async function AdminClassesPage() {
       select: { id: true, name: true, grade: true },
       orderBy: { createdAt: 'desc' },
     }),
+    prisma.mainProgram.findMany({
+      select: { code: true, name: true, isActive: true },
+      orderBy: [{ order: 'asc' }, { name: 'asc' }],
+    }),
   ])
 
   const classes = rawClasses.map((cls) => ({
@@ -46,6 +53,8 @@ export default async function AdminClassesPage() {
       initialClasses={classes}
       initialTutors={tutors}
       initialStudents={students}
+      mainPrograms={mainPrograms}
+      canManageMainPrograms={(session?.user as any)?.role === 'SUPER_ADMIN'}
     />
   )
 }
