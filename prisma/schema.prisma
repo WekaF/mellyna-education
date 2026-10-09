@@ -61,12 +61,23 @@ model Class {
   updatedAt        DateTime       @updatedAt
   dayOfWeek        DayOfWeek?
   timeSlot         String?
-  mainProgram      Program?
+  mainProgram      String?
+  mainProgramRef   MainProgram?   @relation(fields: [mainProgram], references: [code], onDelete: Restrict, onUpdate: Cascade)
   tutor            User           @relation("TutorClasses", fields: [tutorId], references: [id])
   programs         ClassProgram[]
   additionalTutors ClassTutor[]   @relation("AdditionalTutors")
   enrollments      Enrollment[]
   schedules        Schedule[]
+}
+
+model MainProgram {
+  code      String   @id
+  name      String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  classes   Class[]
 }
 
 model ClassProgram {
@@ -454,4 +465,3 @@ model SystemSetting {
   value     String
   updatedAt DateTime @updatedAt
 }
-
