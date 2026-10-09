@@ -127,14 +127,6 @@ export function TutorDailyCheckIn({
     )
   }
 
-  const handleAbsenClick = () => {
-    if (permission === 'denied') {
-      setShowModal(true)
-      return
-    }
-    handleAbsen()
-  }
-
   const checkedInTime = checkedInAt
     ? new Date(checkedInAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
     : null
@@ -277,7 +269,7 @@ export function TutorDailyCheckIn({
 
         {(status === 'idle' || status === 'outside' || status === 'error') && (
           <button
-            onClick={handleAbsenClick}
+            onClick={handleAbsen}
             className="shrink-0 flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors disabled:opacity-60 cursor-pointer"
           >
             <MapPin className="h-4 w-4" />
