@@ -58,7 +58,7 @@ export default function HeroSection() {
           style={{ background: 'rgba(255,229,102,0.12)' }}
         >
           <Sparkles className="h-3.5 w-3.5" />
-          Mellyna Education — Bimbingan Belajar Modern
+          Mellyna Education — Bimbel Pamekasan, Pakong & Madura
         </motion.div>
 
         {/* Headline */}
@@ -82,8 +82,8 @@ export default function HeroSection() {
           className="font-body text-lg max-w-2xl mx-auto mb-10 leading-relaxed"
           style={{ color: 'rgba(214,228,255,0.9)' }}
         >
-          Platform bimbingan belajar dengan program SEMPOA, English, Calistung, dan banyak lagi.
-          Laporan progres real-time langsung ke WhatsApp orang tua.
+          Bimbel SEMPOA, Calistung, dan Bahasa Inggris untuk anak TK dan SD di Pamekasan, Pakong,
+          dan Madura. Laporan progres real-time langsung ke WhatsApp orang tua.
         </motion.p>
 
         {/* CTAs */}

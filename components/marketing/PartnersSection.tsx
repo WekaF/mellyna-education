@@ -6,7 +6,7 @@ import Image from 'next/image'
 const partners = [
   {
     name: 'Sempoa Kreatif',
-    description: 'Mitra resmi program Mental Aritmetika & SEMPOA',
+    description: 'Mitra resmi Sempoa Kreatif Madura untuk program Mental Aritmetika & SEMPOA',
     logo: 'https://sempoakreatif.com/wp-content/uploads/2021/11/logo-sempoa-komplit.png',
     href: 'https://sempoakreatif.com/',
     bg: 'bg-white',
