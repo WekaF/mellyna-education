@@ -90,11 +90,11 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
   const fetchInvoices = useCallback(async () => {
     setLoading(true)
     setError(null)
+    setSelected(new Set())
     try {
       const res = await fetch(`/api/invoices?month=${filterMonth}&year=${filterYear}`)
       if (!res.ok) throw new Error('Gagal memuat data tagihan.')
       setInvoices(await res.json())
-      setSelected(new Set())
     } catch {
       setError('Gagal memuat data tagihan.')
     } finally {
@@ -182,9 +182,15 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ invoiceIds: manualPayModal.invoiceIds, method: manualMethod, notes: manualNotes }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
+      // 409 / updated 0 = data di layar basi → tutup modal & muat ulang supaya retry tidak gagal terus
+      if (res.status === 409 || (res.ok && data.updated === 0)) {
+        setManualPayModal(null)
+        await fetchInvoices()
+        setError(res.ok ? 'Tagihan sudah lunas atau dibatalkan.' : data.error)
+        return
+      }
       if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Gagal mencatat pembayaran.')
-      if (data.updated === 0) throw new Error('Tagihan sudah lunas atau dibatalkan.')
       setManualPayModal(null)
       setManualNotes('')
       if (manualPayModal.invoiceIds.length > 1) setPayResult(data)
@@ -670,8 +676,8 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           role="dialog"
           aria-modal="true"
-          onClick={(e) => { if (e.target === e.currentTarget) { setManualPayModal(null); setManualNotes('') } }}
-          onKeyDown={(e) => { if (e.key === 'Escape') { setManualPayModal(null); setManualNotes('') } }}
+          onClick={(e) => { if (e.target === e.currentTarget && !manualSaving) { setManualPayModal(null); setManualNotes('') } }}
+          onKeyDown={(e) => { if (e.key === 'Escape' && !manualSaving) { setManualPayModal(null); setManualNotes('') } }}
           tabIndex={-1}
         >
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
@@ -679,6 +685,9 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
             <p className="text-sm text-slate-500 mb-4">
               {manualPayModal.title} — {formatRupiah(manualPayModal.amount)}
             </p>
+            {error && (
+              <div className="mb-3 rounded-xl bg-rose-50 border border-rose-100 p-3 text-xs text-rose-600">{error}</div>
+            )}
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Metode Pembayaran *</label>
@@ -712,6 +721,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
                 </button>
                 <button
                   onClick={() => { setManualPayModal(null); setManualNotes('') }}
+                  disabled={manualSaving}
                   className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer"
                 >
                   Batal
