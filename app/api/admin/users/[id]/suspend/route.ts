@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { canManageUser } from '@/lib/user-permissions'
 
 export async function PATCH(
   _req: NextRequest,
@@ -19,6 +20,9 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
   if (user.role === 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Cannot suspend admin account' }, { status: 403 })
+  }
+  if (!canManageUser((session.user as any).role, user.role)) {
+    return NextResponse.json({ error: 'Tidak berhak menangguhkan akun ini.' }, { status: 403 })
   }
 
   const newSuspendedState = !user.suspended

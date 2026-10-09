@@ -109,4 +109,23 @@ describe('DELETE /api/users/[id]', () => {
     const data = await res.json()
     expect(data.error).toMatch(/Tangguhkan/)
   })
+
+  it('ADMIN tetap boleh hapus PARENT beserta data anak', async () => {
+    asRole('ADMIN')
+    ;(prisma.user.findUnique as jest.Mock).mockResolvedValue({ role: 'PARENT', children: [{ id: 's1' }] })
+    const tx = {
+      invoice: { findMany: jest.fn().mockResolvedValue([{ id: 'i1' }]), deleteMany: jest.fn() },
+      payment: { deleteMany: jest.fn() },
+      attendance: { deleteMany: jest.fn() },
+      enrollment: { deleteMany: jest.fn() },
+      learningReport: { deleteMany: jest.fn() },
+      student: { deleteMany: jest.fn() },
+      user: { delete: jest.fn() },
+    }
+    ;(prisma.$transaction as jest.Mock).mockImplementation(async (fn: any) => fn(tx))
+    const res = await DELETE(delReq(), params)
+    expect(res.status).toBe(200)
+    expect(tx.student.deleteMany).toHaveBeenCalledWith({ where: { id: { in: ['s1'] } } })
+    expect(tx.user.delete).toHaveBeenCalledWith({ where: { id: 'u1' } })
+  })
 })
