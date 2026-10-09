@@ -46,4 +46,17 @@ describe('PATCH /api/admin/users/[id]/suspend', () => {
     const res = await PATCH(req(), params)
     expect(res.status).toBe(403)
   })
+
+  it('ADMIN tetap boleh tangguhkan PARENT, siswanya ikut nonaktif', async () => {
+    ;(getServerSession as jest.Mock).mockResolvedValue({ user: { id: 'a1', role: 'ADMIN' } })
+    ;(prisma.user.findUnique as jest.Mock).mockResolvedValue({ role: 'PARENT', suspended: false })
+    const tx = {
+      user: { update: jest.fn().mockResolvedValue({ id: 'u1', suspended: true, role: 'PARENT' }) },
+      student: { updateMany: jest.fn() },
+    }
+    ;(prisma.$transaction as jest.Mock).mockImplementation(async (fn: any) => fn(tx))
+    const res = await PATCH(req(), params)
+    expect(res.status).toBe(200)
+    expect(tx.student.updateMany).toHaveBeenCalledWith({ where: { parentId: 'u1' }, data: { isActive: false } })
+  })
 })
