@@ -25,7 +25,7 @@ export default function LocationSection() {
             Temukan Kami di Sini
           </h2>
           <p className="text-slate-500 max-w-xl mx-auto leading-relaxed">
-            Kunjungi kantor Mellyna Education atau hubungi kami untuk informasi lebih lanjut.
+            Kunjungi kantor bimbel kami di Pakong, Pamekasan atau hubungi kami untuk informasi lebih lanjut.
           </p>
         </motion.div>
 
@@ -48,7 +48,8 @@ export default function LocationSection() {
                   <h3 className="font-black text-slate-900 mb-1">Alamat</h3>
                   <p className="text-sm text-slate-500 leading-relaxed mb-3">
                     Mellyna Education<br />
-                    Jawa Timur, Indonesia
+                    Kecamatan Pakong, Kabupaten Pamekasan<br />
+                    Madura, Jawa Timur
                   </p>
                   <a
                     href="https://maps.app.goo.gl/ZFnnCMCh7yo27j9m7"

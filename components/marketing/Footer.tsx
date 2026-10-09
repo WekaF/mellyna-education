@@ -28,8 +28,9 @@ export default function Footer() {
               </div>
             </Link>
             <p className="text-sm leading-relaxed max-w-sm">
-              Bimbingan belajar terpercaya untuk mendampingi anak meraih prestasi terbaik
-              dengan program unggulan dan tutor berpengalaman bersertifikat.
+              Bimbel SEMPOA, Calistung, dan Bahasa Inggris terpercaya di Pamekasan, Pakong, dan
+              Madura — mendampingi anak TK dan SD meraih prestasi terbaik bersama tutor
+              berpengalaman bersertifikat.
             </p>
           </div>
 
@@ -53,14 +54,18 @@ export default function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2.5">
                 <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-me-yellow" />
-                <a
-                  href="https://maps.app.goo.gl/ZFnnCMCh7yo27j9m7"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-white transition-colors duration-200 leading-snug"
-                >
-                  Lihat Lokasi di Google Maps
-                </a>
+                <span className="leading-snug">
+                  Pakong, Pamekasan, Madura
+                  <br />
+                  <a
+                    href="https://maps.app.goo.gl/ZFnnCMCh7yo27j9m7"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors duration-200"
+                  >
+                    Lihat di Google Maps
+                  </a>
+                </span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone className="h-4 w-4 text-me-green" />
