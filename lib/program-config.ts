@@ -60,3 +60,8 @@ export const PROGRAM_ICONS: Record<ProgramKey, string> = {
   CALISTUNG: '✏️',
   ENGLISH:   '🌐',
 }
+
+/** true if code is also a value of the Prisma `Program` enum (storable in ClassProgram) */
+export function isEnumProgram(code: string): code is ProgramKey {
+  return (PROGRAMS as readonly string[]).includes(code)
+}
