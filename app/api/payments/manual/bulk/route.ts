@@ -8,7 +8,7 @@ import { PAYABLE_STATUSES } from '@/lib/invoice-status'
 const schema = z.object({
   invoiceIds: z.array(z.string().min(1)).min(1).max(500),
   method: z.enum(['CASH', 'BRI_TRANSFER', 'OTHER']),
-  notes: z.string().optional(),
+  notes: z.string().max(500).optional(),
 })
 
 class StatusConflictError extends Error {}
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         })),
       })
       return eligible.length
-    })
+    }, { timeout: 20000 }) // default 5s terlalu mepet untuk 500 baris
 
     return NextResponse.json({ updated, skipped: ids.length - updated })
   } catch (err) {

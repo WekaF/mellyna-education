@@ -677,7 +677,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
             <h2 className="font-bold text-me-text mb-1">Tandai Lunas Manual</h2>
             <p className="text-sm text-slate-500 mb-4">
-              {manualPayModal.title} —{formatRupiah(manualPayModal.amount)}
+              {manualPayModal.title} — {formatRupiah(manualPayModal.amount)}
             </p>
             <div className="space-y-4">
               <div>
