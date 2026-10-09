@@ -13,7 +13,7 @@ const DAY_ORDER: Record<string, number> = {
 }
 
 export default async function TimetablePage() {
-  const [classesData, tutorsData, studentsData, piketData] = await Promise.all([
+  const [classesData, tutorsData, studentsData, piketData, mainPrograms] = await Promise.all([
     // mirrors /api/classes GET for admin (no role filter)
     prisma.class.findMany({
       include: {
@@ -46,6 +46,10 @@ export default async function TimetablePage() {
     }),
     // mirrors /api/admin/piket GET
     prisma.dailyPiket.findMany(),
+    prisma.mainProgram.findMany({
+      select: { code: true, name: true },
+      orderBy: [{ order: 'asc' }, { name: 'asc' }],
+    }),
   ])
 
   // Sort piket by day order
@@ -72,6 +76,7 @@ export default async function TimetablePage() {
       initialTutors={activeTutors}
       initialStudents={activeStudents}
       initialPiketList={piketList}
+      mainPrograms={mainPrograms}
     />
   )
 }

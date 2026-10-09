@@ -24,8 +24,6 @@ const TIME_SLOTS = [
 const PROGRAMS = ['SEMPOA', 'AHE', 'EFK', 'EYL', 'EFE', 'CALISTUNG', 'ENGLISH'] as const
 type ProgramValue = typeof PROGRAMS[number]
 
-const MAIN_PROGRAMS_ORDER = ['SEMPOA', 'CALISTUNG', 'ENGLISH'] as const
-
 const PROGRAM_COLORS: Record<string, string> = {
   SEMPOA:    'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800',
   AHE:       'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800',
@@ -47,7 +45,7 @@ function slotEndTime(start: string): string {
 interface ClassModel {
   id: string
   name: string
-  mainProgram: ProgramValue | null
+  mainProgram: string | null
   programs: { program: ProgramValue }[]
   description: string | null
   dayOfWeek: DayOfWeek | null
@@ -76,9 +74,10 @@ interface Props {
   initialTutors: Tutor[]
   initialStudents: Student[]
   initialPiketList: { day: string; staff: string }[]
+  mainPrograms: { code: string; name: string }[]
 }
 
-export default function TimetableClient({ initialClasses, initialTutors, initialStudents, initialPiketList }: Props) {
+export default function TimetableClient({ initialClasses, initialTutors, initialStudents, initialPiketList, mainPrograms }: Props) {
   const confirm = useConfirm()
   const [classes, setClasses] = useState<ClassModel[]>(initialClasses)
   const [tutors, setTutors] = useState<Tutor[]>(initialTutors)
@@ -260,15 +259,14 @@ export default function TimetableClient({ initialClasses, initialTutors, initial
       c.programs.some(p => p.program.toLowerCase().includes(search))
     )
     const grouped: Record<string, ClassModel[]> = {}
-    for (const prog of MAIN_PROGRAMS_ORDER) {
-      grouped[prog] = filtered.filter(c => c.mainProgram === prog)
+    for (const m of mainPrograms) {
+      grouped[m.name] = filtered.filter(c => c.mainProgram === m.code)
     }
-    const other = filtered.filter(
-      c => !c.mainProgram || !MAIN_PROGRAMS_ORDER.includes(c.mainProgram as typeof MAIN_PROGRAMS_ORDER[number])
-    )
+    const known = new Set(mainPrograms.map(m => m.code))
+    const other = filtered.filter(c => !c.mainProgram || !known.has(c.mainProgram))
     if (other.length > 0) grouped['LAINNYA'] = other
     return grouped
-  }, [classes, classSearch])
+  }, [classes, classSearch, mainPrograms])
 
   // Class Form Handlers
   const handleOpenAddModal = (day: DayOfWeek, slot: string) => {
