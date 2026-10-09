@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { generateInvoicePdf, formatInvoiceFilename } from '@/lib/invoice-pdf'
+import { generateInvoicePdf, formatInvoiceFilename, buildInvoiceWaCaption } from '@/lib/invoice-pdf'
 import { sendWhatsAppFile, sendWhatsApp } from '@/lib/waha'
-import { formatRupiah } from '@/lib/utils'
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions)
@@ -56,14 +55,16 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     const m = String(invoice.createdAt.getMonth() + 1).padStart(2, '0')
     const invNo = `INV-${y}${m}-${invoice.id.slice(-6).toUpperCase()}`
 
-    const caption =
-      `Halo ${parent.name},\n\n` +
-      `Berikut kami lampirkan invoice tagihan bimbingan belajar untuk ${invoice.student.name}.\n\n` +
-      `No. Invoice : ${invNo}\n` +
-      `Keterangan  : ${invoice.description}\n` +
-      `Nominal     : ${formatRupiah(invoice.amount)}\n` +
-      `Jatuh Tempo : ${new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(invoice.dueDate)}\n\n` +
-      `Terima kasih,\nMellyna Education`
+    const caption = buildInvoiceWaCaption({
+      parentName: parent.name,
+      studentName: invoice.student.name,
+      invNo,
+      description: invoice.description,
+      amount: invoice.amount,
+      dueDate: invoice.dueDate,
+      status: invoice.status,
+      paidAt: invoice.paidAt,
+    })
 
     const result = await sendWhatsAppFile(phone, base64, filename, 'application/pdf', caption)
     if (!result.ok) {
