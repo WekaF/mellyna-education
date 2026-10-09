@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf'
 import sharp from 'sharp'
 import path from 'path'
+import { formatRupiah } from '@/lib/utils'
 
 export interface InvoiceData {
   id: string
@@ -90,6 +91,44 @@ export function formatInvoiceFilename(invoice: {
   const mm = String(d.getMonth() + 1).padStart(2, '0')
   const yyyy = d.getFullYear()
   return `INV_${parentName}(${studentFirst})_${desc}_${dd}${mm}${yyyy}`
+}
+
+const fmtDateId = (d: Date) =>
+  new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' }).format(d)
+
+export function buildInvoiceWaCaption(p: {
+  parentName: string
+  studentName: string
+  invNo: string
+  description: string
+  amount: number
+  dueDate: Date
+  status: string
+  paidAt: Date | null
+}): string {
+  const detail =
+    `No. Invoice : ${p.invNo}\n` +
+    `Keterangan  : ${p.description}\n` +
+    `Nominal     : ${formatRupiah(p.amount)}\n`
+
+  if (p.status === 'PAID') {
+    return (
+      `Halo ${p.parentName},\n\n` +
+      `Berikut kami lampirkan invoice untuk ${p.studentName}.\n\n` +
+      detail +
+      `Status      : LUNAS\n` +
+      (p.paidAt ? `Tgl. Bayar  : ${fmtDateId(p.paidAt)}\n` : '') +
+      `\nTerima kasih,\nMellyna Education`
+    )
+  }
+
+  return (
+    `Halo ${p.parentName},\n\n` +
+    `Berikut kami lampirkan invoice tagihan bimbingan belajar untuk ${p.studentName}.\n\n` +
+    detail +
+    `Jatuh Tempo : ${fmtDateId(p.dueDate)}\n\n` +
+    `Terima kasih,\nMellyna Education`
+  )
 }
 
 function setFill(doc: jsPDF, color: [number, number, number]) {
