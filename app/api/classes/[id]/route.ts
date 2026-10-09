@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { DayOfWeek, Program } from '@prisma/client'
 import { resolveMainProgram } from '@/lib/main-program'
+import { isEnumProgram } from '@/lib/program-config'
 
 const classDetailInclude = {
   tutor: { select: { id: true, name: true, email: true } },
@@ -57,12 +58,26 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { programs, additionalTutorIds, mainProgram: requestedMain, ...classData } = parsed.data
+  const { programs: requestedPrograms, additionalTutorIds, mainProgram: requestedMain, ...classData } = parsed.data
   let mainProgram: string | undefined
   if (requestedMain) {
     const resolved = await resolveMainProgram(requestedMain, [])
     if (!resolved) return NextResponse.json({ error: 'Program utama tidak ditemukan.' }, { status: 400 })
     mainProgram = resolved
+  }
+
+  // Keep the enum main program in ClassProgram so enrollment matching still works
+  let programs = requestedPrograms
+  if (programs) {
+    const current = await prisma.class.findUnique({ where: { id }, select: { mainProgram: true } })
+    if (!current) return NextResponse.json({ error: 'Not Found' }, { status: 404 })
+    const effectiveMain = mainProgram ?? current.mainProgram
+    if (effectiveMain && isEnumProgram(effectiveMain) && !programs.includes(effectiveMain as Program)) {
+      programs = [effectiveMain as Program, ...programs]
+    }
+    if (programs.length === 0 && !effectiveMain) {
+      return NextResponse.json({ error: 'Pilih program utama atau minimal satu program.' }, { status: 400 })
+    }
   }
 
   const kelas = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
