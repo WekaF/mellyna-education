@@ -4,8 +4,8 @@ export const SITE_NAME = 'Mellyna Education'
 export const SITE_TITLE = 'Mellyna Education — Bimbel Pamekasan, Pakong & Madura'
 
 export const SITE_DESCRIPTION =
-  'Bimbel SEMPOA, Calistung, dan Bahasa Inggris untuk anak TK dan SD di Pamekasan, Pakong, ' +
-  'dan Madura. Mitra resmi Sempoa Kreatif Madura dengan laporan progres real-time ke WhatsApp orang tua.'
+  'Bimbel SEMPOA, Calistung & Bahasa Inggris untuk anak TK dan SD di Pamekasan, Pakong, Madura. ' +
+  'Mitra resmi Sempoa Kreatif, laporan progres ke WhatsApp orang tua.'
 
 export const SITE_KEYWORDS = [
   'bimbel pamekasan',
