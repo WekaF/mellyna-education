@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 
@@ -50,6 +51,16 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     )
   }
 
-  await prisma.mainProgram.delete({ where: { code } })
-  return NextResponse.json({ success: true })
+  try {
+    await prisma.mainProgram.delete({ where: { code } })
+    return NextResponse.json({ success: true })
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2003') {
+      return NextResponse.json(
+        { error: 'Masih dipakai kelas. Nonaktifkan saja, atau pindahkan kelasnya dulu.' },
+        { status: 409 },
+      )
+    }
+    throw e
+  }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { toMainProgramCode } from '@/lib/main-program'
@@ -42,6 +43,13 @@ export async function POST(req: NextRequest) {
   const exists = await prisma.mainProgram.findUnique({ where: { code } })
   if (exists) return NextResponse.json({ error: `Program utama "${code}" sudah ada.` }, { status: 409 })
 
-  const created = await prisma.mainProgram.create({ data: { code, name, order: order ?? 0 } })
-  return NextResponse.json(created, { status: 201 })
+  try {
+    const created = await prisma.mainProgram.create({ data: { code, name, order: order ?? 0 } })
+    return NextResponse.json(created, { status: 201 })
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      return NextResponse.json({ error: `Program utama "${code}" sudah ada.` }, { status: 409 })
+    }
+    throw e
+  }
 }

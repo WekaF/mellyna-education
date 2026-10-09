@@ -2,6 +2,7 @@ import { GET, POST } from '@/app/api/main-programs/route'
 import { PUT, DELETE } from '@/app/api/main-programs/[code]/route'
 import { prisma } from '@/lib/db'
 import { getServerSession } from 'next-auth'
+import { Prisma } from '@prisma/client'
 
 jest.mock('next-auth')
 jest.mock('@/lib/auth', () => ({ authOptions: {} }))
@@ -100,5 +101,27 @@ describe('DELETE /api/main-programs/[code]', () => {
     const res = await DELETE(json('http://localhost/api/main-programs/CODING', 'DELETE'), params('CODING'))
     expect(res.status).toBe(200)
     expect(prisma.mainProgram.delete).toHaveBeenCalledWith({ where: { code: 'CODING' } })
+  })
+})
+
+describe('race errors map to 409', () => {
+  it('POST returns 409 on P2002', async () => {
+    asRole('SUPER_ADMIN')
+    ;(prisma.mainProgram.findUnique as jest.Mock).mockResolvedValue(null)
+    ;(prisma.mainProgram.create as jest.Mock).mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('dup', { code: 'P2002', clientVersion: 'x' }),
+    )
+    const res = await POST(json('http://localhost/api/main-programs', 'POST', { name: 'Coding' }))
+    expect(res.status).toBe(409)
+  })
+  it('DELETE returns 409 on P2003', async () => {
+    asRole('SUPER_ADMIN')
+    ;(prisma.mainProgram.findUnique as jest.Mock).mockResolvedValue({ code: 'CODING' })
+    ;(prisma.class.count as jest.Mock).mockResolvedValue(0)
+    ;(prisma.mainProgram.delete as jest.Mock).mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('fk', { code: 'P2003', clientVersion: 'x' }),
+    )
+    const res = await DELETE(json('http://localhost/api/main-programs/CODING', 'DELETE'), params('CODING'))
+    expect(res.status).toBe(409)
   })
 })
