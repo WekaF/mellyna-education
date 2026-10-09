@@ -6,6 +6,7 @@ import { type ColumnDef } from '@tanstack/react-table'
 import DataTable from '@/components/common/DataTable'
 import { formatRupiah } from '@/lib/utils'
 import { useConfirm } from '@/lib/hooks/use-confirm'
+import { isPayable } from '@/lib/invoice-status'
 
 function rupiahDisplay(raw: string): string {
   const digits = raw.replace(/\D/g, '')
@@ -57,7 +58,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
   const [bulkSaving, setBulkSaving] = useState(false)
   const [bulkResult, setBulkResult] = useState<{ created: number } | null>(null)
   const [classList, setClassList] = useState<{ id: string; name: string; tutor: { name: string } }[]>(initialClasses)
-  const [manualPayModal, setManualPayModal] = useState<{ invoiceId: string; studentName: string; amount: number } | null>(null)
+  const [manualPayModal, setManualPayModal] = useState<{ invoiceIds: string[]; title: string; amount: number } | null>(null)
   const [manualMethod, setManualMethod] = useState<'CASH' | 'BRI_TRANSFER' | 'OTHER'>('CASH')
   const [manualNotes, setManualNotes] = useState('')
   const [manualSaving, setManualSaving] = useState(false)
@@ -71,6 +72,20 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
   const [editSaving, setEditSaving] = useState(false)
   const [filterMonth, setFilterMonth] = useState<number>(new Date().getMonth() + 1)
   const [filterYear, setFilterYear] = useState<number>(new Date().getFullYear())
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'UNPAID' | 'PAID' | 'CANCELLED'>('ALL')
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [payResult, setPayResult] = useState<{ updated: number; skipped: number } | null>(null)
+
+  const visibleInvoices = useMemo(() => {
+    if (statusFilter === 'ALL') return invoices
+    if (statusFilter === 'UNPAID') return invoices.filter((i) => isPayable(i.status))
+    return invoices.filter((i) => i.status === statusFilter)
+  }, [invoices, statusFilter])
+
+  const selectedInvoices = useMemo(
+    () => invoices.filter((i) => selected.has(i.id)),
+    [invoices, selected],
+  )
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true)
@@ -79,6 +94,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
       const res = await fetch(`/api/invoices?month=${filterMonth}&year=${filterYear}`)
       if (!res.ok) throw new Error('Gagal memuat data tagihan.')
       setInvoices(await res.json())
+      setSelected(new Set())
     } catch {
       setError('Gagal memuat data tagihan.')
     } finally {
@@ -158,19 +174,20 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
   const handleManualPay = async () => {
     if (!manualPayModal) return
     setError(null)
+    setPayResult(null)
     setManualSaving(true)
     try {
-      const res = await fetch('/api/payments/manual', {
+      const res = await fetch('/api/payments/manual/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invoiceId: manualPayModal.invoiceId, method: manualMethod, notes: manualNotes }),
+        body: JSON.stringify({ invoiceIds: manualPayModal.invoiceIds, method: manualMethod, notes: manualNotes }),
       })
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Gagal mencatat pembayaran.')
-      }
+      const data = await res.json()
+      if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Gagal mencatat pembayaran.')
+      if (data.updated === 0) throw new Error('Tagihan sudah lunas atau dibatalkan.')
       setManualPayModal(null)
       setManualNotes('')
+      if (manualPayModal.invoiceIds.length > 1) setPayResult(data)
       await fetchInvoices()
     } catch (err: any) {
       setError(err.message)
@@ -279,6 +296,52 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
 
   const columns = useMemo<ColumnDef<Invoice>[]>(() => [
     {
+      id: 'select',
+      enableSorting: false,
+      header: ({ table }) => {
+        // ikut filter status + search DataTable, semua halaman
+        const payable = table.getFilteredRowModel().rows.map((r) => r.original).filter((i) => isPayable(i.status))
+        const allChecked = payable.length > 0 && payable.every((i) => selected.has(i.id))
+        return (
+          <input
+            type="checkbox"
+            aria-label="Pilih semua tagihan belum lunas"
+            title="Pilih semua tagihan belum lunas"
+            checked={allChecked}
+            disabled={payable.length === 0}
+            onChange={() =>
+              setSelected((prev) => {
+                const next = new Set(prev)
+                payable.forEach((i) => { if (allChecked) next.delete(i.id); else next.add(i.id) })
+                return next
+              })
+            }
+            className="h-4 w-4 accent-emerald-600 cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
+          />
+        )
+      },
+      cell: ({ row }) => {
+        const inv = row.original
+        if (!isPayable(inv.status)) return null
+        return (
+          <input
+            type="checkbox"
+            aria-label={`Pilih tagihan ${inv.student.name}`}
+            checked={selected.has(inv.id)}
+            onChange={() =>
+              setSelected((prev) => {
+                const next = new Set(prev)
+                if (next.has(inv.id)) next.delete(inv.id)
+                else next.add(inv.id)
+                return next
+              })
+            }
+            className="h-4 w-4 accent-emerald-600 cursor-pointer"
+          />
+        )
+      },
+    },
+    {
       id: 'student',
       accessorFn: (row) => row.student.name,
       header: 'Siswa',
@@ -343,7 +406,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
             )}
             {(inv.status === 'PENDING' || inv.status === 'OVERDUE') && (
               <button
-                onClick={() => setManualPayModal({ invoiceId: inv.id, studentName: inv.student.name, amount: inv.amount })}
+                onClick={() => setManualPayModal({ invoiceIds: [inv.id], title: inv.student.name, amount: inv.amount })}
                 className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 px-2 py-1 rounded-lg hover:bg-emerald-50 transition-colors cursor-pointer"
               >
                 Tandai Lunas
@@ -384,7 +447,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
         )
       },
     },
-  ], [handleCancelInvoice, handleDeleteInvoice, handleDownloadPDF, handleSendWA, sendingWAId])
+  ], [handleCancelInvoice, handleDeleteInvoice, handleDownloadPDF, handleSendWA, sendingWAId, selected])
 
   return (
     <div className="space-y-6">
@@ -441,8 +504,19 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
             <option key={y} value={y}>{y}</option>
           ))}
         </select>
+        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider sm:ml-3">Status:</span>
+        <select
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value as typeof statusFilter); setSelected(new Set()) }}
+          className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+        >
+          <option value="ALL">Semua</option>
+          <option value="UNPAID">Belum Lunas</option>
+          <option value="PAID">Lunas</option>
+          <option value="CANCELLED">Dibatalkan</option>
+        </select>
         <span className="text-xs text-slate-400 dark:text-slate-500">
-          {invoices.length} tagihan ditemukan
+          {visibleInvoices.length} tagihan ditemukan
         </span>
       </div>
 
@@ -455,6 +529,12 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
         <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700 flex items-center justify-between">
           <span>✅ Pengingat terkirim: <strong>{remindResult.sent}</strong> berhasil, {remindResult.failed} gagal, {remindResult.skipped} dilewati (tidak ada HP).</span>
           <button onClick={() => setRemindResult(null)} className="ml-3 text-emerald-500 hover:text-emerald-700 font-bold cursor-pointer">✕</button>
+        </div>
+      )}
+      {payResult && (
+        <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700 flex items-center justify-between">
+          <span>✅ <strong>{payResult.updated}</strong> tagihan ditandai lunas{payResult.skipped > 0 && `, ${payResult.skipped} dilewati (sudah lunas/dibatalkan)`}.</span>
+          <button onClick={() => setPayResult(null)} className="ml-3 text-emerald-500 hover:text-emerald-700 font-bold cursor-pointer">✕</button>
         </div>
       )}
       {waFeedback && (
@@ -597,7 +677,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
             <h2 className="font-bold text-me-text mb-1">Tandai Lunas Manual</h2>
             <p className="text-sm text-slate-500 mb-4">
-              {manualPayModal.studentName} — {formatRupiah(manualPayModal.amount)}
+              {manualPayModal.title} —{formatRupiah(manualPayModal.amount)}
             </p>
             <div className="space-y-4">
               <div>
@@ -642,10 +722,37 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
         </div>
       )}
 
+      {selectedInvoices.length > 0 && (
+        <div className="sticky top-2 z-10 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <span className="text-sm text-emerald-800">
+            <strong>{selectedInvoices.length}</strong> tagihan dipilih · total{' '}
+            <strong>{formatRupiah(selectedInvoices.reduce((sum, i) => sum + i.amount, 0))}</strong>
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSelected(new Set())}
+              className="text-sm font-semibold px-4 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
+            >
+              Batal Pilih
+            </button>
+            <button
+              onClick={() => setManualPayModal({
+                invoiceIds: selectedInvoices.map((i) => i.id),
+                title: `${selectedInvoices.length} tagihan`,
+                amount: selectedInvoices.reduce((sum, i) => sum + i.amount, 0),
+              })}
+              className="text-sm font-semibold px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+            >
+              Tandai Lunas ({selectedInvoices.length})
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-2xl bg-white border border-me-border shadow-brand overflow-hidden">
         <DataTable
           columns={columns}
-          data={invoices}
+          data={visibleInvoices}
           loading={loading}
           defaultPageSize={50}
           searchPlaceholder="Cari siswa, keterangan, status..."
