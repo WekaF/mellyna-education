@@ -1,5 +1,8 @@
 export const CHECKIN_CENTER = { lat: -7.041736, lng: 113.558258 }
-export const CHECKIN_RADIUS_METERS = 500
+export const CHECKIN_RADIUS_METERS = 10
+// GPS HP bisa meleset 5–50 m. Ketelitian yang dilaporkan HP ikut dihitung, tapi dibatasi
+// supaya nilai ketelitian besar tidak melonggarkan radius tanpa batas.
+export const CHECKIN_MAX_ACCURACY_ALLOWANCE_M = 30
 
 export function haversineDistance(
   lat1: number,
@@ -21,9 +24,11 @@ export function haversineDistance(
 export function checkRadius(
   lat: number,
   lng: number,
+  accuracyM = 0,
 ): { isWithinRadius: boolean; distanceM: number } {
   const distanceM = haversineDistance(lat, lng, CHECKIN_CENTER.lat, CHECKIN_CENTER.lng)
-  return { isWithinRadius: distanceM <= CHECKIN_RADIUS_METERS, distanceM }
+  const allowance = Math.min(Math.max(accuracyM, 0), CHECKIN_MAX_ACCURACY_ALLOWANCE_M)
+  return { isWithinRadius: distanceM - allowance <= CHECKIN_RADIUS_METERS, distanceM }
 }
 
 export function getTodayWIB(): string {
