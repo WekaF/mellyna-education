@@ -7,6 +7,7 @@ import { TutorLocationEdit } from '@/components/dashboard/TutorLocationEdit'
 import AnnouncementsWidget from '@/components/dashboard/AnnouncementsWidget'
 import { TutorDailyCheckIn } from '@/components/dashboard/TutorDailyCheckIn'
 import { getTodayWIB } from '@/lib/geolocation'
+import { checkInOpensAt, scheduleStartAt } from '@/lib/checkin-policy'
 
 export default async function TutorDashboardPage() {
   const session = await getServerSession(authOptions)
@@ -17,13 +18,17 @@ export default async function TutorDashboardPage() {
   const todayStart = new Date(`${today}T00:00:00+07:00`)
   const todayEnd = new Date(`${today}T23:59:59+07:00`)
 
-  const [schedules, todayCheckIn, hasScheduleToday] = await Promise.all([
+  const mine = {
+    OR: [
+      { class: { tutorId: userId } },
+      { class: { additionalTutors: { some: { tutorId: userId } } } },
+    ],
+  }
+
+  const [schedules, todaySchedules, todayCheckIns] = await Promise.all([
     prisma.schedule.findMany({
       where: {
-        OR: [
-          { class: { tutorId: userId } },
-          { class: { additionalTutors: { some: { tutorId: userId } } } },
-        ],
+        ...mine,
         date: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
       },
       include: {
@@ -32,20 +37,40 @@ export default async function TutorDashboardPage() {
       },
       orderBy: { date: 'asc' },
     }),
-    prisma.tutorCheckIn.findUnique({
-      where: { tutorId_date: { tutorId: userId, date: today } },
-    }),
-    prisma.schedule.findFirst({
+    prisma.schedule.findMany({
       where: {
+        ...mine,
         date: { gte: todayStart, lte: todayEnd },
         status: { in: ['PUBLISHED', 'COMPLETED'] },
-        OR: [
-          { class: { tutorId: userId } },
-          { class: { additionalTutors: { some: { tutorId: userId } } } },
-        ],
       },
+      select: {
+        id: true,
+        date: true,
+        startTime: true,
+        endTime: true,
+        class: { select: { name: true } },
+      },
+      orderBy: { startTime: 'asc' },
+    }),
+    prisma.tutorCheckIn.findMany({
+      where: { tutorId: userId, date: today, isWithinRadius: true, scheduleId: { not: null } },
+      select: { scheduleId: true, checkedInAt: true, distanceM: true },
     }),
   ])
+
+  const checkInItems = todaySchedules.map((s) => {
+    const checkIn = todayCheckIns.find((c) => c.scheduleId === s.id)
+    return {
+      scheduleId: s.id,
+      className: s.class.name,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      opensAt: checkInOpensAt(s.date, s.startTime).toISOString(),
+      startsAt: scheduleStartAt(s.date, s.startTime).toISOString(),
+      checkedInAt: checkIn?.checkedInAt.toISOString() ?? null,
+      distanceM: checkIn ? Math.round(checkIn.distanceM) : null,
+    }
+  })
 
   const todayLabel = new Date(todayStart).toLocaleDateString('id-ID', {
     weekday: 'long',
@@ -72,15 +97,9 @@ export default async function TutorDashboardPage() {
         <p className="mt-2 text-emerald-100">Kelola jadwal mengajar, absensi siswa, dan laporan perkembangan belajar.</p>
       </div>
 
-      {/* Absensi harian — satu kali per hari */}
-      <TutorDailyCheckIn
-        todayLabel={todayLabel}
-        initialCheckedIn={todayCheckIn?.isWithinRadius ?? false}
-        initialCheckedInAt={todayCheckIn?.checkedInAt.toISOString()}
-        initialDistanceM={todayCheckIn ? Math.round(todayCheckIn.distanceM) : undefined}
-        hasScheduleToday={!!hasScheduleToday}
-        todayDateKey={today}
-      />
+      {/* Absensi — satu kali per jadwal hari ini */}
+      <TutorDailyCheckIn todayLabel={todayLabel} todayDateKey={today} schedules={checkInItems} />
+
 
       <AnnouncementsWidget />
 

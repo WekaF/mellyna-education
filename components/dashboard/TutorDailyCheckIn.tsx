@@ -1,49 +1,68 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MapPin, CheckCircle2, AlertTriangle, Loader2, X, CalendarCheck, ShieldAlert } from 'lucide-react'
+import { MapPin, CheckCircle2, AlertTriangle, Loader2, X, CalendarCheck, ShieldAlert, Clock } from 'lucide-react'
 import { getLocationPermission, type LocationPermission } from '@/lib/location-permission'
+import { CHECKIN_RADIUS_METERS } from '@/lib/geolocation'
 
 const DENIED_MSG = 'Izin lokasi diblokir. Buka izin lokasi untuk situs ini, lalu tekan "Coba Lagi".'
 
-interface Props {
-  todayLabel: string
-  initialCheckedIn: boolean
-  initialCheckedInAt?: string
-  initialDistanceM?: number
-  hasScheduleToday: boolean
-  todayDateKey: string
+export interface CheckInScheduleItem {
+  scheduleId: string
+  className: string
+  startTime: string
+  endTime: string
+  opensAt: string
+  startsAt: string
+  checkedInAt: string | null
+  distanceM: number | null
 }
 
-type Status = 'idle' | 'locating' | 'sending' | 'success' | 'outside' | 'error' | 'no-schedule'
+interface Props {
+  todayLabel: string
+  todayDateKey: string
+  schedules: CheckInScheduleItem[]
+}
 
-export function TutorDailyCheckIn({
-  todayLabel,
-  initialCheckedIn,
-  initialCheckedInAt,
-  initialDistanceM,
-  hasScheduleToday,
-  todayDateKey,
-}: Props) {
-  const [status, setStatus] = useState<Status>(
-    initialCheckedIn ? 'success' : !hasScheduleToday ? 'no-schedule' : 'idle',
+type RowStatus = 'idle' | 'locating' | 'sending' | 'success' | 'outside' | 'error'
+
+interface RowState {
+  status: RowStatus
+  checkedInAt: string | null
+  distanceM: number | null
+  errorMsg: string | null
+}
+
+const formatTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+
+export function TutorDailyCheckIn({ todayLabel, todayDateKey, schedules }: Props) {
+  const [rows, setRows] = useState<Record<string, RowState>>(() =>
+    Object.fromEntries(
+      schedules.map((s) => [
+        s.scheduleId,
+        {
+          status: s.checkedInAt ? 'success' : 'idle',
+          checkedInAt: s.checkedInAt,
+          distanceM: s.distanceM,
+          errorMsg: null,
+        } satisfies RowState,
+      ]),
+    ),
   )
-  const [checkedInAt, setCheckedInAt] = useState<string | null>(initialCheckedInAt ?? null)
-  const [distanceM, setDistanceM] = useState<number | null>(initialDistanceM ?? null)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [showModal, setShowModal] = useState(false)
+  // null saat render server supaya tidak hydration mismatch; diisi di client.
+  const [now, setNow] = useState<number | null>(null)
+  const [modalFor, setModalFor] = useState<string | null>(null)
   const [permission, setPermission] = useState<LocationPermission | null>(null)
 
-  const dismissedKey = `checkin-modal-dismissed-${todayDateKey}`
+  const patchRow = (scheduleId: string, patch: Partial<RowState>) =>
+    setRows((prev) => ({ ...prev, [scheduleId]: { ...prev[scheduleId], ...patch } }))
 
   useEffect(() => {
-    if (hasScheduleToday && !initialCheckedIn) {
-      const alreadyDismissed = typeof window !== 'undefined' && sessionStorage.getItem(dismissedKey)
-      if (!alreadyDismissed) {
-        setShowModal(true)
-      }
-    }
-  }, [hasScheduleToday, initialCheckedIn, dismissedKey])
+    setNow(Date.now())
+    const timer = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -65,82 +84,99 @@ export function TutorDailyCheckIn({
     }
   }, [])
 
+  const isOpen = (s: CheckInScheduleItem) => now !== null && now >= new Date(s.opensAt).getTime()
+
+  // Jadwal pertama yang sudah bisa diabsen tapi belum diabsen → diingatkan lewat modal.
+  const pendingId =
+    schedules.find((s) => rows[s.scheduleId]?.status !== 'success' && isOpen(s))?.scheduleId ?? null
+
+  const dismissedKey = (scheduleId: string) => `checkin-modal-dismissed-${todayDateKey}-${scheduleId}`
+
+  useEffect(() => {
+    if (pendingId && !sessionStorage.getItem(dismissedKey(pendingId))) setModalFor(pendingId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingId])
+
   const handleDismissModal = () => {
-    sessionStorage.setItem(dismissedKey, '1')
-    setShowModal(false)
+    if (modalFor) sessionStorage.setItem(dismissedKey(modalFor), '1')
+    setModalFor(null)
   }
 
-  const handleAbsenFromModal = () => {
-    setShowModal(false)
-    handleAbsen()
-  }
-
-  const handleAbsen = () => {
+  const handleAbsen = (scheduleId: string) => {
     if (!navigator.geolocation) {
-      setStatus('error')
-      setErrorMsg('Browser tidak mendukung GPS.')
+      patchRow(scheduleId, { status: 'error', errorMsg: 'Browser tidak mendukung GPS.' })
       return
     }
-    setStatus('locating')
+    patchRow(scheduleId, { status: 'locating', errorMsg: null })
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         setPermission('granted')
-        setStatus('sending')
+        patchRow(scheduleId, { status: 'sending' })
         try {
           const res = await fetch('/api/tutor-checkin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              scheduleId,
               latitude: pos.coords.latitude,
               longitude: pos.coords.longitude,
+              accuracy: pos.coords.accuracy,
             }),
           })
           const data = await res.json()
           if (data.isWithinRadius) {
-            setStatus('success')
-            setCheckedInAt(data.checkedInAt)
-            setDistanceM(data.distanceM)
+            patchRow(scheduleId, {
+              status: 'success',
+              checkedInAt: data.checkedInAt,
+              distanceM: data.distanceM,
+            })
           } else {
-            setStatus('outside')
-            setErrorMsg(data.message)
+            patchRow(scheduleId, {
+              status: data.isWithinRadius === false ? 'outside' : 'error',
+              errorMsg: data.message ?? data.error ?? 'Gagal absen.',
+            })
           }
         } catch {
-          setStatus('error')
-          setErrorMsg('Gagal menghubungi server.')
+          patchRow(scheduleId, { status: 'error', errorMsg: 'Gagal menghubungi server.' })
         }
       },
       (err) => {
-        setStatus('error')
+        let errorMsg = 'Gagal mendapatkan lokasi GPS.'
         if (err.code === 1) {
-          setErrorMsg(DENIED_MSG)
+          errorMsg = DENIED_MSG
           setPermission('denied')
-          setShowModal(true)
+          setModalFor(scheduleId)
         } else if (err.code === 2) {
-          setErrorMsg('GPS tidak tersedia. Pastikan Location/GPS aktif di pengaturan perangkat Anda.')
+          errorMsg = 'GPS tidak tersedia. Pastikan Location/GPS aktif di pengaturan perangkat Anda.'
         } else if (err.code === 3) {
-          setErrorMsg('GPS timeout. Pindah ke area lebih terbuka atau periksa sinyal, lalu coba lagi.')
-        } else {
-          setErrorMsg('Gagal mendapatkan lokasi GPS.')
+          errorMsg = 'GPS timeout. Pindah ke area lebih terbuka atau periksa sinyal, lalu coba lagi.'
         }
+        patchRow(scheduleId, { status: 'error', errorMsg })
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 },
     )
   }
 
-  const checkedInTime = checkedInAt
-    ? new Date(checkedInAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-    : null
+  const handleAbsenFromModal = () => {
+    const scheduleId = modalFor
+    setModalFor(null)
+    if (scheduleId) handleAbsen(scheduleId)
+  }
+
+  const modalSchedule = schedules.find((s) => s.scheduleId === modalFor)
 
   return (
     <>
-      {showModal && (
+      {modalSchedule && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden">
             <div className="bg-amber-50 border-b border-amber-100 px-6 py-5 flex items-start gap-3">
               <CalendarCheck className="h-6 w-6 text-amber-600 shrink-0 mt-0.5" />
               <div>
-                <p className="font-bold text-slate-800">Ada Jadwal Mengajar Hari Ini</p>
-                <p className="text-xs text-slate-500 mt-0.5">{todayLabel}</p>
+                <p className="font-bold text-slate-800">Absen: {modalSchedule.className}</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {todayLabel} • {modalSchedule.startTime}–{modalSchedule.endTime}
+                </p>
               </div>
               <button
                 onClick={handleDismissModal}
@@ -178,7 +214,8 @@ export function TutorDailyCheckIn({
             ) : (
               <div className="px-6 py-5">
                 <p className="text-sm text-slate-600 leading-relaxed">
-                  Kamu belum absen hari ini. Harap lakukan absensi sebelum mengajar agar kehadiranmu tercatat.
+                  Kamu belum absen untuk sesi ini. Absen wajib dilakukan agar kehadiranmu tercatat dan laporan
+                  sesi ini bisa ditulis.
                 </p>
                 {permission === 'prompt' && (
                   <p className="text-sm text-slate-600 leading-relaxed mt-2">
@@ -187,7 +224,7 @@ export function TutorDailyCheckIn({
                   </p>
                 )}
                 <p className="text-xs text-slate-400 mt-2">
-                  📍 Absensi hanya berlaku dalam radius 500m dari lokasi bimbel.
+                  📍 Absensi hanya berlaku di lokasi bimbel (radius {CHECKIN_RADIUS_METERS}m dari titik absen).
                 </p>
               </div>
             )}
@@ -210,71 +247,93 @@ export function TutorDailyCheckIn({
         </div>
       )}
 
-      <div
-        className={`rounded-2xl border p-5 flex flex-col sm:flex-row sm:items-center gap-4 ${
-          status === 'success'
-            ? 'bg-emerald-50 border-emerald-200'
-            : status === 'outside' || status === 'error'
-              ? 'bg-rose-50 border-rose-200'
-              : status === 'no-schedule'
-                ? 'bg-slate-50 border-slate-200'
-                : 'bg-teal-50 border-teal-200'
-        }`}
-      >
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-0.5">
-            <MapPin
-              className={`h-4 w-4 shrink-0 ${
-                status === 'success'
-                  ? 'text-emerald-600'
-                  : status === 'outside' || status === 'error'
-                    ? 'text-rose-500'
-                    : 'text-teal-600'
-              }`}
-            />
-            <p className="font-bold text-slate-800 text-sm">Absensi Harian</p>
-          </div>
-          <p className="text-xs text-slate-500">{todayLabel}</p>
-
-          {status === 'success' && (
-            <div className="flex items-center gap-1.5 mt-1.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-              <p className="text-sm font-semibold text-emerald-700">
-                Sudah absen pukul {checkedInTime}
-                {distanceM !== null && (
-                  <span className="font-normal text-emerald-600"> ({distanceM}m dari lokasi)</span>
-                )}
-              </p>
-            </div>
-          )}
-
-          {(status === 'outside' || status === 'error') && (
-            <div className="flex items-start gap-1.5 mt-1.5">
-              <AlertTriangle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
-              <p className="text-sm text-rose-600">{errorMsg}</p>
-            </div>
-          )}
-
-          {status === 'no-schedule' && (
-            <p className="text-sm text-slate-400 mt-1">Tidak ada jadwal mengajar hari ini.</p>
-          )}
-
-          {(status === 'locating' || status === 'sending') && (
-            <p className="text-sm text-teal-600 mt-1 flex items-center gap-1.5">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              {status === 'locating' ? 'Mendeteksi lokasi GPS...' : 'Menyimpan absensi...'}
-            </p>
-          )}
+      <div className="rounded-2xl border border-teal-200 bg-teal-50 p-5">
+        <div className="flex items-center gap-2 mb-0.5">
+          <MapPin className="h-4 w-4 shrink-0 text-teal-600" />
+          <p className="font-bold text-slate-800 text-sm">Absensi per Jadwal</p>
         </div>
+        <p className="text-xs text-slate-500">{todayLabel} • absen sekali untuk tiap sesi</p>
 
-        {(status === 'idle' || status === 'outside' || status === 'error') && (
-          <button
-            onClick={handleAbsen}
-            className="shrink-0 flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors disabled:opacity-60 cursor-pointer"
-          >
-            <MapPin className="h-4 w-4" />
-            Absen Sekarang
-          </button>
+        {schedules.length === 0 ? (
+          <p className="text-sm text-slate-400 mt-2">Tidak ada jadwal mengajar hari ini.</p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {schedules.map((s) => {
+              const row = rows[s.scheduleId]
+              const open = isOpen(s)
+              const late =
+                row.status === 'success' &&
+                row.checkedInAt !== null &&
+                new Date(row.checkedInAt).getTime() > new Date(s.startsAt).getTime()
+              return (
+                <div
+                  key={s.scheduleId}
+                  className={`rounded-xl border bg-white p-4 flex flex-col sm:flex-row sm:items-center gap-3 ${
+                    row.status === 'success'
+                      ? 'border-emerald-200'
+                      : row.status === 'outside' || row.status === 'error'
+                        ? 'border-rose-200'
+                        : 'border-slate-200'
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-slate-800 text-sm">{s.className}</p>
+                    <p className="text-xs text-slate-500">
+                      {s.startTime}–{s.endTime}
+                    </p>
+
+                    {row.status === 'success' && row.checkedInAt && (
+                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                        <p className="text-sm font-semibold text-emerald-700">
+                          Sudah absen pukul {formatTime(row.checkedInAt)}
+                          {row.distanceM !== null && (
+                            <span className="font-normal text-emerald-600"> ({row.distanceM}m dari lokasi)</span>
+                          )}
+                        </p>
+                        {late && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                            TERLAMBAT
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {(row.status === 'outside' || row.status === 'error') && (
+                      <div className="flex items-start gap-1.5 mt-1.5">
+                        <AlertTriangle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
+                        <p className="text-sm text-rose-600">{row.errorMsg}</p>
+                      </div>
+                    )}
+
+                    {(row.status === 'locating' || row.status === 'sending') && (
+                      <p className="text-sm text-teal-600 mt-1 flex items-center gap-1.5">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        {row.status === 'locating' ? 'Mendeteksi lokasi GPS...' : 'Menyimpan absensi...'}
+                      </p>
+                    )}
+
+                    {row.status === 'idle' && !open && (
+                      <p className="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" />
+                        Absen dibuka pukul {formatTime(s.opensAt)}
+                      </p>
+                    )}
+                  </div>
+
+                  {open && (row.status === 'idle' || row.status === 'outside' || row.status === 'error') && (
+                    <button
+                      onClick={() => handleAbsen(s.scheduleId)}
+                      className="shrink-0 flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <MapPin className="h-4 w-4" />
+                      Absen Sekarang
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         )}
       </div>
     </>
