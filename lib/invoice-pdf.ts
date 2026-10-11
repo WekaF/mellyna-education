@@ -81,6 +81,7 @@ function slug(s: string, max = 20): string {
 export function formatInvoiceFilename(invoice: {
   createdAt: Date
   description: string
+  status?: string
   student: { name: string; parent: { name: string } | null }
 }): string {
   const parentName = slug(invoice.student.parent?.name ?? 'unknown', 20)
@@ -90,7 +91,8 @@ export function formatInvoiceFilename(invoice: {
   const dd = String(d.getDate()).padStart(2, '0')
   const mm = String(d.getMonth() + 1).padStart(2, '0')
   const yyyy = d.getFullYear()
-  return `INV_${parentName}(${studentFirst})_${desc}_${dd}${mm}${yyyy}`
+  const prefix = invoice.status === 'PAID' ? 'KWITANSI' : 'INV'
+  return `${prefix}_${parentName}(${studentFirst})_${desc}_${dd}${mm}${yyyy}`
 }
 
 const fmtDateId = (d: Date) =>

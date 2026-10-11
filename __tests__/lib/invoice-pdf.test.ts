@@ -1,4 +1,4 @@
-import { generateInvoicePdf, InvoiceData } from '@/lib/invoice-pdf'
+import { generateInvoicePdf, formatInvoiceFilename, InvoiceData } from '@/lib/invoice-pdf'
 
 const mockInvoice: InvoiceData = {
   id: 'cltest123456789',
@@ -37,5 +37,25 @@ describe('generateInvoicePdf', () => {
       const buf = await generateInvoicePdf({ ...mockInvoice, status, paidAt: null })
       expect(Buffer.from(buf).slice(0, 4).toString('ascii')).toBe('%PDF')
     }
+  })
+})
+
+describe('formatInvoiceFilename', () => {
+  const inv = {
+    createdAt: new Date(2026, 5, 1),
+    description: 'Biaya Kursus Sempoa Bulan Juni 2026',
+    student: { name: 'Ahmad Fauzi', parent: { name: 'Bapak Fauzi' } },
+  }
+
+  it('PAID: awalan KWITANSI_', () => {
+    expect(formatInvoiceFilename({ ...inv, status: 'PAID' }))
+      .toBe('KWITANSI_Bapak_Fauzi(Ahmad)_Biaya_Kursus_Sempoa_Bulan_01062026')
+  })
+
+  it('belum lunas atau tanpa status: awalan INV_ seperti semula', () => {
+    const expected = 'INV_Bapak_Fauzi(Ahmad)_Biaya_Kursus_Sempoa_Bulan_01062026'
+    expect(formatInvoiceFilename({ ...inv, status: 'PENDING' })).toBe(expected)
+    expect(formatInvoiceFilename({ ...inv, status: 'OVERDUE' })).toBe(expected)
+    expect(formatInvoiceFilename(inv)).toBe(expected)
   })
 })
