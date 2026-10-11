@@ -28,6 +28,8 @@ model User {
   milestoneReports       MilestoneReport[]    @relation("MilestoneReportGenerator")
   passwordResetTokens    PasswordResetToken[]
   tutorCheckIns          TutorCheckIn[]       @relation("TutorCheckIns")
+  reportAccessRequests   ReportAccessRequest[] @relation("ReportAccessRequester")
+  reportAccessDecisions  ReportAccessRequest[] @relation("ReportAccessDecider")
   expenses               Expense[]
 }
 
@@ -149,6 +151,8 @@ model Schedule {
   reports           LearningReport[]
   class             Class                 @relation(fields: [classId], references: [id])
   participants      ScheduleParticipant[]
+  tutorCheckIns        TutorCheckIn[]
+  reportAccessRequests ReportAccessRequest[]
 
   @@index([recurrenceGroupId])
 }
@@ -167,17 +171,39 @@ model Attendance {
 }
 
 model TutorCheckIn {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   tutorId        String
+  scheduleId     String?
   date           String
-  checkedInAt    DateTime @default(now())
+  checkedInAt    DateTime  @default(now())
   latitude       Float
   longitude      Float
   distanceM      Float
+  accuracyM      Float?
   isWithinRadius Boolean
-  tutor          User     @relation("TutorCheckIns", fields: [tutorId], references: [id])
+  tutor          User      @relation("TutorCheckIns", fields: [tutorId], references: [id])
+  schedule       Schedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
 
-  @@unique([tutorId, date])
+  @@unique([tutorId, scheduleId])
+  @@index([tutorId, date])
+}
+
+model ReportAccessRequest {
+  id          String             @id @default(cuid())
+  tutorId     String
+  scheduleId  String
+  reason      String
+  status      ReportAccessStatus @default(PENDING)
+  adminNote   String?
+  createdAt   DateTime           @default(now())
+  decidedAt   DateTime?
+  decidedById String?
+  tutor       User               @relation("ReportAccessRequester", fields: [tutorId], references: [id])
+  schedule    Schedule           @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  decidedBy   User?              @relation("ReportAccessDecider", fields: [decidedById], references: [id])
+
+  @@unique([tutorId, scheduleId])
+  @@index([status])
 }
 
 model ScheduleParticipant {
@@ -400,6 +426,12 @@ enum AttendanceStatus {
   ABSENT
   SICK
   PERMISSION
+}
+
+enum ReportAccessStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum MediaType {
