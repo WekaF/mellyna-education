@@ -1,4 +1,4 @@
-import { isLateCheckIn, scheduleDayWIB } from '@/lib/checkin-policy'
+import { isLateCheckIn, scheduleDayWIB, scheduleStartAt } from '@/lib/checkin-policy'
 
 export type MonitoringSchedule = { id: string; date: Date; startTime: string }
 
@@ -35,7 +35,9 @@ export type TutorAttendanceSummary = {
 export function summarizeTutorAttendance(
   schedules: MonitoringSchedule[],
   checkIns: MonitoringCheckIn[],
+  now: Date = new Date(),
 ): TutorAttendanceSummary {
+  const started = schedules.filter((s) => scheduleStartAt(s.date, s.startTime) <= now)
   const byId = new Map(schedules.map((s) => [s.id, s]))
   const valid = checkIns.filter((c) => c.isWithinRadius)
   const validScheduleIds = new Set(valid.map((c) => c.scheduleId).filter(Boolean))
@@ -47,15 +49,15 @@ export function summarizeTutorAttendance(
     return !!s && isLateCheckIn(s.date, s.startTime, c.checkedInAt)
   }
 
-  const validSessions = schedules.filter(
+  const validSessions = started.filter(
     (s) => validScheduleIds.has(s.id) || legacyDates.has(scheduleDayWIB(s.date)),
   ).length
 
   return {
-    totalSessions: schedules.length,
+    totalSessions: started.length,
     validSessions,
     lateSessions: valid.filter(isLate).length,
-    attendanceRate: schedules.length > 0 ? Math.round((validSessions / schedules.length) * 100) : null,
+    attendanceRate: started.length > 0 ? Math.round((validSessions / started.length) * 100) : null,
     avgDistanceM:
       checkIns.length > 0
         ? Math.round(checkIns.reduce((sum, c) => sum + c.distanceM, 0) / checkIns.length)

@@ -37,7 +37,7 @@ export default async function TutorMonitoringPage() {
           select: {
             schedules: {
               where: {
-                // lte now: sesi yang belum terjadi tidak ikut jadi pembagi rate
+                // batas kasar; summarizeTutorAttendance yang membuang sesi yang belum mulai
                 date: { gte: from, lte: now },
                 status: { in: ['PUBLISHED', 'COMPLETED'] },
               },

@@ -16,9 +16,11 @@ const checkIn = (over: object) => ({
   ...over,
 })
 
+const now = new Date('2026-10-31T00:00:00Z')
+
 describe('summarizeTutorAttendance', () => {
   it('returns null rate and zero counts with no schedules', () => {
-    expect(summarizeTutorAttendance([], [])).toMatchObject({
+    expect(summarizeTutorAttendance([], [], now)).toMatchObject({
       totalSessions: 0,
       validSessions: 0,
       lateSessions: 0,
@@ -30,19 +32,19 @@ describe('summarizeTutorAttendance', () => {
   })
 
   it('counts one valid session per schedule check-in, not per day', () => {
-    const s = summarizeTutorAttendance(schedules, [checkIn({ id: 'c1', scheduleId: 's1' })])
+    const s = summarizeTutorAttendance(schedules, [checkIn({ id: 'c1', scheduleId: 's1' })], now)
     expect(s.totalSessions).toBe(3)
     expect(s.validSessions).toBe(1)
     expect(s.attendanceRate).toBe(33)
   })
 
   it('ignores check-ins outside the radius', () => {
-    const s = summarizeTutorAttendance(schedules, [checkIn({ scheduleId: 's1', isWithinRadius: false })])
+    const s = summarizeTutorAttendance(schedules, [checkIn({ scheduleId: 's1', isWithinRadius: false })], now)
     expect(s.validSessions).toBe(0)
   })
 
   it('counts a legacy per-day check-in for every schedule on that date', () => {
-    const s = summarizeTutorAttendance(schedules, [checkIn({ scheduleId: null, date: '2026-10-20' })])
+    const s = summarizeTutorAttendance(schedules, [checkIn({ scheduleId: null, date: '2026-10-20' })], now)
     expect(s.validSessions).toBe(2)
   })
 
@@ -50,7 +52,7 @@ describe('summarizeTutorAttendance', () => {
     const s = summarizeTutorAttendance(schedules, [
       checkIn({ id: 'c1', scheduleId: 's1', checkedInAt: new Date('2026-10-20T08:05:00Z') }),
       checkIn({ id: 'c2', scheduleId: 's2', checkedInAt: new Date('2026-10-20T11:50:00Z') }),
-    ])
+    ], now)
     expect(s.lateSessions).toBe(1)
     expect(s.recentCheckIns.find((c) => c.id === 'c1')).toMatchObject({ late: true, startTime: '15:00' })
     expect(s.recentCheckIns.find((c) => c.id === 'c2')).toMatchObject({ late: false, startTime: '19:00' })
@@ -58,9 +60,15 @@ describe('summarizeTutorAttendance', () => {
 
   it('reports average distance and keeps at most 7 recent check-ins', () => {
     const many = Array.from({ length: 9 }, (_, i) => checkIn({ id: `c${i}`, distanceM: 10 + i }))
-    const s = summarizeTutorAttendance(schedules, many)
+    const s = summarizeTutorAttendance(schedules, many, now)
     expect(s.recentCheckIns).toHaveLength(7)
     expect(s.avgDistanceM).toBe(14)
     expect(s.lastCheckIn).toBe('2026-10-20T07:50:00.000Z')
+  })
+
+  it('does not count sessions that have not started yet', () => {
+    // 2026-10-20 15:00 WIB = 08:00Z; s2 (19:00 WIB = 12:00Z) belum mulai
+    const s = summarizeTutorAttendance(schedules, [], new Date('2026-10-20T09:00:00Z'))
+    expect(s.totalSessions).toBe(2) // s3 (5 Okt) + s1
   })
 })
