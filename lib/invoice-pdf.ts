@@ -116,7 +116,7 @@ export function buildInvoiceWaCaption(p: {
   if (p.status === 'PAID') {
     return (
       `Halo ${p.parentName},\n\n` +
-      `Berikut kami lampirkan invoice untuk ${p.studentName}.\n\n` +
+      `Berikut kami lampirkan kwitansi pembayaran untuk ${p.studentName}.\n\n` +
       detail +
       `Status      : LUNAS\n` +
       (p.paidAt ? `Tgl. Bayar  : ${fmtDateId(p.paidAt)}\n` : '') +
