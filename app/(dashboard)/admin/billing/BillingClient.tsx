@@ -163,7 +163,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
       const res = await fetch(`/api/invoices/${invoiceId}/send-wa`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Gagal mengirim')
-      setWaFeedback({ id: invoiceId, ok: true, msg: `Invoice terkirim ke ${data.sentTo ?? 'penerima'}` })
+      setWaFeedback({ id: invoiceId, ok: true, msg: `${data.docName ?? 'Invoice'} terkirim ke ${data.sentTo ?? 'penerima'}` })
     } catch (err: any) {
       setWaFeedback({ id: invoiceId, ok: false, msg: err.message })
     } finally {
@@ -444,7 +444,7 @@ export default function BillingClient({ initialInvoices, initialStudents, initia
             <button
               onClick={() => handleSendWA(inv.id)}
               disabled={sending}
-              title="Kirim Invoice via WhatsApp"
+              title={inv.status === 'PAID' ? 'Kirim Kwitansi via WhatsApp' : 'Kirim Invoice via WhatsApp'}
               className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 disabled:opacity-50 transition-colors cursor-pointer"
             >
               {sending ? '...' : 'WA'}
