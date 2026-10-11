@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { Role } from '@prisma/client'
+import { summarizeTutorAttendance } from '@/lib/tutor-monitoring'
 import TutorMonitoringClient from './TutorMonitoringClient'
 
 export default async function TutorMonitoringPage() {
@@ -12,83 +13,82 @@ export default async function TutorMonitoringPage() {
   const now = new Date()
   const from = new Date(now.getFullYear(), now.getMonth(), 1)
 
-  const tutors = await prisma.user.findMany({
-    where: { role: Role.TUTOR },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      suspended: true,
-      tutorCheckIns: {
-        where: { checkedInAt: { gte: from } },
-        select: {
-          id: true,
-          date: true,
-          checkedInAt: true,
-          distanceM: true,
-          isWithinRadius: true,
+  const [tutors, accessRequests] = await Promise.all([
+    prisma.user.findMany({
+      where: { role: Role.TUTOR },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        suspended: true,
+        tutorCheckIns: {
+          where: { checkedInAt: { gte: from } },
+          select: {
+            id: true,
+            scheduleId: true,
+            date: true,
+            checkedInAt: true,
+            distanceM: true,
+            isWithinRadius: true,
+          },
+          orderBy: { checkedInAt: 'desc' },
         },
-        orderBy: { checkedInAt: 'desc' },
-      },
-      tutorClasses: {
-        select: {
-          schedules: {
-            where: {
-              date: { gte: from },
-              status: { in: ['PUBLISHED', 'COMPLETED'] },
+        tutorClasses: {
+          select: {
+            schedules: {
+              where: {
+                // lte now: sesi yang belum terjadi tidak ikut jadi pembagi rate
+                date: { gte: from, lte: now },
+                status: { in: ['PUBLISHED', 'COMPLETED'] },
+              },
+              select: { id: true, date: true, startTime: true },
             },
-            select: { date: true },
           },
         },
       },
-    },
-    orderBy: { name: 'asc' },
-  })
+      orderBy: { name: 'asc' },
+    }),
+    prisma.reportAccessRequest.findMany({
+      // enum diurutkan sesuai deklarasi: PENDING dulu
+      orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+      take: 50,
+      select: {
+        id: true,
+        status: true,
+        reason: true,
+        adminNote: true,
+        createdAt: true,
+        tutor: { select: { name: true } },
+        schedule: {
+          select: { date: true, startTime: true, endTime: true, class: { select: { name: true } } },
+        },
+      },
+    }),
+  ])
 
-  const initialData = tutors.map((t) => {
-    const scheduleDates = new Set(
-      t.tutorClasses
-        .flatMap((c) => c.schedules)
-        .map((s) => s.date.toISOString().slice(0, 10)),
-    )
-    const totalScheduleDays = scheduleDates.size
+  const initialData = tutors.map((t) => ({
+    id: t.id,
+    name: t.name,
+    email: t.email,
+    suspended: t.suspended,
+    ...summarizeTutorAttendance(
+      t.tutorClasses.flatMap((c) => c.schedules),
+      t.tutorCheckIns,
+    ),
+  }))
 
-    const validCheckInDates = new Set(
-      t.tutorCheckIns.filter((c) => c.isWithinRadius).map((c) => c.date),
-    )
-    const totalValidDays = validCheckInDates.size
+  const requests = accessRequests.map((r) => ({
+    id: r.id,
+    status: r.status,
+    reason: r.reason,
+    adminNote: r.adminNote,
+    createdAt: r.createdAt.toISOString(),
+    tutorName: r.tutor.name ?? '—',
+    className: r.schedule.class.name,
+    scheduleDate: r.schedule.date.toISOString(),
+    startTime: r.schedule.startTime,
+    endTime: r.schedule.endTime,
+  }))
 
-    const attendanceRate =
-      totalScheduleDays > 0
-        ? Math.round((totalValidDays / totalScheduleDays) * 100)
-        : null
-
-    const avgDistanceM =
-      t.tutorCheckIns.length > 0
-        ? Math.round(
-            t.tutorCheckIns.reduce((sum, c) => sum + c.distanceM, 0) / t.tutorCheckIns.length,
-          )
-        : null
-
-    return {
-      id: t.id,
-      name: t.name,
-      email: t.email,
-      suspended: t.suspended,
-      totalScheduleDays,
-      totalValidDays,
-      attendanceRate,
-      avgDistanceM,
-      lastCheckIn: t.tutorCheckIns[0]?.checkedInAt.toISOString() ?? null,
-      recentCheckIns: t.tutorCheckIns.slice(0, 7).map((c) => ({
-        id: c.id,
-        date: c.date,
-        checkedInAt: c.checkedInAt.toISOString(),
-        distanceM: Math.round(c.distanceM),
-        isWithinRadius: c.isWithinRadius,
-      })),
-    }
-  })
-
-  return <TutorMonitoringClient initialData={initialData} />
+  return <TutorMonitoringClient initialData={initialData} requests={requests} />
 }

@@ -2,30 +2,20 @@
 
 import { useState } from 'react'
 import { MapPin, ChevronDown, ChevronUp, CheckCircle2, XCircle, Clock } from 'lucide-react'
+import { CHECKIN_RADIUS_METERS, CHECKIN_MAX_ACCURACY_ALLOWANCE_M } from '@/lib/geolocation'
+import type { TutorAttendanceSummary } from '@/lib/tutor-monitoring'
+import { ReportAccessRequestsPanel, type AccessRequestRow } from './ReportAccessRequestsPanel'
 
-type CheckInRecord = {
-  id: string
-  date: string
-  checkedInAt: string
-  distanceM: number
-  isWithinRadius: boolean
-}
-
-type TutorRow = {
+type TutorRow = TutorAttendanceSummary & {
   id: string
   name: string
   email: string
   suspended: boolean
-  totalScheduleDays: number
-  totalValidDays: number
-  attendanceRate: number | null
-  avgDistanceM: number | null
-  lastCheckIn: string | null
-  recentCheckIns: CheckInRecord[]
 }
 
 interface Props {
   initialData: TutorRow[]
+  requests: AccessRequestRow[]
 }
 
 function RateBadge({ rate }: { rate: number | null }) {
@@ -39,7 +29,7 @@ function RateBadge({ rate }: { rate: number | null }) {
   return <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cls}`}>{rate}%</span>
 }
 
-export default function TutorMonitoringClient({ initialData }: Props) {
+export default function TutorMonitoringClient({ initialData, requests }: Props) {
   const [data] = useState<TutorRow[]>(initialData)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [filter, setFilter] = useState('')
@@ -52,7 +42,7 @@ export default function TutorMonitoringClient({ initialData }: Props) {
 
   const totalTutors = data.length
   const activeTutors = data.filter((t) => !t.suspended).length
-  const totalCheckInDays = data.reduce((s, t) => s + t.totalValidDays, 0)
+  const totalValidSessions = data.reduce((s, t) => s + t.validSessions, 0)
   const avgRate =
     data.filter((t) => t.attendanceRate !== null).length > 0
       ? Math.round(
@@ -71,23 +61,23 @@ export default function TutorMonitoringClient({ initialData }: Props) {
           <h1 className="text-3xl font-extrabold tracking-tight">Monitoring Kehadiran Tutor</h1>
         </div>
         <p className="text-teal-100">
-          Rekap absensi harian tutor bulan ini — satu absensi per hari per tutor.
-          Radius wajib: 500m dari titik pusat bimbel.
+          Rekap absensi tutor bulan ini — satu absensi per jadwal mengajar.
+          Radius wajib: {CHECKIN_RADIUS_METERS}m dari titik absen (toleransi ketelitian GPS maks. {CHECKIN_MAX_ACCURACY_ALLOWANCE_M}m).
         </p>
       </div>
 
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
         {[
           { label: 'Total Tutor', value: totalTutors, sub: `${activeTutors} aktif` },
-          { label: 'Hari Hadir (Bulan Ini)', value: totalCheckInDays, sub: 'total valid check-in' },
+          { label: 'Sesi Hadir (Bulan Ini)', value: totalValidSessions, sub: 'total absen valid' },
           {
             label: 'Rata-rata Kehadiran',
             value: avgRate !== null ? `${avgRate}%` : '—',
-            sub: 'dari hari ada jadwal',
+            sub: 'dari sesi yang sudah berjalan',
           },
           {
             label: 'Tutor Belum Absen',
-            value: data.filter((t) => t.totalValidDays === 0).length,
+            value: data.filter((t) => t.validSessions === 0).length,
             sub: 'bulan ini',
           },
         ].map((card) => (
@@ -98,6 +88,8 @@ export default function TutorMonitoringClient({ initialData }: Props) {
           </div>
         ))}
       </div>
+
+      <ReportAccessRequestsPanel initialRequests={requests} />
 
       <div className="flex items-center gap-3">
         <input
@@ -147,14 +139,14 @@ export default function TutorMonitoringClient({ initialData }: Props) {
 
                   <div className="flex items-center gap-5 sm:gap-8 shrink-0">
                     <div className="hidden sm:flex flex-col items-end gap-0.5">
-                      <p className="text-xs text-slate-400">Hari Jadwal</p>
-                      <p className="text-sm font-bold text-slate-700">{tutor.totalScheduleDays}</p>
+                      <p className="text-xs text-slate-400">Sesi Hadir</p>
+                      <p className="text-sm font-bold text-slate-700">
+                        {tutor.validSessions}/{tutor.totalSessions}
+                      </p>
                     </div>
                     <div className="hidden sm:flex flex-col items-end gap-0.5">
-                      <p className="text-xs text-slate-400">Hari Hadir</p>
-                      <p className="text-sm font-bold text-slate-700">
-                        {tutor.totalValidDays}/{tutor.totalScheduleDays}
-                      </p>
+                      <p className="text-xs text-slate-400">Terlambat</p>
+                      <p className="text-sm font-bold text-slate-700">{tutor.lateSessions}</p>
                     </div>
                     <div className="flex flex-col items-end gap-0.5">
                       <p className="text-xs text-slate-400">Rate</p>
@@ -203,8 +195,16 @@ export default function TutorMonitoringClient({ initialData }: Props) {
                               className="px-6 py-3 flex items-center justify-between gap-4"
                             >
                               <div>
-                                <p className="text-sm font-semibold text-slate-700">{dateLabel}</p>
-                                <p className="text-xs text-slate-400">Absen pukul {timeLabel}</p>
+                                <p className="text-sm font-semibold text-slate-700">
+                                  {dateLabel}
+                                  {ci.startTime && (
+                                    <span className="font-normal text-slate-500"> • sesi {ci.startTime}</span>
+                                  )}
+                                </p>
+                                <p className="text-xs text-slate-400">
+                                  Absen pukul {timeLabel}
+                                  {ci.late && <span className="ml-2 font-bold text-amber-600">TERLAMBAT</span>}
+                                </p>
                               </div>
                               <div className="flex items-center gap-3 shrink-0">
                                 <span className="text-xs text-slate-500">{ci.distanceM}m</span>
@@ -232,7 +232,7 @@ export default function TutorMonitoringClient({ initialData }: Props) {
         <div>
           <p className="text-sm font-semibold text-teal-800">Titik Pusat Absensi</p>
           <p className="text-xs text-teal-600 mt-0.5">
-            Koordinat: -7.041736, 113.558258 • Radius: 500 meter • 1 absensi per hari per tutor
+            Koordinat: -7.041736, 113.558258 • Radius: {CHECKIN_RADIUS_METERS} meter (+ toleransi GPS maks. {CHECKIN_MAX_ACCURACY_ALLOWANCE_M} m) • 1 absensi per jadwal • dibuka 30 menit sebelum sesi
           </p>
         </div>
       </div>

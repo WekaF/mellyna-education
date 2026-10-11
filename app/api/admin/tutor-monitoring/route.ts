@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { Role } from '@prisma/client'
+import { summarizeTutorAttendance } from '@/lib/tutor-monitoring'
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -28,6 +29,7 @@ export async function GET(req: NextRequest) {
         where: { checkedInAt: { gte: from, lte: to } },
         select: {
           id: true,
+          scheduleId: true,
           date: true,
           checkedInAt: true,
           distanceM: true,
@@ -42,7 +44,7 @@ export async function GET(req: NextRequest) {
               date: { gte: from, lte: to },
               status: { in: ['PUBLISHED', 'COMPLETED'] },
             },
-            select: { date: true },
+            select: { id: true, date: true, startTime: true },
           },
         },
       },
@@ -50,52 +52,16 @@ export async function GET(req: NextRequest) {
     orderBy: { name: 'asc' },
   })
 
-  const result = tutors.map((t) => {
-    const scheduleDates = new Set(
-      t.tutorClasses
-        .flatMap((c) => c.schedules)
-        .map((s) => s.date.toISOString().slice(0, 10)),
-    )
-    const totalScheduleDays = scheduleDates.size
-
-    const validCheckInDates = new Set(
-      t.tutorCheckIns
-        .filter((c) => c.isWithinRadius)
-        .map((c) => c.date),
-    )
-    const totalValidDays = validCheckInDates.size
-
-    const attendanceRate =
-      totalScheduleDays > 0
-        ? Math.round((totalValidDays / totalScheduleDays) * 100)
-        : null
-
-    const avgDistanceM =
-      t.tutorCheckIns.length > 0
-        ? Math.round(
-            t.tutorCheckIns.reduce((sum, c) => sum + c.distanceM, 0) / t.tutorCheckIns.length,
-          )
-        : null
-
-    return {
+  return NextResponse.json(
+    tutors.map((t) => ({
       id: t.id,
       name: t.name,
       email: t.email,
       suspended: t.suspended,
-      totalScheduleDays,
-      totalValidDays,
-      attendanceRate,
-      avgDistanceM,
-      lastCheckIn: t.tutorCheckIns[0]?.checkedInAt.toISOString() ?? null,
-      recentCheckIns: t.tutorCheckIns.slice(0, 7).map((c) => ({
-        id: c.id,
-        date: c.date,
-        checkedInAt: c.checkedInAt.toISOString(),
-        distanceM: Math.round(c.distanceM),
-        isWithinRadius: c.isWithinRadius,
-      })),
-    }
-  })
-
-  return NextResponse.json(result)
+      ...summarizeTutorAttendance(
+        t.tutorClasses.flatMap((c) => c.schedules),
+        t.tutorCheckIns,
+      ),
+    })),
+  )
 }
