@@ -34,7 +34,7 @@ interface RowState {
 }
 
 const formatTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+  new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })
 
 export function TutorDailyCheckIn({ todayLabel, todayDateKey, schedules }: Props) {
   const [rows, setRows] = useState<Record<string, RowState>>(() =>

@@ -77,6 +77,7 @@ export default async function TutorDashboardPage() {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
+    timeZone: 'Asia/Jakarta',
   })
 
   const statusColor = {
