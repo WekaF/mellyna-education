@@ -182,7 +182,7 @@ model TutorCheckIn {
   accuracyM      Float?
   isWithinRadius Boolean
   tutor          User      @relation("TutorCheckIns", fields: [tutorId], references: [id])
-  schedule       Schedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  schedule       Schedule? @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
 
   @@unique([tutorId, scheduleId])
   @@index([tutorId, date])

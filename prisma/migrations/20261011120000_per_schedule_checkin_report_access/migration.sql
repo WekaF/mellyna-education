@@ -36,7 +36,7 @@ CREATE INDEX "TutorCheckIn_tutorId_date_idx" ON "TutorCheckIn"("tutorId", "date"
 CREATE UNIQUE INDEX "TutorCheckIn_tutorId_scheduleId_key" ON "TutorCheckIn"("tutorId", "scheduleId");
 
 -- AddForeignKey
-ALTER TABLE "TutorCheckIn" ADD CONSTRAINT "TutorCheckIn_scheduleId_fkey" FOREIGN KEY ("scheduleId") REFERENCES "Schedule"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "TutorCheckIn" ADD CONSTRAINT "TutorCheckIn_scheduleId_fkey" FOREIGN KEY ("scheduleId") REFERENCES "Schedule"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ReportAccessRequest" ADD CONSTRAINT "ReportAccessRequest_tutorId_fkey" FOREIGN KEY ("tutorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
