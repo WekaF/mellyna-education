@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { notifyParentNewReport } from '@/lib/report-notify'
+import { getTutorReportAccess } from '@/lib/report-access'
 
 const upsertReportSchema = z.object({
   studentId: z.string().min(1),
@@ -82,6 +83,19 @@ export async function POST(req: NextRequest) {
   const parsed = upsertReportSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+  }
+
+  if (role === 'TUTOR') {
+    const access = await getTutorReportAccess(userId, parsed.data.scheduleId)
+    if (!access.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Laporan terkunci: absen dulu untuk jadwal ini, atau minta akses ke Super Admin.',
+          code: 'CHECKIN_REQUIRED',
+        },
+        { status: 403 },
+      )
+    }
   }
 
   // Check if this report already exists and was already notified

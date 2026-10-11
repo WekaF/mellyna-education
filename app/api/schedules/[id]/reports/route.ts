@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { getTutorReportAccess } from '@/lib/report-access'
 
 export async function POST(
   req: NextRequest,
@@ -27,6 +28,19 @@ export async function POST(
 
   if (role === 'TUTOR' && schedule.class.tutorId !== userId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  if (role === 'TUTOR') {
+    const access = await getTutorReportAccess(userId, scheduleId)
+    if (!access.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Laporan terkunci: absen dulu untuk jadwal ini, atau minta akses ke Super Admin.',
+          code: 'CHECKIN_REQUIRED',
+        },
+        { status: 403 },
+      )
+    }
   }
 
   const body = await req.json()
