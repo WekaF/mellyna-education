@@ -169,6 +169,7 @@ export async function generateInvoicePdf(invoice: InvoiceData): Promise<ArrayBuf
 
   const sc = STATUS_COLORS[invoice.status] ?? STATUS_COLORS['PENDING']
   const invNo = invoiceNumber(invoice)
+  const isReceipt = invoice.status === 'PAID'
 
   // ── White background ─────────────────────────────────────
   setFill(doc, C.white)
@@ -207,7 +208,7 @@ export async function generateInvoicePdf(invoice: InvoiceData): Promise<ArrayBuf
   setTextColor(doc, C.white)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(30)
-  doc.text('INVOICE', R, 38, { align: 'right' })
+  doc.text(isReceipt ? 'KWITANSI' : 'INVOICE', R, 38, { align: 'right' })
 
   setTextColor(doc, C.primaryMid)
   doc.setFont('helvetica', 'normal')
@@ -225,7 +226,7 @@ export async function generateInvoicePdf(invoice: InvoiceData): Promise<ArrayBuf
   setTextColor(doc, C.gray)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(8)
-  doc.text('TAGIHAN KEPADA', P, metaY + 8)
+  doc.text(isReceipt ? 'DITERIMA DARI' : 'TAGIHAN KEPADA', P, metaY + 8)
 
   setTextColor(doc, C.navy)
   doc.setFont('helvetica', 'bold')
@@ -256,13 +257,13 @@ export async function generateInvoicePdf(invoice: InvoiceData): Promise<ArrayBuf
   setTextColor(doc, C.gray)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(8)
-  doc.text('DETAIL INVOICE', boxX + 12, metaY + 20)
+  doc.text(isReceipt ? 'DETAIL KWITANSI' : 'DETAIL INVOICE', boxX + 12, metaY + 20)
 
   const detailRows: [string, string][] = [
     ['No. Invoice', invNo],
     ['Tanggal', formatDate(invoice.createdAt)],
-    ['Jatuh Tempo', formatDate(invoice.dueDate)],
   ]
+  if (!isReceipt) detailRows.push(['Jatuh Tempo', formatDate(invoice.dueDate)])
   if (invoice.paidAt) detailRows.push(['Tgl. Bayar', formatDate(invoice.paidAt)])
 
   detailRows.forEach(([label, value], i) => {
@@ -344,11 +345,13 @@ export async function generateInvoicePdf(invoice: InvoiceData): Promise<ArrayBuf
   setTextColor(doc, C.gray)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(8)
-  doc.text('CARA PEMBAYARAN', P, noteY + 20)
+  doc.text(isReceipt ? 'PEMBAYARAN DITERIMA' : 'CARA PEMBAYARAN', P, noteY + 20)
   doc.setFont('helvetica', 'normal')
-  const noteText =
-    'Pembayaran dapat dilakukan melalui portal Mellyna Education (Midtrans) atau transfer bank. ' +
-    'Hubungi admin untuk konfirmasi atau pertanyaan lebih lanjut.'
+  const noteText = isReceipt
+    ? 'Pembayaran telah kami terima. Terima kasih telah mempercayakan pendidikan anak kepada Mellyna Education. ' +
+      'Simpan kwitansi ini sebagai bukti pembayaran.'
+    : 'Pembayaran dapat dilakukan melalui portal Mellyna Education (Midtrans) atau transfer bank. ' +
+      'Hubungi admin untuk konfirmasi atau pertanyaan lebih lanjut.'
   const noteLines = doc.splitTextToSize(noteText, R - P)
   doc.text(noteLines, P, noteY + 34)
 

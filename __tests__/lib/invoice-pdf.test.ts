@@ -59,3 +59,30 @@ describe('formatInvoiceFilename', () => {
     expect(formatInvoiceFilename(inv)).toBe(expected)
   })
 })
+
+describe('generateInvoicePdf: kwitansi vs invoice', () => {
+  const pdfText = async (inv: InvoiceData) => Buffer.from(await generateInvoicePdf(inv)).toString('latin1')
+
+  it('PAID: berjudul KWITANSI, tanpa istilah tagihan', async () => {
+    const s = await pdfText(mockInvoice)
+    expect(s).toContain('(KWITANSI) Tj')
+    expect(s).toContain('(DITERIMA DARI) Tj')
+    expect(s).toContain('(DETAIL KWITANSI) Tj')
+    expect(s).toContain('(PEMBAYARAN DITERIMA) Tj')
+    expect(s).toContain('(Tgl. Bayar) Tj')
+    expect(s).not.toContain('(INVOICE) Tj')
+    expect(s).not.toContain('(TAGIHAN KEPADA) Tj')
+    expect(s).not.toContain('(Jatuh Tempo) Tj')
+    expect(s).not.toContain('(CARA PEMBAYARAN) Tj')
+  })
+
+  it('PENDING: tetap INVOICE seperti semula', async () => {
+    const s = await pdfText({ ...mockInvoice, status: 'PENDING', paidAt: null })
+    expect(s).toContain('(INVOICE) Tj')
+    expect(s).toContain('(TAGIHAN KEPADA) Tj')
+    expect(s).toContain('(DETAIL INVOICE) Tj')
+    expect(s).toContain('(Jatuh Tempo) Tj')
+    expect(s).toContain('(CARA PEMBAYARAN) Tj')
+    expect(s).not.toContain('(KWITANSI) Tj')
+  })
+})
