@@ -15,7 +15,9 @@ jest.mock('@/lib/db', () => ({
   },
 }))
 
-const CRON_SECRET = 'change-this-to-random-secret'
+// Route membaca N8N_WEBHOOK_SECRET dari env (CI menyetelnya), jadi tes menyetel nilainya sendiri.
+const CRON_SECRET = 'test-cron-secret'
+process.env.N8N_WEBHOOK_SECRET = CRON_SECRET
 const cronUrl = `http://localhost/api/cron/timetable-generate?secret=${CRON_SECRET}`
 
 function makeClass(id: string) {
@@ -57,7 +59,8 @@ describe('GET /api/cron/timetable-generate - auto-broadcast toggle', () => {
     })
 
     const req = new Request(cronUrl)
-    await GET(req as any)
+    const res = await GET(req as any)
+    expect(res.status).toBe(200)
 
     // Allow fire-and-forget to run
     for (let i = 0; i < 20; i++) await Promise.resolve()
@@ -70,7 +73,8 @@ describe('GET /api/cron/timetable-generate - auto-broadcast toggle', () => {
     })
 
     const req = new Request(cronUrl)
-    await GET(req as any)
+    const res = await GET(req as any)
+    expect(res.status).toBe(200)
 
     for (let i = 0; i < 20; i++) await Promise.resolve()
     expect(waha.sendWhatsApp).not.toHaveBeenCalled()
@@ -80,7 +84,8 @@ describe('GET /api/cron/timetable-generate - auto-broadcast toggle', () => {
     ;(prisma.systemSetting.findFirst as jest.Mock).mockResolvedValue(null)
 
     const req = new Request(cronUrl)
-    await GET(req as any)
+    const res = await GET(req as any)
+    expect(res.status).toBe(200)
 
     for (let i = 0; i < 20; i++) await Promise.resolve()
     expect(waha.sendWhatsApp).toHaveBeenCalled()
