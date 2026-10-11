@@ -31,6 +31,11 @@ export function checkInWindow(date: Date, startTime: string, now: Date = new Dat
   return now <= closesAt ? 'open' : 'closed'
 }
 
+// Pengingat WA dikirim sejak absen dibuka sampai sesi mulai; setelah itu sudah terlambat untuk diingatkan.
+export function isCheckInReminderDue(date: Date, startTime: string, now: Date = new Date()): boolean {
+  return now >= checkInOpensAt(date, startTime) && now <= scheduleStartAt(date, startTime)
+}
+
 export function isLateCheckIn(date: Date, startTime: string, checkedInAt: Date): boolean {
   return checkedInAt > scheduleStartAt(date, startTime)
 }

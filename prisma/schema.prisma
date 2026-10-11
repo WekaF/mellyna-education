@@ -8,26 +8,26 @@ datasource db {
 }
 
 model User {
-  id                     String               @id @default(cuid())
+  id                     String                @id @default(cuid())
   name                   String
-  email                  String               @unique
+  email                  String                @unique
   emailVerified          DateTime?
   password               String?
   phone                  String?
-  role                   Role                 @default(PARENT)
-  createdAt              DateTime             @default(now())
-  updatedAt              DateTime             @updatedAt
-  suspended              Boolean              @default(false)
+  role                   Role                  @default(PARENT)
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  suspended              Boolean               @default(false)
   accounts               Account[]
-  tutorClasses           Class[]              @relation("TutorClasses")
-  additionalTutorClasses ClassTutor[]         @relation("AdditionalTutorClasses")
+  tutorClasses           Class[]               @relation("TutorClasses")
+  additionalTutorClasses ClassTutor[]          @relation("AdditionalTutorClasses")
   reports                LearningReport[]
   sessions               Session[]
-  children               Student[]            @relation("ParentStudents")
-  milestoneUpdates       StudentMilestone[]   @relation("MilestoneUpdater")
-  milestoneReports       MilestoneReport[]    @relation("MilestoneReportGenerator")
+  children               Student[]             @relation("ParentStudents")
+  milestoneUpdates       StudentMilestone[]    @relation("MilestoneUpdater")
+  milestoneReports       MilestoneReport[]     @relation("MilestoneReportGenerator")
   passwordResetTokens    PasswordResetToken[]
-  tutorCheckIns          TutorCheckIn[]       @relation("TutorCheckIns")
+  tutorCheckIns          TutorCheckIn[]        @relation("TutorCheckIns")
   reportAccessRequests   ReportAccessRequest[] @relation("ReportAccessRequester")
   reportAccessDecisions  ReportAccessRequest[] @relation("ReportAccessDecider")
   expenses               Expense[]
@@ -133,26 +133,27 @@ model ClassTutor {
 }
 
 model Schedule {
-  id                String                @id @default(cuid())
-  classId           String
-  date              DateTime
-  startTime         String
-  endTime           String
-  topic             String?
-  location          String?
-  status            ScheduleStatus        @default(DRAFT)
-  publishedAt       DateTime?
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-  isRecurring       Boolean               @default(false)
-  recurrenceGroupId String?
-  recurrenceWeeks   Int?
-  attendances       Attendance[]
-  reports           LearningReport[]
-  class             Class                 @relation(fields: [classId], references: [id])
-  participants      ScheduleParticipant[]
-  tutorCheckIns        TutorCheckIn[]
-  reportAccessRequests ReportAccessRequest[]
+  id                    String                @id @default(cuid())
+  classId               String
+  date                  DateTime
+  startTime             String
+  endTime               String
+  topic                 String?
+  location              String?
+  status                ScheduleStatus        @default(DRAFT)
+  publishedAt           DateTime?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  isRecurring           Boolean               @default(false)
+  recurrenceGroupId     String?
+  recurrenceWeeks       Int?
+  checkInReminderSentAt DateTime?
+  attendances           Attendance[]
+  reports               LearningReport[]
+  class                 Class                 @relation(fields: [classId], references: [id])
+  participants          ScheduleParticipant[]
+  tutorCheckIns         TutorCheckIn[]
+  reportAccessRequests  ReportAccessRequest[]
 
   @@index([recurrenceGroupId])
 }
