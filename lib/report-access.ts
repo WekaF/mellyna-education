@@ -22,7 +22,16 @@ export type TutorReportAccess = {
 export async function getTutorReportAccess(tutorId: string, scheduleId: string): Promise<TutorReportAccess> {
   const where = { tutorId_scheduleId: { tutorId, scheduleId } }
   const [schedule, checkIn, request] = await Promise.all([
-    prisma.schedule.findUnique({ where: { id: scheduleId }, select: { date: true, startTime: true } }),
+    prisma.schedule.findFirst({
+      where: {
+        id: scheduleId,
+        OR: [
+          { class: { tutorId } },
+          { class: { additionalTutors: { some: { tutorId } } } },
+        ],
+      },
+      select: { date: true, startTime: true },
+    }),
     prisma.tutorCheckIn.findUnique({ where, select: { isWithinRadius: true } }),
     prisma.reportAccessRequest.findUnique({
       where,

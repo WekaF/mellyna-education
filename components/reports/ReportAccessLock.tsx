@@ -38,6 +38,15 @@ export function ReportAccessLock({ scheduleId, access, onChange }: Props) {
     }
   }
 
+  if (access.reason === 'schedule-not-found') {
+    return (
+      <div className="rounded-2xl bg-white border border-amber-200 shadow-xs p-6 flex items-start gap-3">
+        <Lock className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+        <p className="text-sm text-slate-600">Jadwal tidak ditemukan, atau bukan jadwal kelas yang kamu ajar.</p>
+      </div>
+    )
+  }
+
   return (
     <div className="rounded-2xl bg-white border border-amber-200 shadow-xs p-6 space-y-4">
       <div className="flex items-start gap-3">
