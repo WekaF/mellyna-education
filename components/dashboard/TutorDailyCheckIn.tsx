@@ -56,7 +56,13 @@ export function TutorDailyCheckIn({ todayLabel, todayDateKey, schedules }: Props
   const [permission, setPermission] = useState<LocationPermission | null>(null)
 
   const patchRow = (scheduleId: string, patch: Partial<RowState>) =>
-    setRows((prev) => ({ ...prev, [scheduleId]: { ...prev[scheduleId], ...patch } }))
+    setRows((prev) => ({
+      ...prev,
+      [scheduleId]: {
+        ...(prev[scheduleId] ?? { status: 'idle', checkedInAt: null, distanceM: null, errorMsg: null }),
+        ...patch,
+      },
+    }))
 
   useEffect(() => {
     setNow(Date.now())
@@ -259,7 +265,12 @@ export function TutorDailyCheckIn({ todayLabel, todayDateKey, schedules }: Props
         ) : (
           <div className="mt-3 space-y-2">
             {schedules.map((s) => {
-              const row = rows[s.scheduleId]
+              const row: RowState = rows[s.scheduleId] ?? {
+                status: s.checkedInAt ? 'success' : 'idle',
+                checkedInAt: s.checkedInAt,
+                distanceM: s.distanceM,
+                errorMsg: null,
+              }
               const open = isOpen(s)
               const late =
                 row.status === 'success' &&
