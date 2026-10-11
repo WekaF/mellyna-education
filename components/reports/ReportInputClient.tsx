@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { Save, Upload, Trash2 } from 'lucide-react'
 import { useConfirm } from '@/lib/hooks/use-confirm'
 import { StarRating } from '@/components/ui/star-rating'
+import { ReportAccessLock } from '@/components/reports/ReportAccessLock'
+import type { TutorReportAccess } from '@/lib/report-access'
 
 interface Student {
   id: string
@@ -40,18 +42,22 @@ export default function ReportInputClient() {
   const [saving, setSaving] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [successIds, setSuccessIds] = useState<Set<string>>(new Set())
+  const [access, setAccess] = useState<TutorReportAccess | null>(null)
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [schedRes, reportsRes] = await Promise.all([
+        const [schedRes, reportsRes, accessRes] = await Promise.all([
           fetch(`/api/schedules/${scheduleId}`),
           fetch(`/api/reports?scheduleId=${scheduleId}`),
+          fetch(`/api/report-access?scheduleId=${scheduleId}`),
         ])
         const schedData = await schedRes.json()
         const reportsData = await reportsRes.json()
         setSchedule(schedData)
+        // Gagal memuat status akses → form tetap tampil; server tetap menolak simpan kalau terkunci.
+        setAccess(accessRes.ok ? await accessRes.json() : null)
 
         const existingReports: Record<string, any> = {}
         reportsData.forEach((r: any) => { existingReports[r.studentId] = r })
@@ -91,7 +97,10 @@ export default function ReportInputClient() {
           score: entry.score ?? undefined,
         }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(typeof body?.error === 'string' ? body.error : '')
+      }
       const data = await res.json()
       setEntries((prev) =>
         prev.map((e) => e.studentId === studentId ? { ...e, reportId: data.id } : e)
@@ -100,8 +109,8 @@ export default function ReportInputClient() {
       setTimeout(() => setSuccessIds((prev) => {
         const s = new Set(prev); s.delete(studentId); return s
       }), 3000)
-    } catch {
-      setError('Gagal menyimpan laporan untuk siswa ini.')
+    } catch (e) {
+      setError((e as Error).message || 'Gagal menyimpan laporan untuk siswa ini.')
     } finally {
       setSaving(null)
     }
@@ -197,7 +206,9 @@ export default function ReportInputClient() {
         </div>
       )}
 
-      {students.length === 0 ? (
+      {access && !access.allowed ? (
+        <ReportAccessLock scheduleId={scheduleId} access={access} onChange={setAccess} />
+      ) : students.length === 0 ? (
         <div className="rounded-2xl bg-white border border-slate-100 p-10 text-center text-slate-400">
           <p className="text-3xl">👥</p>
           <p className="mt-2 text-sm">Belum ada peserta terdaftar di sesi ini.</p>
