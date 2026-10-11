@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { z } from 'zod'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { getTutorReportAccess } from '@/lib/report-access'
 
 const updateReportSchema = z.object({
   content: z.string().min(1).optional(),
@@ -42,6 +43,24 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const parsed = updateReportSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+  }
+
+  if (role === 'TUTOR') {
+    const existing = await prisma.learningReport.findUnique({
+      where: { id },
+      select: { scheduleId: true },
+    })
+    if (!existing) return NextResponse.json({ error: 'Not Found' }, { status: 404 })
+    const access = await getTutorReportAccess((session.user as any).id, existing.scheduleId)
+    if (!access.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Laporan terkunci: absen dulu untuk jadwal ini, atau minta akses ke Super Admin.',
+          code: 'CHECKIN_REQUIRED',
+        },
+        { status: 403 },
+      )
+    }
   }
 
   const report = await prisma.learningReport.update({ where: { id }, data: parsed.data })
