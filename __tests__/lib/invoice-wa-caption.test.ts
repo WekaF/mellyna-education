@@ -11,12 +11,18 @@ const base = {
 }
 
 describe('buildInvoiceWaCaption', () => {
-  it('PAID: redaksi "invoice untuk siswa", status LUNAS, tanggal bayar, tanpa jatuh tempo', () => {
+  it('PAID: redaksi kwitansi, status LUNAS, tanggal bayar, tanpa jatuh tempo', () => {
     const c = buildInvoiceWaCaption({ ...base, status: 'PAID', paidAt: new Date('2026-06-10T10:00:00+07:00') })
-    expect(c).toContain('Halo Bapak Fauzi,')
-    expect(c).toContain('Berikut kami lampirkan invoice untuk Ahmad Fauzi.')
-    expect(c).toContain('Status      : LUNAS')
-    expect(c).toContain('Tgl. Bayar  : 10 Juni 2026')
+    expect(c).toBe(
+      'Halo Bapak Fauzi,\n\n' +
+      'Berikut kami lampirkan kwitansi pembayaran untuk Ahmad Fauzi.\n\n' +
+      'No. Invoice : INV-202606-456789\n' +
+      'Keterangan  : Biaya Kursus Sempoa Bulan Juni 2026\n' +
+      `Nominal     : ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(350000)}\n` +
+      'Status      : LUNAS\n' +
+      'Tgl. Bayar  : 10 Juni 2026\n\n' +
+      'Terima kasih,\nMellyna Education'
+    )
     expect(c).not.toContain('tagihan')
     expect(c).not.toContain('Jatuh Tempo')
   })

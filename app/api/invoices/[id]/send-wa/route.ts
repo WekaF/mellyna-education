@@ -54,6 +54,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     const y = invoice.createdAt.getFullYear()
     const m = String(invoice.createdAt.getMonth() + 1).padStart(2, '0')
     const invNo = `INV-${y}${m}-${invoice.id.slice(-6).toUpperCase()}`
+    const docName = invoice.status === 'PAID' ? 'Kwitansi' : 'Invoice'
 
     const caption = buildInvoiceWaCaption({
       parentName: parent.name,
@@ -76,6 +77,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
             success: true,
             invoiceNo: invNo,
             sentTo: phone,
+            docName,
             note: 'Terkirim sebagai pesan teks (lampiran PDF gagal dikirim via WhatDesks)',
           })
         }
@@ -83,7 +85,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: `Gagal mengirim via WhatsApp: ${result.error}` }, { status: 502 })
     }
 
-    return NextResponse.json({ success: true, invoiceNo: invNo, sentTo: phone })
+    return NextResponse.json({ success: true, invoiceNo: invNo, sentTo: phone, docName })
   } catch (e) {
     console.error('[Mellyna] send-wa failed:', e)
     return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 })
