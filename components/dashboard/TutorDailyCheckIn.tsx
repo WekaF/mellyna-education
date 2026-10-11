@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { MapPin, CheckCircle2, AlertTriangle, Loader2, X, CalendarCheck, ShieldAlert, Clock } from 'lucide-react'
 import { getLocationPermission, type LocationPermission } from '@/lib/location-permission'
-import { CHECKIN_RADIUS_METERS } from '@/lib/geolocation'
 
 const DENIED_MSG = 'Izin lokasi diblokir. Buka izin lokasi untuk situs ini, lalu tekan "Coba Lagi".'
 
@@ -22,6 +21,7 @@ interface Props {
   todayLabel: string
   todayDateKey: string
   schedules: CheckInScheduleItem[]
+  radiusM: number
 }
 
 type RowStatus = 'idle' | 'locating' | 'sending' | 'success' | 'outside' | 'error'
@@ -36,7 +36,7 @@ interface RowState {
 const formatTime = (iso: string) =>
   new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })
 
-export function TutorDailyCheckIn({ todayLabel, todayDateKey, schedules }: Props) {
+export function TutorDailyCheckIn({ todayLabel, todayDateKey, schedules, radiusM }: Props) {
   const [rows, setRows] = useState<Record<string, RowState>>(() =>
     Object.fromEntries(
       schedules.map((s) => [
@@ -230,7 +230,7 @@ export function TutorDailyCheckIn({ todayLabel, todayDateKey, schedules }: Props
                   </p>
                 )}
                 <p className="text-xs text-slate-400 mt-2">
-                  📍 Absensi hanya berlaku di lokasi bimbel (radius {CHECKIN_RADIUS_METERS}m dari titik absen).
+                  📍 Absensi hanya berlaku di lokasi bimbel (radius {radiusM}m dari titik absen).
                 </p>
               </div>
             )}

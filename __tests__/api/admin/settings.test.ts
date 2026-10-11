@@ -81,3 +81,38 @@ describe('PUT /api/admin/settings', () => {
     expect(res.status).toBe(400)
   })
 })
+
+describe('PUT /api/admin/settings — CHECKIN_RADIUS_METERS', () => {
+  const put = (value: string) =>
+    PUT(
+      new Request('http://localhost/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'CHECKIN_RADIUS_METERS', value }),
+      }) as any,
+    )
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    ;(getServerSession as jest.Mock).mockResolvedValue(mockSession)
+    ;(prisma.systemSetting.upsert as jest.Mock).mockImplementation(async ({ create }) => create)
+  })
+
+  it.each(['4', '1001', '12.5', 'abc', ''])('rejects invalid radius %p', async (value) => {
+    const res = await put(value)
+    expect(res.status).toBe(400)
+    expect(prisma.systemSetting.upsert).not.toHaveBeenCalled()
+  })
+
+  it('saves a valid radius', async () => {
+    const res = await put('50')
+    expect(res.status).toBe(200)
+    expect((await res.json()).value).toBe('50')
+  })
+
+  it('exposes the default radius in GET', async () => {
+    ;(prisma.systemSetting.findMany as jest.Mock).mockResolvedValue([])
+    const res = await GET(new Request('http://localhost/api/admin/settings') as any)
+    expect((await res.json()).CHECKIN_RADIUS_METERS).toBe('10')
+  })
+})

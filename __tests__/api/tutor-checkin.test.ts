@@ -11,6 +11,7 @@ jest.mock('@/lib/db', () => ({
   prisma: {
     schedule: { findFirst: jest.fn() },
     tutorCheckIn: { findUnique: jest.fn(), upsert: jest.fn() },
+    systemSetting: { findUnique: jest.fn() },
   },
 }))
 jest.mock('@/lib/checkin-policy', () => ({
@@ -40,6 +41,7 @@ describe('POST /api/tutor-checkin', () => {
       checkedInAt: new Date('2026-10-20T07:45:00Z'),
     }))
     ;(checkInWindow as jest.Mock).mockReturnValue('open')
+    ;(prisma.systemSetting.findUnique as jest.Mock).mockResolvedValue(null)
   })
 
   it('returns 401 when not authenticated', async () => {
@@ -98,6 +100,20 @@ describe('POST /api/tutor-checkin', () => {
     const data = await res.json()
     expect(res.status).toBe(422)
     expect(data.isWithinRadius).toBe(false)
+  })
+
+  it('uses the radius configured by the super admin', async () => {
+    const far = { latitude: CHECKIN_CENTER.lat + 0.0004, longitude: CHECKIN_CENTER.lng } // ≈ 44 m
+    expect((await POST(makeReq({ scheduleId: 's1', ...far }))).status).toBe(422)
+    ;(prisma.systemSetting.findUnique as jest.Mock).mockResolvedValue({ value: '50' })
+    expect((await POST(makeReq({ scheduleId: 's1', ...far }))).status).toBe(200)
+    expect(prisma.systemSetting.findUnique).toHaveBeenCalledWith({ where: { key: 'CHECKIN_RADIUS_METERS' } })
+  })
+
+  it('tells the tutor the configured maximum when outside the radius', async () => {
+    ;(prisma.systemSetting.findUnique as jest.Mock).mockResolvedValue({ value: '50' })
+    const res = await POST(makeReq({ scheduleId: 's1', latitude: -7.035736, longitude: 113.558258 }))
+    expect((await res.json()).message).toContain('maksimal 50m')
   })
 
   it('does not overwrite an existing valid check-in', async () => {

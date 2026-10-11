@@ -1,4 +1,4 @@
-import { haversineDistance, checkRadius, getTodayWIB, CHECKIN_CENTER, CHECKIN_RADIUS_METERS, CHECKIN_MAX_ACCURACY_ALLOWANCE_M } from '@/lib/geolocation'
+import { haversineDistance, checkRadius, getTodayWIB, CHECKIN_CENTER, CHECKIN_RADIUS_METERS, CHECKIN_MAX_ACCURACY_ALLOWANCE_M, parseCheckInRadius } from '@/lib/geolocation'
 
 describe('haversineDistance', () => {
   it('returns 0 for identical coordinates', () => {
@@ -53,6 +53,30 @@ describe('checkRadius', () => {
     expect(d).toBeGreaterThan(30)
     expect(d).toBeLessThan(37)
   })
+})
+
+describe('configurable radius', () => {
+  it('uses a custom radius when given', () => {
+    // 0.0004° lintang ≈ 44 m
+    const lat = CHECKIN_CENTER.lat + 0.0004
+    expect(checkRadius(lat, CHECKIN_CENTER.lng, 0).isWithinRadius).toBe(false)
+    expect(checkRadius(lat, CHECKIN_CENTER.lng, 0, 50).isWithinRadius).toBe(true)
+  })
+
+  it.each([
+    ['50', 50],
+    ['5', 5],
+    ['1000', 1000],
+  ])('parses stored value %s', (value, expected) => {
+    expect(parseCheckInRadius(value)).toBe(expected)
+  })
+
+  it.each([undefined, null, '', '  ', 'abc', '4', '1001', '12.5', '-20'])(
+    'falls back to the default for %p',
+    (value) => {
+      expect(parseCheckInRadius(value)).toBe(CHECKIN_RADIUS_METERS)
+    },
+  )
 })
 
 describe('getTodayWIB', () => {

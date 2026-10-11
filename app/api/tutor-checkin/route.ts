@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { checkRadius, CHECKIN_RADIUS_METERS } from '@/lib/geolocation'
+import { checkRadius } from '@/lib/geolocation'
+import { getCheckInRadiusM } from '@/lib/checkin-settings'
 import {
   CHECKIN_OPENS_MINUTES_BEFORE,
   checkInWindow,
@@ -59,6 +60,7 @@ export async function POST(req: NextRequest) {
     return fail('Waktu absen untuk jadwal ini sudah lewat. Ajukan akses laporan ke Super Admin.', 422)
   }
 
+  const radiusM = await getCheckInRadiusM()
   const where = { tutorId_scheduleId: { tutorId, scheduleId } }
   const existing = await prisma.tutorCheckIn.findUnique({ where })
 
@@ -66,7 +68,7 @@ export async function POST(req: NextRequest) {
   const checkIn = existing?.isWithinRadius
     ? existing
     : await (async () => {
-        const { isWithinRadius, distanceM } = checkRadius(latitude, longitude, accuracyM)
+        const { isWithinRadius, distanceM } = checkRadius(latitude, longitude, accuracyM, radiusM)
         return prisma.tutorCheckIn.upsert({
           where,
           update: { latitude, longitude, distanceM, accuracyM, isWithinRadius, checkedInAt: new Date() },
@@ -92,7 +94,7 @@ export async function POST(req: NextRequest) {
         isWithinRadius: false,
         scheduleId,
         distanceM,
-        message: `Anda terbaca ${distanceM}m dari titik absen (maksimal ${CHECKIN_RADIUS_METERS}m). Coba lagi di dekat jendela atau di luar ruangan supaya GPS lebih akurat.`,
+        message: `Anda terbaca ${distanceM}m dari titik absen (maksimal ${radiusM}m). Coba lagi di dekat jendela atau di luar ruangan supaya GPS lebih akurat.`,
       },
       { status: 422 },
     )

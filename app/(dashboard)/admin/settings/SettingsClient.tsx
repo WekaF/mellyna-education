@@ -1,7 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { ExternalLink, RefreshCw, Wifi, WifiOff, Bell, BellOff } from 'lucide-react'
+import { ExternalLink, RefreshCw, Wifi, WifiOff, Bell, BellOff, MapPin } from 'lucide-react'
+import {
+  CHECKIN_MAX_ACCURACY_ALLOWANCE_M,
+  CHECKIN_RADIUS_MAX_M,
+  CHECKIN_RADIUS_MIN_M,
+  CHECKIN_RADIUS_SETTING_KEY,
+  isValidCheckInRadius,
+} from '@/lib/geolocation'
 
 interface IntegrationStatus {
   whatdesks: {
@@ -18,6 +25,7 @@ interface IntegrationStatus {
 interface Props {
   initialStatus: IntegrationStatus | null
   initialAutoBroadcast: boolean
+  initialCheckInRadius: number
 }
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -36,11 +44,15 @@ const StatusBadge = ({ status }: { status: string }) => {
   )
 }
 
-export default function SettingsClient({ initialStatus, initialAutoBroadcast }: Props) {
+export default function SettingsClient({ initialStatus, initialAutoBroadcast, initialCheckInRadius }: Props) {
   const [status, setStatus] = useState<IntegrationStatus | null>(initialStatus)
   const [loading, setLoading] = useState(false)
   const [autoBroadcast, setAutoBroadcast] = useState(initialAutoBroadcast)
   const [savingBroadcast, setSavingBroadcast] = useState(false)
+  const [savedRadius, setSavedRadius] = useState(initialCheckInRadius)
+  const [radiusInput, setRadiusInput] = useState(String(initialCheckInRadius))
+  const [savingRadius, setSavingRadius] = useState(false)
+  const [radiusMsg, setRadiusMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [testingWa, setTestingWa] = useState(false)
   const [testWaResults, setTestWaResults] = useState<Array<{ label: string; phone: string; success: boolean; error?: string }> | null>(null)
   const [testWaDiag, setTestWaDiag] = useState<Record<string, string> | null>(null)
@@ -67,6 +79,27 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
       if (res.ok) setAutoBroadcast(next)
     } finally {
       setSavingBroadcast(false)
+    }
+  }
+
+  const saveRadius = async () => {
+    setSavingRadius(true)
+    setRadiusMsg(null)
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: CHECKIN_RADIUS_SETTING_KEY, value: radiusInput.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(typeof data?.error === 'string' ? data.error : 'Gagal menyimpan radius.')
+      setSavedRadius(Number(data.value))
+      setRadiusInput(data.value)
+      setRadiusMsg({ ok: true, text: `Radius absen sekarang ${data.value} meter.` })
+    } catch (e) {
+      setRadiusMsg({ ok: false, text: (e as Error).message })
+    } finally {
+      setSavingRadius(false)
     }
   }
 
@@ -137,6 +170,54 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast }: 
           Status: <strong>{autoBroadcast ? '✅ Auto-broadcast AKTIF' : '🔕 Auto-broadcast DIMATIKAN'}</strong>
           {!autoBroadcast && ' — Cron akan tetap membuat jadwal tapi tidak mengirim WA.'}
         </div>
+      </div>
+
+      {/* Radius Absen Tutor */}
+      <div className="rounded-2xl bg-white border border-slate-100 shadow-xs p-6 space-y-4">
+        <div>
+          <h2 className="font-extrabold text-slate-800 flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-teal-600" />
+            Radius Absen Tutor
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Jarak maksimal tutor dari titik absen agar absensinya sah. Ketelitian GPS yang dilaporkan HP ikut
+            dihitung sebagai toleransi (maks. {CHECKIN_MAX_ACCURACY_ALLOWANCE_M} m), jadi batas terjauh praktisnya
+            radius + {CHECKIN_MAX_ACCURACY_ALLOWANCE_M} m. Perubahan berlaku untuk absen berikutnya; absen yang
+            sudah tercatat tidak berubah.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="number"
+            inputMode="numeric"
+            min={CHECKIN_RADIUS_MIN_M}
+            max={CHECKIN_RADIUS_MAX_M}
+            step={1}
+            value={radiusInput}
+            onChange={(e) => setRadiusInput(e.target.value)}
+            aria-label="Radius absen dalam meter"
+            className="w-28 px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-teal-500"
+          />
+          <span className="text-sm text-slate-500">meter</span>
+          <button
+            type="button"
+            onClick={saveRadius}
+            disabled={savingRadius || !isValidCheckInRadius(radiusInput) || Number(radiusInput) === savedRadius}
+            className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {savingRadius ? 'Menyimpan...' : 'Simpan'}
+          </button>
+        </div>
+        {!isValidCheckInRadius(radiusInput) && (
+          <p className="text-xs text-rose-600">
+            Isi bilangan bulat {CHECKIN_RADIUS_MIN_M}–{CHECKIN_RADIUS_MAX_M} meter.
+          </p>
+        )}
+        {radiusMsg && (
+          <p className={`text-xs font-semibold ${radiusMsg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>
+            {radiusMsg.text}
+          </p>
+        )}
       </div>
 
       {/* WhatDesks Section */}

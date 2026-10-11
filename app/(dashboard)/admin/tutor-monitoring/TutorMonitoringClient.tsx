@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { MapPin, ChevronDown, ChevronUp, CheckCircle2, XCircle, Clock } from 'lucide-react'
-import { CHECKIN_RADIUS_METERS, CHECKIN_MAX_ACCURACY_ALLOWANCE_M } from '@/lib/geolocation'
+import { CHECKIN_MAX_ACCURACY_ALLOWANCE_M } from '@/lib/geolocation'
 import type { TutorAttendanceSummary } from '@/lib/tutor-monitoring'
 import { ReportAccessRequestsPanel, type AccessRequestRow } from './ReportAccessRequestsPanel'
 
@@ -16,6 +16,7 @@ type TutorRow = TutorAttendanceSummary & {
 interface Props {
   initialData: TutorRow[]
   requests: AccessRequestRow[]
+  radiusM: number
 }
 
 function RateBadge({ rate }: { rate: number | null }) {
@@ -29,7 +30,7 @@ function RateBadge({ rate }: { rate: number | null }) {
   return <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cls}`}>{rate}%</span>
 }
 
-export default function TutorMonitoringClient({ initialData, requests }: Props) {
+export default function TutorMonitoringClient({ initialData, requests, radiusM }: Props) {
   const [data] = useState<TutorRow[]>(initialData)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [filter, setFilter] = useState('')
@@ -62,7 +63,7 @@ export default function TutorMonitoringClient({ initialData, requests }: Props) 
         </div>
         <p className="text-teal-100">
           Rekap absensi tutor bulan ini — satu absensi per jadwal mengajar.
-          Radius wajib: {CHECKIN_RADIUS_METERS}m dari titik absen (toleransi ketelitian GPS maks. {CHECKIN_MAX_ACCURACY_ALLOWANCE_M}m).
+          Radius wajib: {radiusM}m dari titik absen (toleransi ketelitian GPS maks. {CHECKIN_MAX_ACCURACY_ALLOWANCE_M}m).
         </p>
       </div>
 
@@ -232,7 +233,7 @@ export default function TutorMonitoringClient({ initialData, requests }: Props) 
         <div>
           <p className="text-sm font-semibold text-teal-800">Titik Pusat Absensi</p>
           <p className="text-xs text-teal-600 mt-0.5">
-            Koordinat: -7.041736, 113.558258 • Radius: {CHECKIN_RADIUS_METERS} meter (+ toleransi GPS maks. {CHECKIN_MAX_ACCURACY_ALLOWANCE_M} m) • 1 absensi per jadwal • dibuka 30 menit sebelum sesi
+            Koordinat: -7.041736, 113.558258 • Radius: {radiusM} meter (+ toleransi GPS maks. {CHECKIN_MAX_ACCURACY_ALLOWANCE_M} m) • 1 absensi per jadwal • dibuka 30 menit sebelum sesi
           </p>
         </div>
       </div>

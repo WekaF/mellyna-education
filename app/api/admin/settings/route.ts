@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import {
+  CHECKIN_RADIUS_MAX_M,
+  CHECKIN_RADIUS_METERS,
+  CHECKIN_RADIUS_MIN_M,
+  CHECKIN_RADIUS_SETTING_KEY,
+  isValidCheckInRadius,
+} from '@/lib/geolocation'
 
 const SETTING_DEFAULTS: Record<string, string> = {
   AUTO_TIMETABLE_BROADCAST: 'true',
+  [CHECKIN_RADIUS_SETTING_KEY]: String(CHECKIN_RADIUS_METERS),
 }
 
 export async function GET(_req: NextRequest) {
@@ -32,6 +40,12 @@ export async function PUT(req: NextRequest) {
   const { key, value } = body as Record<string, unknown>
   if (typeof key !== 'string' || typeof value !== 'string') {
     return NextResponse.json({ error: 'key and value must be strings' }, { status: 400 })
+  }
+  if (key === CHECKIN_RADIUS_SETTING_KEY && !isValidCheckInRadius(value)) {
+    return NextResponse.json(
+      { error: `Radius harus bilangan bulat ${CHECKIN_RADIUS_MIN_M}–${CHECKIN_RADIUS_MAX_M} meter.` },
+      { status: 400 },
+    )
   }
   const setting = await prisma.systemSetting.upsert({
     where: { key },

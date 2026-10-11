@@ -8,6 +8,7 @@ import AnnouncementsWidget from '@/components/dashboard/AnnouncementsWidget'
 import { TutorDailyCheckIn } from '@/components/dashboard/TutorDailyCheckIn'
 import { getTodayWIB } from '@/lib/geolocation'
 import { checkInOpensAt, scheduleStartAt } from '@/lib/checkin-policy'
+import { getCheckInRadiusM } from '@/lib/checkin-settings'
 
 export default async function TutorDashboardPage() {
   const session = await getServerSession(authOptions)
@@ -15,6 +16,7 @@ export default async function TutorDashboardPage() {
   const userId = (session.user as any).id
 
   const today = getTodayWIB()
+  const radiusM = await getCheckInRadiusM()
   const todayStart = new Date(`${today}T00:00:00+07:00`)
   const todayEnd = new Date(`${today}T23:59:59+07:00`)
 
@@ -99,7 +101,7 @@ export default async function TutorDashboardPage() {
       </div>
 
       {/* Absensi — satu kali per jadwal hari ini */}
-      <TutorDailyCheckIn todayLabel={todayLabel} todayDateKey={today} schedules={checkInItems} />
+      <TutorDailyCheckIn todayLabel={todayLabel} todayDateKey={today} schedules={checkInItems} radiusM={radiusM} />
 
 
       <AnnouncementsWidget />

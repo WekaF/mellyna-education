@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { Role } from '@prisma/client'
 import { summarizeTutorAttendance } from '@/lib/tutor-monitoring'
+import { getCheckInRadiusM } from '@/lib/checkin-settings'
 import TutorMonitoringClient from './TutorMonitoringClient'
 
 export default async function TutorMonitoringPage() {
@@ -11,6 +12,7 @@ export default async function TutorMonitoringPage() {
   if (!session || (session.user as any).role !== 'SUPER_ADMIN') redirect('/admin')
 
   const now = new Date()
+  const radiusM = await getCheckInRadiusM()
   const from = new Date(now.getFullYear(), now.getMonth(), 1)
 
   const [tutors, accessRequests] = await Promise.all([
@@ -90,5 +92,5 @@ export default async function TutorMonitoringPage() {
     endTime: r.schedule.endTime,
   }))
 
-  return <TutorMonitoringClient initialData={initialData} requests={requests} />
+  return <TutorMonitoringClient initialData={initialData} requests={requests} radiusM={radiusM} />
 }
