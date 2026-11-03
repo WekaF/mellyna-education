@@ -72,7 +72,7 @@ export default function PricingSection() {
         {/* SPP Tier cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-14">
           {sppTiers.map((tier, index) => {
-            const styles = tierStyles[index]
+            const styles = tierStyles[index % tierStyles.length]
             return (
               <motion.div
                 key={tier.name}
@@ -134,7 +134,7 @@ export default function PricingSection() {
         {/* Admin fee cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {adminFees.map((fee, index) => {
-            const Icon = feeIcons[index]
+            const Icon = feeIcons[index % feeIcons.length]
             return (
               <motion.div
                 key={fee.name}
@@ -142,10 +142,10 @@ export default function PricingSection() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.1 + index * 0.1, duration: 0.5 }}
-                className={`bg-white rounded-3xl p-7 border shadow-sm hover:shadow-lg transition-all duration-300 ${feeBgs[index]}`}
+                className={`bg-white rounded-3xl p-7 border shadow-sm hover:shadow-lg transition-all duration-300 ${feeBgs[index % feeBgs.length]}`}
               >
                 <div className="flex items-start gap-4 mb-5">
-                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${feeIconBgs[index]} flex items-center justify-center shadow-md shrink-0`}>
+                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${feeIconBgs[index % feeIconBgs.length]} flex items-center justify-center shadow-md shrink-0`}>
                     <Icon className="h-6 w-6 text-white" />
                   </div>
                   <div>
