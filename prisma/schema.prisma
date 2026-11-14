@@ -31,6 +31,13 @@ model User {
   reportAccessRequests   ReportAccessRequest[] @relation("ReportAccessRequester")
   reportAccessDecisions  ReportAccessRequest[] @relation("ReportAccessDecider")
   expenses               Expense[]
+  payrollRate            TutorPayrollRate?
+  leaveRequests          TutorLeaveRequest[]   @relation("TutorLeaveRequester")
+  leaveDecisions         TutorLeaveRequest[]   @relation("TutorLeaveDecider")
+  overtimeEntries        TutorOvertimeEntry[]  @relation("TutorOvertimeOwner")
+  overtimeLoggedBy       TutorOvertimeEntry[]  @relation("TutorOvertimeLoggedBy")
+  payrollEntries         PayrollEntry[]        @relation("TutorPayrollEntries")
+  payrollFinalizedBy     PayrollEntry[]        @relation("PayrollFinalizedBy")
 }
 
 model Student {
@@ -406,6 +413,94 @@ model Expense {
   createdBy   User            @relation(fields: [createdById], references: [id])
 
   @@index([date])
+}
+
+// Rate gaji per tutor — beda-beda per orang, diisi admin.
+model TutorPayrollRate {
+  id                  String   @id @default(cuid())
+  tutorId             String   @unique
+  dailyRate           Int // Rp per hari kerja (absen harian valid)
+  onTimeBonusRate     Int // Rp per hari absen tidak telat
+  overtimeRatePerHour Int // Rp per jam extra time (lembur, dicatat manual)
+  extraHandleRate     Int // Rp per sesi kelas tambahan yang di-handle (bukan kelas sendiri)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  tutor               User     @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+}
+
+// Izin tutor — bisa diajukan tutor (PENDING → admin putuskan) atau langsung ditandai admin (auto APPROVED).
+model TutorLeaveRequest {
+  id          String      @id @default(cuid())
+  tutorId     String
+  date        DateTime
+  reason      String
+  status      LeaveStatus @default(PENDING)
+  source      LeaveSource
+  decidedById String?
+  decidedAt   DateTime?
+  createdAt   DateTime    @default(now())
+  tutor       User        @relation("TutorLeaveRequester", fields: [tutorId], references: [id], onDelete: Cascade)
+  decidedBy   User?       @relation("TutorLeaveDecider", fields: [decidedById], references: [id])
+
+  @@index([tutorId, date])
+  @@index([status])
+}
+
+// Extra time (lembur) — tidak ada jam pulang di sistem, jadi dicatat manual oleh admin per tanggal.
+model TutorOvertimeEntry {
+  id          String   @id @default(cuid())
+  tutorId     String
+  date        DateTime
+  hours       Float
+  note        String?
+  createdById String
+  createdAt   DateTime @default(now())
+  tutor       User     @relation("TutorOvertimeOwner", fields: [tutorId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation("TutorOvertimeLoggedBy", fields: [createdById], references: [id])
+
+  @@index([tutorId, date])
+}
+
+// Hasil generate payroll per tutor per bulan — snapshot, tidak dihitung ulang otomatis kalau data sumber berubah.
+model PayrollEntry {
+  id                String        @id @default(cuid())
+  tutorId           String
+  periodMonth       String // "YYYY-MM"
+  hariKerja         Int
+  dailyRateAmount   Int
+  izinHari          Int
+  bonusOntimeDays   Int
+  bonusOntimeAmount Int
+  extraTimeHours    Float
+  extraTimeAmount   Int
+  extraHandleCount  Int
+  extraHandleAmount Int
+  totalAmount       Int
+  status            PayrollStatus @default(DRAFT)
+  generatedAt       DateTime      @default(now())
+  finalizedAt       DateTime?
+  finalizedById     String?
+  tutor             User          @relation("TutorPayrollEntries", fields: [tutorId], references: [id], onDelete: Cascade)
+  finalizedBy       User?         @relation("PayrollFinalizedBy", fields: [finalizedById], references: [id])
+
+  @@unique([tutorId, periodMonth])
+  @@index([periodMonth])
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LeaveSource {
+  TUTOR_REQUEST
+  ADMIN_MARKED
+}
+
+enum PayrollStatus {
+  DRAFT
+  FINALIZED
 }
 
 enum Role {

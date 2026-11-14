@@ -31,6 +31,7 @@ import {
   UserCheck,
   Wallet,
   UserCog,
+  Banknote,
 } from 'lucide-react'
 import { ThemeToggleButton } from '../common/ThemeToggleButton'
 
@@ -104,6 +105,7 @@ export default function Sidebar({ user }: SidebarProps) {
             ],
           },
           { name: 'Pengeluaran', href: '/admin/expenses', icon: Wallet },
+          { name: 'Payroll Karyawan', href: '/admin/payroll', icon: Banknote },
           { name: 'Laporan', href: '/admin/reports', icon: FileText },
           {
             name: 'Kurikulum',
@@ -148,6 +150,7 @@ export default function Sidebar({ user }: SidebarProps) {
             ],
           },
           { name: 'Laporan', href: '/admin/reports', icon: FileText },
+          { name: 'Payroll Karyawan', href: '/admin/payroll', icon: Banknote },
           {
             name: 'Kurikulum',
             icon: Trophy,

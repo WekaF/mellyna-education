@@ -40,6 +40,27 @@ export function isLateCheckIn(date: Date, startTime: string, checkedInAt: Date):
   return checkedInAt > scheduleStartAt(date, startTime)
 }
 
+// Absen harian — satu kali per tutor per hari, jam 15:00 WIB, lepas dari jadwal kelas.
+export const DAILY_CHECKIN_TIME = '15:00'
+
+export function dailyCheckInTargetAt(dateKeyWIB: string): Date {
+  return new Date(`${dateKeyWIB}T${DAILY_CHECKIN_TIME}:00+07:00`)
+}
+
+export function dailyCheckInOpensAt(dateKeyWIB: string): Date {
+  return new Date(dailyCheckInTargetAt(dateKeyWIB).getTime() - CHECKIN_OPENS_MINUTES_BEFORE * 60 * 1000)
+}
+
+export function dailyCheckInWindow(dateKeyWIB: string, now: Date = new Date()): CheckInWindow {
+  if (now < dailyCheckInOpensAt(dateKeyWIB)) return 'not-open'
+  const closesAt = new Date(`${dateKeyWIB}T23:59:59.999+07:00`)
+  return now <= closesAt ? 'open' : 'closed'
+}
+
+export function isLateDailyCheckIn(dateKeyWIB: string, checkedInAt: Date): boolean {
+  return checkedInAt > dailyCheckInTargetAt(dateKeyWIB)
+}
+
 export function decideReportAccess(input: {
   scheduleDate: Date
   hasValidCheckIn: boolean

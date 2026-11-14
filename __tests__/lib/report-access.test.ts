@@ -1,11 +1,11 @@
 import { getTutorReportAccess } from '@/lib/report-access'
 import { prisma } from '@/lib/db'
-import { REPORT_GATE_FROM } from '@/lib/checkin-policy'
+import { REPORT_GATE_FROM, scheduleDayWIB } from '@/lib/checkin-policy'
 
 jest.mock('@/lib/db', () => ({
   prisma: {
     schedule: { findFirst: jest.fn() },
-    tutorCheckIn: { findUnique: jest.fn() },
+    tutorCheckIn: { findUnique: jest.fn(), findFirst: jest.fn() },
     reportAccessRequest: { findUnique: jest.fn() },
   },
 }))
@@ -17,6 +17,7 @@ describe('getTutorReportAccess', () => {
     jest.clearAllMocks()
     ;(prisma.schedule.findFirst as jest.Mock).mockResolvedValue(gatedSchedule)
     ;(prisma.tutorCheckIn.findUnique as jest.Mock).mockResolvedValue(null)
+    ;(prisma.tutorCheckIn.findFirst as jest.Mock).mockResolvedValue(null)
     ;(prisma.reportAccessRequest.findUnique as jest.Mock).mockResolvedValue(null)
   })
 
@@ -74,5 +75,22 @@ describe('getTutorReportAccess', () => {
     ;(prisma.reportAccessRequest.findUnique as jest.Mock).mockResolvedValue(request)
     const access = await getTutorReportAccess('t1', 's1')
     expect(access).toMatchObject({ allowed: true, reason: 'approved', request })
+  })
+
+  it('allows with a valid daily check-in even without a per-schedule check-in', async () => {
+    ;(prisma.tutorCheckIn.findFirst as jest.Mock).mockResolvedValue({ isWithinRadius: true })
+    const access = await getTutorReportAccess('t1', 's1')
+    expect(access).toMatchObject({ allowed: true, reason: 'checked-in' })
+    expect(prisma.tutorCheckIn.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { tutorId: 't1', scheduleId: null, date: scheduleDayWIB(gatedSchedule.date) },
+      }),
+    )
+  })
+
+  it('ignores a daily check-in that was outside the radius', async () => {
+    ;(prisma.tutorCheckIn.findFirst as jest.Mock).mockResolvedValue({ isWithinRadius: false })
+    const access = await getTutorReportAccess('t1', 's1')
+    expect(access.allowed).toBe(false)
   })
 })

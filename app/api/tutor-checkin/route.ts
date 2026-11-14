@@ -2,17 +2,72 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { checkRadius } from '@/lib/geolocation'
+import { checkRadius, getTodayWIB } from '@/lib/geolocation'
 import { getCheckInRadiusM } from '@/lib/checkin-settings'
 import {
   CHECKIN_OPENS_MINUTES_BEFORE,
   checkInWindow,
   isLateCheckIn,
   scheduleDayWIB,
+  dailyCheckInWindow,
+  isLateDailyCheckIn,
 } from '@/lib/checkin-policy'
 
 function fail(message: string, status: number) {
   return NextResponse.json({ error: message, message }, { status })
+}
+
+// Absen harian jam 15:00 WIB — satu kali per tutor per hari, lepas dari jadwal kelas.
+async function dailyCheckIn(tutorId: string, latitude: number, longitude: number, accuracyM: number) {
+  const today = getTodayWIB()
+  const window = dailyCheckInWindow(today)
+  if (window === 'not-open') {
+    return fail('Absen dibuka pukul 14:30 WIB.', 422)
+  }
+  if (window === 'closed') {
+    return fail('Waktu absen hari ini sudah lewat.', 422)
+  }
+
+  const radiusM = await getCheckInRadiusM()
+  const existing = await prisma.tutorCheckIn.findFirst({ where: { tutorId, scheduleId: null, date: today } })
+
+  const checkIn = existing?.isWithinRadius
+    ? existing
+    : await (async () => {
+        const { isWithinRadius, distanceM } = checkRadius(latitude, longitude, accuracyM, radiusM)
+        if (existing) {
+          return prisma.tutorCheckIn.update({
+            where: { id: existing.id },
+            data: { latitude, longitude, distanceM, accuracyM, isWithinRadius, checkedInAt: new Date() },
+          })
+        }
+        return prisma.tutorCheckIn.create({
+          data: { tutorId, scheduleId: null, date: today, latitude, longitude, distanceM, accuracyM, isWithinRadius },
+        })
+      })()
+
+  const distanceM = Math.round(checkIn.distanceM)
+
+  if (!checkIn.isWithinRadius) {
+    return NextResponse.json(
+      {
+        success: false,
+        isWithinRadius: false,
+        distanceM,
+        message: `Anda terbaca ${distanceM}m dari titik absen (maksimal ${radiusM}m). Coba lagi di dekat jendela atau di luar ruangan supaya GPS lebih akurat.`,
+      },
+      { status: 422 },
+    )
+  }
+
+  return NextResponse.json({
+    success: true,
+    isWithinRadius: true,
+    distanceM,
+    checkedInAt: checkIn.checkedInAt.toISOString(),
+    late: isLateDailyCheckIn(today, checkIn.checkedInAt),
+    message: `Absen berhasil! Jarak: ${distanceM}m`,
+  })
 }
 
 export async function POST(req: NextRequest) {
@@ -26,14 +81,19 @@ export async function POST(req: NextRequest) {
   const { latitude, longitude, scheduleId, accuracy } = await req.json()
   const accuracyM = typeof accuracy === 'number' && Number.isFinite(accuracy) ? accuracy : 0
 
-  if (typeof scheduleId !== 'string' || !scheduleId) {
-    return fail('scheduleId wajib diisi', 400)
-  }
   if (typeof latitude !== 'number' || typeof longitude !== 'number') {
     return fail('latitude dan longitude wajib diisi', 400)
   }
   if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
     return fail('Koordinat GPS tidak valid', 400)
+  }
+
+  // scheduleId tidak dikirim (atau null) → absen harian jam 15:00, bukan per jadwal.
+  if (scheduleId === undefined || scheduleId === null) {
+    return dailyCheckIn(tutorId, latitude, longitude, accuracyM)
+  }
+  if (typeof scheduleId !== 'string' || !scheduleId) {
+    return fail('scheduleId wajib diisi', 400)
   }
 
   const schedule = await prisma.schedule.findFirst({

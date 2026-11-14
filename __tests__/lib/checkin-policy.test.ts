@@ -6,6 +6,9 @@ import {
   checkInWindow,
   isLateCheckIn,
   decideReportAccess,
+  dailyCheckInOpensAt,
+  dailyCheckInWindow,
+  isLateDailyCheckIn,
 } from '@/lib/checkin-policy'
 
 // Schedule.date disimpan sebagai 00:00 UTC = 07:00 WIB di hari yang sama
@@ -64,6 +67,38 @@ describe('isLateCheckIn', () => {
 
   it('is late one second after start time', () => {
     expect(isLateCheckIn(date, '15:00', new Date('2026-10-20T08:00:01Z'))).toBe(true)
+  })
+})
+
+describe('dailyCheckInWindow (absen harian jam 15:00)', () => {
+  it('opens 30 minutes before 15:00 WIB', () => {
+    expect(dailyCheckInOpensAt('2026-10-20').toISOString()).toBe('2026-10-20T07:30:00.000Z')
+  })
+
+  it('is not-open one second before opening', () => {
+    expect(dailyCheckInWindow('2026-10-20', new Date('2026-10-20T07:29:59Z'))).toBe('not-open')
+  })
+
+  it('is open exactly at opening time', () => {
+    expect(dailyCheckInWindow('2026-10-20', new Date('2026-10-20T07:30:00Z'))).toBe('open')
+  })
+
+  it('stays open until 23:59:59 WIB of the same day', () => {
+    expect(dailyCheckInWindow('2026-10-20', new Date('2026-10-20T16:59:59Z'))).toBe('open')
+  })
+
+  it('is closed at 00:00 WIB of the next day', () => {
+    expect(dailyCheckInWindow('2026-10-20', new Date('2026-10-20T17:00:00Z'))).toBe('closed')
+  })
+})
+
+describe('isLateDailyCheckIn', () => {
+  it('is not late exactly at 15:00 WIB', () => {
+    expect(isLateDailyCheckIn('2026-10-20', new Date('2026-10-20T08:00:00Z'))).toBe(false)
+  })
+
+  it('is late one second after 15:00 WIB', () => {
+    expect(isLateDailyCheckIn('2026-10-20', new Date('2026-10-20T08:00:01Z'))).toBe(true)
   })
 })
 

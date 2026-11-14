@@ -2,21 +2,22 @@ import { POST } from '@/app/api/tutor-checkin/route'
 import { prisma } from '@/lib/db'
 import { getServerSession } from 'next-auth'
 import { NextRequest } from 'next/server'
-import { checkInWindow } from '@/lib/checkin-policy'
-import { CHECKIN_CENTER } from '@/lib/geolocation'
+import { checkInWindow, dailyCheckInWindow } from '@/lib/checkin-policy'
+import { CHECKIN_CENTER, getTodayWIB } from '@/lib/geolocation'
 
 jest.mock('next-auth', () => ({ getServerSession: jest.fn() }))
 jest.mock('@/lib/auth', () => ({ authOptions: {} }))
 jest.mock('@/lib/db', () => ({
   prisma: {
     schedule: { findFirst: jest.fn() },
-    tutorCheckIn: { findUnique: jest.fn(), upsert: jest.fn() },
+    tutorCheckIn: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn(), create: jest.fn(), update: jest.fn() },
     systemSetting: { findUnique: jest.fn() },
   },
 }))
 jest.mock('@/lib/checkin-policy', () => ({
   ...jest.requireActual('@/lib/checkin-policy'),
   checkInWindow: jest.fn(),
+  dailyCheckInWindow: jest.fn(),
 }))
 
 const makeReq = (body: object) =>
@@ -41,7 +42,19 @@ describe('POST /api/tutor-checkin', () => {
       checkedInAt: new Date('2026-10-20T07:45:00Z'),
     }))
     ;(checkInWindow as jest.Mock).mockReturnValue('open')
+    ;(dailyCheckInWindow as jest.Mock).mockReturnValue('open')
     ;(prisma.systemSetting.findUnique as jest.Mock).mockResolvedValue(null)
+    ;(prisma.tutorCheckIn.findFirst as jest.Mock).mockResolvedValue(null)
+    ;(prisma.tutorCheckIn.create as jest.Mock).mockImplementation(async ({ data }) => ({
+      ...data,
+      id: 'ci1',
+      checkedInAt: new Date('2026-10-20T08:05:00Z'),
+    }))
+    ;(prisma.tutorCheckIn.update as jest.Mock).mockImplementation(async ({ data }) => ({
+      ...data,
+      id: 'ci1',
+      checkedInAt: new Date('2026-10-20T08:05:00Z'),
+    }))
   })
 
   it('returns 401 when not authenticated', async () => {
@@ -54,8 +67,8 @@ describe('POST /api/tutor-checkin', () => {
     expect((await POST(makeReq({ scheduleId: 's1', ...inside }))).status).toBe(403)
   })
 
-  it('returns 400 when scheduleId is missing', async () => {
-    expect((await POST(makeReq(inside))).status).toBe(400)
+  it('returns 400 when scheduleId is an empty string', async () => {
+    expect((await POST(makeReq({ scheduleId: '', ...inside }))).status).toBe(400)
   })
 
   it('returns 404 when the schedule is not one of the tutor’s published schedules', async () => {
@@ -137,5 +150,84 @@ describe('POST /api/tutor-checkin', () => {
     expect(prisma.tutorCheckIn.upsert).toHaveBeenLastCalledWith(
       expect.objectContaining({ create: expect.objectContaining({ accuracyM: 20, isWithinRadius: true }) }),
     )
+  })
+
+  describe('absen harian (no scheduleId)', () => {
+  const today = getTodayWIB()
+
+  it('treats a missing scheduleId as the daily check-in', async () => {
+    const res = await POST(makeReq(inside))
+    const data = await res.json()
+    expect(res.status).toBe(200)
+    expect(data).toMatchObject({ success: true, isWithinRadius: true, late: false })
+    expect(prisma.tutorCheckIn.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ tutorId: 't1', scheduleId: null, date: today, isWithinRadius: true }),
+      }),
+    )
+  })
+
+  it('treats an explicit null scheduleId as the daily check-in too', async () => {
+    const res = await POST(makeReq({ scheduleId: null, ...inside }))
+    expect(res.status).toBe(200)
+  })
+
+  it.each(['not-open', 'closed'])('returns 422 and writes nothing when the daily window is %s', async (window) => {
+    ;(dailyCheckInWindow as jest.Mock).mockReturnValue(window)
+    const res = await POST(makeReq(inside))
+    expect(res.status).toBe(422)
+    expect(prisma.tutorCheckIn.create).not.toHaveBeenCalled()
+  })
+
+  it('returns 422 with isWithinRadius false when outside the radius', async () => {
+    const res = await POST(makeReq(outside))
+    const data = await res.json()
+    expect(res.status).toBe(422)
+    expect(data.isWithinRadius).toBe(false)
+  })
+
+  it('does not overwrite an existing valid daily check-in', async () => {
+    ;(prisma.tutorCheckIn.findFirst as jest.Mock).mockResolvedValue({
+      id: 'ci1',
+      isWithinRadius: true,
+      distanceM: 8,
+      checkedInAt: new Date('2026-10-20T07:40:00Z'),
+    })
+    const res = await POST(makeReq(outside))
+    const data = await res.json()
+    expect(res.status).toBe(200)
+    expect(data).toMatchObject({ success: true, isWithinRadius: true, distanceM: 8 })
+    expect(prisma.tutorCheckIn.create).not.toHaveBeenCalled()
+    expect(prisma.tutorCheckIn.update).not.toHaveBeenCalled()
+  })
+
+  it('updates the existing row in place instead of creating a second one for the same day', async () => {
+    ;(prisma.tutorCheckIn.findFirst as jest.Mock).mockResolvedValue({
+      id: 'ci1',
+      isWithinRadius: false,
+      distanceM: 999,
+      checkedInAt: new Date('2026-10-20T07:40:00Z'),
+    })
+    const res = await POST(makeReq(inside))
+    expect(res.status).toBe(200)
+    expect(prisma.tutorCheckIn.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'ci1' }, data: expect.objectContaining({ isWithinRadius: true }) }),
+    )
+    expect(prisma.tutorCheckIn.create).not.toHaveBeenCalled()
+  })
+
+  it('flags a check-in after 15:00 WIB as late', async () => {
+    ;(prisma.tutorCheckIn.create as jest.Mock).mockResolvedValue({
+      tutorId: 't1',
+      scheduleId: null,
+      date: today,
+      isWithinRadius: true,
+      distanceM: 5,
+      checkedInAt: new Date(`${today}T08:00:01Z`),
+    })
+    const res = await POST(makeReq(inside))
+    const data = await res.json()
+    expect(data.late).toBe(true)
+  })
   })
 })

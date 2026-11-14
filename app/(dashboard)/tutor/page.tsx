@@ -7,7 +7,7 @@ import { TutorLocationEdit } from '@/components/dashboard/TutorLocationEdit'
 import AnnouncementsWidget from '@/components/dashboard/AnnouncementsWidget'
 import { TutorDailyCheckIn } from '@/components/dashboard/TutorDailyCheckIn'
 import { getTodayWIB } from '@/lib/geolocation'
-import { checkInOpensAt, scheduleStartAt } from '@/lib/checkin-policy'
+import { dailyCheckInOpensAt } from '@/lib/checkin-policy'
 import { getCheckInRadiusM } from '@/lib/checkin-settings'
 
 export default async function TutorDashboardPage() {
@@ -18,7 +18,6 @@ export default async function TutorDashboardPage() {
   const today = getTodayWIB()
   const radiusM = await getCheckInRadiusM()
   const todayStart = new Date(`${today}T00:00:00+07:00`)
-  const todayEnd = new Date(`${today}T23:59:59+07:00`)
 
   const mine = {
     OR: [
@@ -27,7 +26,7 @@ export default async function TutorDashboardPage() {
     ],
   }
 
-  const [schedules, todaySchedules, todayCheckIns] = await Promise.all([
+  const [schedules, todayCheckIn] = await Promise.all([
     prisma.schedule.findMany({
       where: {
         ...mine,
@@ -39,40 +38,11 @@ export default async function TutorDashboardPage() {
       },
       orderBy: { date: 'asc' },
     }),
-    prisma.schedule.findMany({
-      where: {
-        ...mine,
-        date: { gte: todayStart, lte: todayEnd },
-        status: { in: ['PUBLISHED', 'COMPLETED'] },
-      },
-      select: {
-        id: true,
-        date: true,
-        startTime: true,
-        endTime: true,
-        class: { select: { name: true } },
-      },
-      orderBy: { startTime: 'asc' },
-    }),
-    prisma.tutorCheckIn.findMany({
-      where: { tutorId: userId, date: today, isWithinRadius: true, scheduleId: { not: null } },
-      select: { scheduleId: true, checkedInAt: true, distanceM: true },
+    prisma.tutorCheckIn.findFirst({
+      where: { tutorId: userId, date: today, scheduleId: null, isWithinRadius: true },
+      select: { checkedInAt: true, distanceM: true },
     }),
   ])
-
-  const checkInItems = todaySchedules.map((s) => {
-    const checkIn = todayCheckIns.find((c) => c.scheduleId === s.id)
-    return {
-      scheduleId: s.id,
-      className: s.class.name,
-      startTime: s.startTime,
-      endTime: s.endTime,
-      opensAt: checkInOpensAt(s.date, s.startTime).toISOString(),
-      startsAt: scheduleStartAt(s.date, s.startTime).toISOString(),
-      checkedInAt: checkIn?.checkedInAt.toISOString() ?? null,
-      distanceM: checkIn ? Math.round(checkIn.distanceM) : null,
-    }
-  })
 
   const todayLabel = new Date(todayStart).toLocaleDateString('id-ID', {
     weekday: 'long',
@@ -100,8 +70,14 @@ export default async function TutorDashboardPage() {
         <p className="mt-2 text-emerald-100">Kelola jadwal mengajar, absensi siswa, dan laporan perkembangan belajar.</p>
       </div>
 
-      {/* Absensi — satu kali per jadwal hari ini */}
-      <TutorDailyCheckIn todayLabel={todayLabel} todayDateKey={today} schedules={checkInItems} radiusM={radiusM} />
+      {/* Absensi — satu kali per hari, jam 15:00 */}
+      <TutorDailyCheckIn
+        todayLabel={todayLabel}
+        opensAt={dailyCheckInOpensAt(today).toISOString()}
+        checkedInAt={todayCheckIn?.checkedInAt.toISOString() ?? null}
+        distanceM={todayCheckIn ? Math.round(todayCheckIn.distanceM) : null}
+        radiusM={radiusM}
+      />
 
 
       <AnnouncementsWidget />
