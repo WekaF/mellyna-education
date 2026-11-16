@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { checkRadius, getTodayWIB } from '@/lib/geolocation'
-import { getCheckInRadiusM } from '@/lib/checkin-settings'
+import { getCheckInRadiusM, getDailyCheckInTime } from '@/lib/checkin-settings'
 import {
   CHECKIN_OPENS_MINUTES_BEFORE,
   checkInWindow,
@@ -20,9 +20,10 @@ function fail(message: string, status: number) {
 // Absen harian jam 15:00 WIB — satu kali per tutor per hari, lepas dari jadwal kelas.
 async function dailyCheckIn(tutorId: string, latitude: number, longitude: number, accuracyM: number) {
   const today = getTodayWIB()
-  const window = dailyCheckInWindow(today)
+  const targetTime = await getDailyCheckInTime()
+  const window = dailyCheckInWindow(today, new Date(), targetTime)
   if (window === 'not-open') {
-    return fail('Absen dibuka pukul 14:30 WIB.', 422)
+    return fail(`Absen dibuka ${CHECKIN_OPENS_MINUTES_BEFORE} menit sebelum jam ${targetTime} WIB.`, 422)
   }
   if (window === 'closed') {
     return fail('Waktu absen hari ini sudah lewat.', 422)
@@ -65,7 +66,7 @@ async function dailyCheckIn(tutorId: string, latitude: number, longitude: number
     isWithinRadius: true,
     distanceM,
     checkedInAt: checkIn.checkedInAt.toISOString(),
-    late: isLateDailyCheckIn(today, checkIn.checkedInAt),
+    late: isLateDailyCheckIn(today, checkIn.checkedInAt, targetTime),
     message: `Absen berhasil! Jarak: ${distanceM}m`,
   })
 }

@@ -172,6 +172,23 @@ describe('POST /api/tutor-checkin', () => {
     expect(res.status).toBe(200)
   })
 
+  it('uses the admin-configured daily check-in time instead of the 15:00 default', async () => {
+    ;(prisma.systemSetting.findUnique as jest.Mock).mockImplementation(async ({ where }) =>
+      where.key === 'CHECKIN_DAILY_TIME' ? { value: '14:40' } : null,
+    )
+    ;(prisma.tutorCheckIn.create as jest.Mock).mockResolvedValue({
+      tutorId: 't1',
+      scheduleId: null,
+      date: today,
+      isWithinRadius: true,
+      distanceM: 5,
+      checkedInAt: new Date(`${today}T07:40:01Z`), // 14:40:01 WIB — 1 detik lewat target custom
+    })
+    const res = await POST(makeReq(inside))
+    const data = await res.json()
+    expect(data.late).toBe(true)
+  })
+
   it.each(['not-open', 'closed'])('returns 422 and writes nothing when the daily window is %s', async (window) => {
     ;(dailyCheckInWindow as jest.Mock).mockReturnValue(window)
     const res = await POST(makeReq(inside))

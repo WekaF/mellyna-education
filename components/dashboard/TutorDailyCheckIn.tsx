@@ -8,6 +8,7 @@ const DENIED_MSG = 'Izin lokasi diblokir. Buka izin lokasi untuk situs ini, lalu
 
 interface Props {
   todayLabel: string
+  targetTime: string
   opensAt: string
   checkedInAt: string | null
   distanceM: number | null
@@ -19,7 +20,7 @@ type Status = 'idle' | 'locating' | 'sending' | 'success' | 'outside' | 'error'
 const formatTime = (iso: string) =>
   new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })
 
-export function TutorDailyCheckIn({ todayLabel, opensAt, checkedInAt, distanceM, radiusM }: Props) {
+export function TutorDailyCheckIn({ todayLabel, targetTime, opensAt, checkedInAt, distanceM, radiusM }: Props) {
   const [status, setStatus] = useState<Status>(checkedInAt ? 'success' : 'idle')
   const [checkedAt, setCheckedAt] = useState(checkedInAt)
   const [distance, setDistance] = useState(distanceM)
@@ -106,7 +107,7 @@ export function TutorDailyCheckIn({ todayLabel, opensAt, checkedInAt, distanceM,
         <MapPin className="h-4 w-4 shrink-0 text-teal-600" />
         <p className="font-bold text-slate-800 text-sm">Absensi Harian</p>
       </div>
-      <p className="text-xs text-slate-500">{todayLabel} • absen sekali, pukul 15:00</p>
+      <p className="text-xs text-slate-500">{todayLabel} • absen sekali, pukul {targetTime}</p>
 
       <div
         className={`mt-3 rounded-xl border bg-white p-4 flex flex-col sm:flex-row sm:items-center gap-3 ${

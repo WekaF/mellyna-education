@@ -9,6 +9,7 @@ import {
   dailyCheckInOpensAt,
   dailyCheckInWindow,
   isLateDailyCheckIn,
+  isValidDailyCheckInTime,
 } from '@/lib/checkin-policy'
 
 // Schedule.date disimpan sebagai 00:00 UTC = 07:00 WIB di hari yang sama
@@ -90,6 +91,25 @@ describe('dailyCheckInWindow (absen harian jam 15:00)', () => {
   it('is closed at 00:00 WIB of the next day', () => {
     expect(dailyCheckInWindow('2026-10-20', new Date('2026-10-20T17:00:00Z'))).toBe('closed')
   })
+
+  it('opens 30 minutes before a custom configured time (14:40)', () => {
+    expect(dailyCheckInOpensAt('2026-10-20', '14:40').toISOString()).toBe('2026-10-20T07:10:00.000Z')
+  })
+
+  it('respects a custom configured time when checking the window', () => {
+    expect(dailyCheckInWindow('2026-10-20', new Date('2026-10-20T07:09:59Z'), '14:40')).toBe('not-open')
+    expect(dailyCheckInWindow('2026-10-20', new Date('2026-10-20T07:10:00Z'), '14:40')).toBe('open')
+  })
+})
+
+describe('isValidDailyCheckInTime', () => {
+  it.each(['00:00', '09:05', '14:40', '15:00', '23:59'])('accepts %s', (value) => {
+    expect(isValidDailyCheckInTime(value)).toBe(true)
+  })
+
+  it.each(['24:00', '15:60', '9:05', '1500', 'abc', ''])('rejects %s', (value) => {
+    expect(isValidDailyCheckInTime(value)).toBe(false)
+  })
 })
 
 describe('isLateDailyCheckIn', () => {
@@ -97,36 +117,35 @@ describe('isLateDailyCheckIn', () => {
     expect(isLateDailyCheckIn('2026-10-20', new Date('2026-10-20T08:00:00Z'))).toBe(false)
   })
 
+  it('is late against a custom configured time (14:40)', () => {
+    expect(isLateDailyCheckIn('2026-10-20', new Date('2026-10-20T07:40:00Z'), '14:40')).toBe(false)
+    expect(isLateDailyCheckIn('2026-10-20', new Date('2026-10-20T07:40:01Z'), '14:40')).toBe(true)
+  })
+
   it('is late one second after 15:00 WIB', () => {
     expect(isLateDailyCheckIn('2026-10-20', new Date('2026-10-20T08:00:01Z'))).toBe(true)
   })
 })
 
+// Laporan sekarang tidak lagi digembok oleh status absen — kelas pagi (mis. jam 8/11) harus
+// tetap bisa dilaporkan walau absen harian baru buka jam 15:00.
 describe('decideReportAccess', () => {
   const gated = new Date(REPORT_GATE_FROM)
   const beforeGate = new Date(gated.getTime() - 24 * 60 * 60 * 1000)
 
-  it('exempts schedules before the gate date', () => {
+  it.each([
+    { hasValidCheckIn: false, requestStatus: null },
+    { hasValidCheckIn: true, requestStatus: null },
+    { hasValidCheckIn: false, requestStatus: 'APPROVED' as const },
+    { hasValidCheckIn: false, requestStatus: 'PENDING' as const },
+    { hasValidCheckIn: false, requestStatus: 'REJECTED' as const },
+  ])('always allows regardless of check-in or request status (%j)', (input) => {
+    expect(decideReportAccess({ scheduleDate: gated, ...input })).toEqual({ allowed: true, reason: 'exempt' })
+  })
+
+  it('allows schedules before the gate date too', () => {
     expect(
       decideReportAccess({ scheduleDate: beforeGate, hasValidCheckIn: false, requestStatus: null }),
     ).toEqual({ allowed: true, reason: 'exempt' })
-  })
-
-  it('allows when tutor has a valid check-in', () => {
-    expect(
-      decideReportAccess({ scheduleDate: gated, hasValidCheckIn: true, requestStatus: null }),
-    ).toEqual({ allowed: true, reason: 'checked-in' })
-  })
-
-  it('allows when the access request is approved', () => {
-    expect(
-      decideReportAccess({ scheduleDate: gated, hasValidCheckIn: false, requestStatus: 'APPROVED' }),
-    ).toEqual({ allowed: true, reason: 'approved' })
-  })
-
-  it.each([null, 'PENDING', 'REJECTED'] as const)('blocks without check-in when request is %s', (requestStatus) => {
-    expect(
-      decideReportAccess({ scheduleDate: gated, hasValidCheckIn: false, requestStatus }),
-    ).toEqual({ allowed: false, reason: 'no-checkin' })
   })
 })

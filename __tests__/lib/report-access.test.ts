@@ -53,34 +53,36 @@ describe('getTutorReportAccess', () => {
     expect(prisma.reportAccessRequest.findUnique).toHaveBeenCalledWith(expect.objectContaining({ where }))
   })
 
-  it('blocks when there is no check-in and no request', async () => {
+  // Laporan tidak lagi digembok oleh absen — kelas pagi harus tetap bisa dilaporkan
+  // walau absen harian (jam 15:00 atau jam custom) belum dilakukan.
+  it('allows even with no check-in and no request', async () => {
     const access = await getTutorReportAccess('t1', 's1')
-    expect(access.allowed).toBe(false)
-    expect(access.reason).toBe('no-checkin')
+    expect(access.allowed).toBe(true)
+    expect(access.reason).toBe('exempt')
   })
 
-  it('blocks when the only check-in is outside the radius', async () => {
+  it('allows even when the only check-in is outside the radius', async () => {
     ;(prisma.tutorCheckIn.findUnique as jest.Mock).mockResolvedValue({ isWithinRadius: false })
-    expect((await getTutorReportAccess('t1', 's1')).allowed).toBe(false)
+    expect((await getTutorReportAccess('t1', 's1')).allowed).toBe(true)
   })
 
   it('allows with a valid check-in', async () => {
     ;(prisma.tutorCheckIn.findUnique as jest.Mock).mockResolvedValue({ isWithinRadius: true })
     const access = await getTutorReportAccess('t1', 's1')
-    expect(access).toMatchObject({ allowed: true, reason: 'checked-in' })
+    expect(access).toMatchObject({ allowed: true, reason: 'exempt' })
   })
 
   it('allows with an approved request and returns the request', async () => {
     const request = { id: 'r1', status: 'APPROVED', reason: 'GPS rusak', adminNote: null }
     ;(prisma.reportAccessRequest.findUnique as jest.Mock).mockResolvedValue(request)
     const access = await getTutorReportAccess('t1', 's1')
-    expect(access).toMatchObject({ allowed: true, reason: 'approved', request })
+    expect(access).toMatchObject({ allowed: true, reason: 'exempt', request })
   })
 
   it('allows with a valid daily check-in even without a per-schedule check-in', async () => {
     ;(prisma.tutorCheckIn.findFirst as jest.Mock).mockResolvedValue({ isWithinRadius: true })
     const access = await getTutorReportAccess('t1', 's1')
-    expect(access).toMatchObject({ allowed: true, reason: 'checked-in' })
+    expect(access).toMatchObject({ allowed: true, reason: 'exempt' })
     expect(prisma.tutorCheckIn.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { tutorId: 't1', scheduleId: null, date: scheduleDayWIB(gatedSchedule.date) },
@@ -88,9 +90,9 @@ describe('getTutorReportAccess', () => {
     )
   })
 
-  it('ignores a daily check-in that was outside the radius', async () => {
+  it('allows even when a daily check-in was outside the radius', async () => {
     ;(prisma.tutorCheckIn.findFirst as jest.Mock).mockResolvedValue({ isWithinRadius: false })
     const access = await getTutorReportAccess('t1', 's1')
-    expect(access.allowed).toBe(false)
+    expect(access.allowed).toBe(true)
   })
 })

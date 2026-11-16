@@ -40,34 +40,47 @@ export function isLateCheckIn(date: Date, startTime: string, checkedInAt: Date):
   return checkedInAt > scheduleStartAt(date, startTime)
 }
 
-// Absen harian — satu kali per tutor per hari, jam 15:00 WIB, lepas dari jadwal kelas.
+// Absen harian — satu kali per tutor per hari, jam target bisa diatur admin (default 15:00 WIB), lepas dari jadwal kelas.
 export const DAILY_CHECKIN_TIME = '15:00'
+export const CHECKIN_DAILY_TIME_SETTING_KEY = 'CHECKIN_DAILY_TIME'
 
-export function dailyCheckInTargetAt(dateKeyWIB: string): Date {
-  return new Date(`${dateKeyWIB}T${DAILY_CHECKIN_TIME}:00+07:00`)
+export function isValidDailyCheckInTime(value: string | null | undefined): boolean {
+  return typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value)
 }
 
-export function dailyCheckInOpensAt(dateKeyWIB: string): Date {
-  return new Date(dailyCheckInTargetAt(dateKeyWIB).getTime() - CHECKIN_OPENS_MINUTES_BEFORE * 60 * 1000)
+export function dailyCheckInTargetAt(dateKeyWIB: string, targetTime: string = DAILY_CHECKIN_TIME): Date {
+  return new Date(`${dateKeyWIB}T${targetTime}:00+07:00`)
 }
 
-export function dailyCheckInWindow(dateKeyWIB: string, now: Date = new Date()): CheckInWindow {
-  if (now < dailyCheckInOpensAt(dateKeyWIB)) return 'not-open'
+export function dailyCheckInOpensAt(dateKeyWIB: string, targetTime: string = DAILY_CHECKIN_TIME): Date {
+  return new Date(dailyCheckInTargetAt(dateKeyWIB, targetTime).getTime() - CHECKIN_OPENS_MINUTES_BEFORE * 60 * 1000)
+}
+
+export function dailyCheckInWindow(
+  dateKeyWIB: string,
+  now: Date = new Date(),
+  targetTime: string = DAILY_CHECKIN_TIME,
+): CheckInWindow {
+  if (now < dailyCheckInOpensAt(dateKeyWIB, targetTime)) return 'not-open'
   const closesAt = new Date(`${dateKeyWIB}T23:59:59.999+07:00`)
   return now <= closesAt ? 'open' : 'closed'
 }
 
-export function isLateDailyCheckIn(dateKeyWIB: string, checkedInAt: Date): boolean {
-  return checkedInAt > dailyCheckInTargetAt(dateKeyWIB)
+export function isLateDailyCheckIn(
+  dateKeyWIB: string,
+  checkedInAt: Date,
+  targetTime: string = DAILY_CHECKIN_TIME,
+): boolean {
+  return checkedInAt > dailyCheckInTargetAt(dateKeyWIB, targetTime)
 }
 
-export function decideReportAccess(input: {
+// Laporan tidak lagi digembok oleh status absen — kelas pagi (jam 8/11) harus tetap bisa
+// dilaporkan walau absen harian baru buka sore. Fungsi ini dipertahankan (bukan dihapus)
+// supaya tipe TutorReportAccess & ReportAccessRequest tetap kompatibel kalau mau diaktifkan lagi.
+export function decideReportAccess(_input: {
   scheduleDate: Date
   hasValidCheckIn: boolean
   requestStatus: ReportAccessRequestStatus | null
 }): { allowed: boolean; reason: ReportAccessReason } {
-  if (scheduleDayWIB(input.scheduleDate) < REPORT_GATE_FROM) return { allowed: true, reason: 'exempt' }
-  if (input.hasValidCheckIn) return { allowed: true, reason: 'checked-in' }
-  if (input.requestStatus === 'APPROVED') return { allowed: true, reason: 'approved' }
-  return { allowed: false, reason: 'no-checkin' }
+  return { allowed: true, reason: 'exempt' }
 }

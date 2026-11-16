@@ -9,10 +9,12 @@ import {
   CHECKIN_RADIUS_SETTING_KEY,
   isValidCheckInRadius,
 } from '@/lib/geolocation'
+import { CHECKIN_DAILY_TIME_SETTING_KEY, DAILY_CHECKIN_TIME, isValidDailyCheckInTime } from '@/lib/checkin-policy'
 
 const SETTING_DEFAULTS: Record<string, string> = {
   AUTO_TIMETABLE_BROADCAST: 'true',
   [CHECKIN_RADIUS_SETTING_KEY]: String(CHECKIN_RADIUS_METERS),
+  [CHECKIN_DAILY_TIME_SETTING_KEY]: DAILY_CHECKIN_TIME,
 }
 
 export async function GET(_req: NextRequest) {
@@ -46,6 +48,9 @@ export async function PUT(req: NextRequest) {
       { error: `Radius harus bilangan bulat ${CHECKIN_RADIUS_MIN_M}–${CHECKIN_RADIUS_MAX_M} meter.` },
       { status: 400 },
     )
+  }
+  if (key === CHECKIN_DAILY_TIME_SETTING_KEY && !isValidDailyCheckInTime(value)) {
+    return NextResponse.json({ error: 'Jam absen harus format HH:MM, contoh 14:40.' }, { status: 400 })
   }
   const setting = await prisma.systemSetting.upsert({
     where: { key },

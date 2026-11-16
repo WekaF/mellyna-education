@@ -3,7 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getSessionStatus } from '@/lib/waha'
 import { prisma } from '@/lib/db'
-import { getCheckInRadiusM } from '@/lib/checkin-settings'
+import { getCheckInRadiusM, getDailyCheckInTime } from '@/lib/checkin-settings'
 import SettingsClient from './SettingsClient'
 
 export default async function AdminSettingsPage() {
@@ -26,6 +26,7 @@ export default async function AdminSettingsPage() {
   })
   const autoBroadcast = autoBroadcastSetting?.value !== 'false'
   const checkInRadius = await getCheckInRadiusM()
+  const checkInDailyTime = await getDailyCheckInTime()
 
   const initialStatus = {
     whatdesks: {
@@ -41,5 +42,12 @@ export default async function AdminSettingsPage() {
     },
   }
 
-  return <SettingsClient initialStatus={initialStatus} initialAutoBroadcast={autoBroadcast} initialCheckInRadius={checkInRadius} />
+  return (
+    <SettingsClient
+      initialStatus={initialStatus}
+      initialAutoBroadcast={autoBroadcast}
+      initialCheckInRadius={checkInRadius}
+      initialCheckInDailyTime={checkInDailyTime}
+    />
+  )
 }

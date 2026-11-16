@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ExternalLink, RefreshCw, Wifi, WifiOff, Bell, BellOff, MapPin } from 'lucide-react'
+import { ExternalLink, RefreshCw, Wifi, WifiOff, Bell, BellOff, MapPin, Clock } from 'lucide-react'
 import {
   CHECKIN_MAX_ACCURACY_ALLOWANCE_M,
   CHECKIN_RADIUS_MAX_M,
@@ -9,6 +9,7 @@ import {
   CHECKIN_RADIUS_SETTING_KEY,
   isValidCheckInRadius,
 } from '@/lib/geolocation'
+import { CHECKIN_DAILY_TIME_SETTING_KEY, CHECKIN_OPENS_MINUTES_BEFORE, isValidDailyCheckInTime } from '@/lib/checkin-policy'
 
 interface IntegrationStatus {
   whatdesks: {
@@ -26,6 +27,7 @@ interface Props {
   initialStatus: IntegrationStatus | null
   initialAutoBroadcast: boolean
   initialCheckInRadius: number
+  initialCheckInDailyTime: string
 }
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -44,7 +46,7 @@ const StatusBadge = ({ status }: { status: string }) => {
   )
 }
 
-export default function SettingsClient({ initialStatus, initialAutoBroadcast, initialCheckInRadius }: Props) {
+export default function SettingsClient({ initialStatus, initialAutoBroadcast, initialCheckInRadius, initialCheckInDailyTime }: Props) {
   const [status, setStatus] = useState<IntegrationStatus | null>(initialStatus)
   const [loading, setLoading] = useState(false)
   const [autoBroadcast, setAutoBroadcast] = useState(initialAutoBroadcast)
@@ -53,6 +55,10 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast, in
   const [radiusInput, setRadiusInput] = useState(String(initialCheckInRadius))
   const [savingRadius, setSavingRadius] = useState(false)
   const [radiusMsg, setRadiusMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [savedDailyTime, setSavedDailyTime] = useState(initialCheckInDailyTime)
+  const [dailyTimeInput, setDailyTimeInput] = useState(initialCheckInDailyTime)
+  const [savingDailyTime, setSavingDailyTime] = useState(false)
+  const [dailyTimeMsg, setDailyTimeMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [testingWa, setTestingWa] = useState(false)
   const [testWaResults, setTestWaResults] = useState<Array<{ label: string; phone: string; success: boolean; error?: string }> | null>(null)
   const [testWaDiag, setTestWaDiag] = useState<Record<string, string> | null>(null)
@@ -100,6 +106,27 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast, in
       setRadiusMsg({ ok: false, text: (e as Error).message })
     } finally {
       setSavingRadius(false)
+    }
+  }
+
+  const saveDailyTime = async () => {
+    setSavingDailyTime(true)
+    setDailyTimeMsg(null)
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: CHECKIN_DAILY_TIME_SETTING_KEY, value: dailyTimeInput.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(typeof data?.error === 'string' ? data.error : 'Gagal menyimpan jam absen.')
+      setSavedDailyTime(data.value)
+      setDailyTimeInput(data.value)
+      setDailyTimeMsg({ ok: true, text: `Jam absen harian sekarang pukul ${data.value}.` })
+    } catch (e) {
+      setDailyTimeMsg({ ok: false, text: (e as Error).message })
+    } finally {
+      setSavingDailyTime(false)
     }
   }
 
@@ -216,6 +243,46 @@ export default function SettingsClient({ initialStatus, initialAutoBroadcast, in
         {radiusMsg && (
           <p className={`text-xs font-semibold ${radiusMsg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>
             {radiusMsg.text}
+          </p>
+        )}
+      </div>
+
+      {/* Jam Absen Harian Tutor */}
+      <div className="rounded-2xl bg-white border border-slate-100 shadow-xs p-6 space-y-4">
+        <div>
+          <h2 className="font-extrabold text-slate-800 flex items-center gap-2">
+            <Clock className="h-4 w-4 text-teal-600" />
+            Jam Absen Harian Tutor
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Setiap tutor absen sekali per hari pada jam ini. Absen dibuka {CHECKIN_OPENS_MINUTES_BEFORE} menit
+            sebelumnya dan tetap bisa dilakukan sampai tengah malam (ditandai TERLAMBAT kalau lewat jam ini).
+            Perubahan berlaku untuk absen berikutnya; absen yang sudah tercatat tidak berubah.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="time"
+            value={dailyTimeInput}
+            onChange={(e) => setDailyTimeInput(e.target.value)}
+            aria-label="Jam absen harian"
+            className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-teal-500"
+          />
+          <button
+            type="button"
+            onClick={saveDailyTime}
+            disabled={savingDailyTime || !isValidDailyCheckInTime(dailyTimeInput) || dailyTimeInput === savedDailyTime}
+            className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {savingDailyTime ? 'Menyimpan...' : 'Simpan'}
+          </button>
+        </div>
+        {!isValidDailyCheckInTime(dailyTimeInput) && (
+          <p className="text-xs text-rose-600">Isi jam yang valid, format HH:MM.</p>
+        )}
+        {dailyTimeMsg && (
+          <p className={`text-xs font-semibold ${dailyTimeMsg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>
+            {dailyTimeMsg.text}
           </p>
         )}
       </div>

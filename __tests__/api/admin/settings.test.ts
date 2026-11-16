@@ -116,3 +116,38 @@ describe('PUT /api/admin/settings — CHECKIN_RADIUS_METERS', () => {
     expect((await res.json()).CHECKIN_RADIUS_METERS).toBe('10')
   })
 })
+
+describe('PUT /api/admin/settings — CHECKIN_DAILY_TIME', () => {
+  const put = (value: string) =>
+    PUT(
+      new Request('http://localhost/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'CHECKIN_DAILY_TIME', value }),
+      }) as any,
+    )
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    ;(getServerSession as jest.Mock).mockResolvedValue(mockSession)
+    ;(prisma.systemSetting.upsert as jest.Mock).mockImplementation(async ({ create }) => create)
+  })
+
+  it.each(['24:00', '15:60', '9:05', '1500', 'abc', ''])('rejects invalid time %p', async (value) => {
+    const res = await put(value)
+    expect(res.status).toBe(400)
+    expect(prisma.systemSetting.upsert).not.toHaveBeenCalled()
+  })
+
+  it('saves a valid custom time', async () => {
+    const res = await put('14:40')
+    expect(res.status).toBe(200)
+    expect((await res.json()).value).toBe('14:40')
+  })
+
+  it('exposes the default 15:00 in GET', async () => {
+    ;(prisma.systemSetting.findMany as jest.Mock).mockResolvedValue([])
+    const res = await GET(new Request('http://localhost/api/admin/settings') as any)
+    expect((await res.json()).CHECKIN_DAILY_TIME).toBe('15:00')
+  })
+})
