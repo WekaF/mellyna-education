@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { exportToExcel, exportToPDF } from '@/lib/export'
+import { FileSpreadsheet, FileText, Receipt } from 'lucide-react'
 
 type Tutor = {
   id: string
@@ -100,6 +102,42 @@ export default function PayrollClient({ defaultPeriod, tutors, initialEntries, p
     }
   }
 
+  const exportRows = () =>
+    entries.map((e) => ({
+      Tutor: e.tutor.name,
+      Periode: e.periodMonth,
+      'Hari Kerja': e.hariKerja,
+      'Rp Hari Kerja': e.dailyRateAmount,
+      Izin: e.izinHari,
+      'Hari Ontime': e.bonusOntimeDays,
+      'Rp Bonus Ontime': e.bonusOntimeAmount,
+      'Jam Extra Time': e.extraTimeHours,
+      'Rp Extra Time': e.extraTimeAmount,
+      'Sesi Extra Handle': e.extraHandleCount,
+      'Rp Extra Handle': e.extraHandleAmount,
+      Total: e.totalAmount,
+      Status: e.status,
+    }))
+
+  const handleExportExcel = () => {
+    exportToExcel(exportRows(), `Payroll_${periodMonth}`, 'Payroll')
+  }
+
+  const handleExportPdf = async () => {
+    const columns = ['Tutor', 'Hari Kerja', 'Izin', 'Ontime', 'Extra Time', 'Extra Handle', 'Total', 'Status']
+    const rows = entries.map((e) => [
+      e.tutor.name,
+      e.hariKerja,
+      e.izinHari,
+      e.bonusOntimeDays,
+      `${e.extraTimeHours}j`,
+      e.extraHandleCount,
+      rupiah(e.totalAmount),
+      e.status,
+    ])
+    await exportToPDF(columns, rows, `Payroll_${periodMonth}`, `Payroll Karyawan — ${periodMonth}`)
+  }
+
   const handleFinalize = async (id: string) => {
     const res = await fetch(`/api/admin/payroll/${id}/finalize`, { method: 'PATCH' })
     if (res.ok) await fetchEntries(periodMonth)
@@ -181,6 +219,22 @@ export default function PayrollClient({ defaultPeriod, tutors, initialEntries, p
           >
             {generating ? 'Memproses...' : 'Generate / Refresh'}
           </button>
+          <button
+            onClick={handleExportExcel}
+            disabled={entries.length === 0}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2.5 rounded-xl cursor-pointer"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Export Excel
+          </button>
+          <button
+            onClick={handleExportPdf}
+            disabled={entries.length === 0}
+            className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2.5 rounded-xl cursor-pointer"
+          >
+            <FileText className="h-4 w-4" />
+            Export PDF
+          </button>
           {error && <p className="text-sm text-rose-600">{error}</p>}
         </div>
 
@@ -222,11 +276,20 @@ export default function PayrollClient({ defaultPeriod, tutors, initialEntries, p
                       </span>
                     </td>
                     <td className="py-2 pr-3">
-                      {e.status === 'DRAFT' && (
-                        <button onClick={() => handleFinalize(e.id)} className="text-xs font-semibold text-indigo-600 hover:underline cursor-pointer">
-                          Finalize
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => window.open(`/api/admin/payroll/${e.id}/slip`, '_blank')}
+                          className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:underline cursor-pointer"
+                        >
+                          <Receipt className="h-3.5 w-3.5" />
+                          Slip Gaji
                         </button>
-                      )}
+                        {e.status === 'DRAFT' && (
+                          <button onClick={() => handleFinalize(e.id)} className="text-xs font-semibold text-indigo-600 hover:underline cursor-pointer">
+                            Finalize
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
